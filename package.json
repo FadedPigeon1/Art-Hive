@@ -1,0 +1,21 @@
+{
+  "name": "arthive",
+  "version": "1.0.0",
+  "description": "ArtHive - A social platform for artists",
+  "scripts": {
+    "server": "cd backend && npm run dev",
+    "client": "cd frontend && npm start",
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "install-all": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  },
+  "keywords": [
+    "art",
+    "social",
+    "mern"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}

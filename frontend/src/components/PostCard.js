@@ -1,0 +1,182 @@
+import React, { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { FiHeart, FiMessageCircle, FiTrash2, FiPlus } from "react-icons/fi";
+import { FaHeart } from "react-icons/fa";
+import { useAuth } from "../context/AuthContext";
+import { postsAPI } from "../utils/api";
+import { toast } from "react-toastify";
+import RemixModal from "./RemixModal";
+import Comments from "./Comments";
+
+const DEFAULT_AVATAR = "/default-avatar.svg";
+
+const PostCard = ({ post, onDelete, onLike }) => {
+  const { user, isAuthenticated } = useAuth();
+  const navigate = useNavigate();
+  const [isLiked, setIsLiked] = useState(
+    post.likes?.includes(user?._id) || false
+  );
+  const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
+  const [showComments, setShowComments] = useState(false);
+  const [showRemixModal, setShowRemixModal] = useState(false);
+
+  const handleLike = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to like posts");
+      return;
+    }
+
+    try {
+      if (isLiked) {
+        await postsAPI.unlikePost(post._id);
+        setLikesCount((prev) => prev - 1);
+        setIsLiked(false);
+      } else {
+        await postsAPI.likePost(post._id);
+        setLikesCount((prev) => prev + 1);
+        setIsLiked(true);
+      }
+      if (onLike) onLike();
+    } catch (error) {
+      toast.error("Failed to update like");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (window.confirm("Are you sure you want to delete this post?")) {
+      try {
+        await postsAPI.deletePost(post._id);
+        toast.success("Post deleted successfully");
+        if (onDelete) onDelete(post._id);
+      } catch (error) {
+        toast.error("Failed to delete post");
+      }
+    }
+  };
+
+  const handleRemix = () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to remix posts");
+      return;
+    }
+    const remixUrl = encodeURIComponent(post.imageUrl);
+    const remixId = encodeURIComponent(post._id);
+    navigate(`/sketchbook?remix=${remixUrl}&remixId=${remixId}`);
+  };
+
+  return (
+    <div className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg overflow-hidden mb-4">
+      {/* Post Header */}
+      <div className="p-4 flex items-center justify-between">
+        <Link
+          to={`/profile/${post.userId?._id}`}
+          className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+        >
+          <img
+            src={post.userId?.profilePic || DEFAULT_AVATAR}
+            alt={post.userId?.username}
+            className="w-10 h-10 rounded-full object-cover"
+          />
+          <div>
+            <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
+              {post.userId?.username}
+            </p>
+            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
+              {new Date(post.createdAt).toLocaleDateString()}
+            </p>
+          </div>
+        </Link>
+
+        {user?._id === post.userId?._id && (
+          <button
+            onClick={handleDelete}
+            className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
+          >
+            <FiTrash2 size={18} />
+          </button>
+        )}
+      </div>
+
+      {/* Post Image */}
+      <div className="w-full bg-surface-light dark:bg-surface-dark">
+        <img
+          src={post.imageUrl}
+          alt="Post"
+          className="w-full max-h-[600px] object-contain"
+        />
+      </div>
+
+      {/* Post Actions */}
+      <div className="p-4">
+        <div className="flex items-center space-x-4 mb-2">
+          <button
+            onClick={handleLike}
+            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
+          >
+            {isLiked ? (
+              <FaHeart size={24} className="text-red-500" />
+            ) : (
+              <FiHeart size={24} />
+            )}
+            <span>{likesCount}</span>
+          </button>
+
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light transition-colors"
+          >
+            <FiMessageCircle size={24} />
+            <span>{post.comments?.length || 0}</span>
+          </button>
+
+          <button
+            onClick={handleRemix}
+            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light transition-colors"
+          >
+            <FiPlus size={24} />
+            <span>{post.remixCount || 0}</span>
+          </button>
+        </div>
+
+        {/* Remix Attribution */}
+        {post.remixedFrom && (
+          <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark mt-2">
+            Remixed from{" "}
+            <Link
+              to={`/profile/${post.remixedFrom.userId?._id}`}
+              className="text-primary-light dark:text-primary-dark hover:underline"
+            >
+              @{post.remixedFrom.userId?.username}
+            </Link>
+            's artwork
+          </p>
+        )}
+
+        {/* Caption */}
+        {post.caption && (
+          <p className="text-text-primary-light dark:text-text-primary-dark mt-2">
+            <span className="font-semibold">{post.userId?.username}</span>{" "}
+            {post.caption}
+          </p>
+        )}
+
+        {/* View Comments */}
+        {post.comments && post.comments.length > 0 && (
+          <button
+            onClick={() => setShowComments(!showComments)}
+            className="text-text-secondary-light dark:text-text-secondary-dark text-sm mt-2 hover:underline"
+          >
+            {showComments ? "Hide" : "View"} comments ({post.comments.length})
+          </button>
+        )}
+      </div>
+
+      {/* Comments Section */}
+      {showComments && <Comments postId={post._id} />}
+
+      {/* Remix Modal removed in favor of Sketchbook Pro-based remixing */}
+    </div>
+  );
+};
+
+export default PostCard;
