@@ -46,8 +46,16 @@ export const gameAPI = {
   joinGame: (code, nickname, userId) =>
     axios.post("/api/game/join", { code, nickname, userId }),
   getGame: (code) => axios.get(`/api/game/${code}`),
+  startGame: (code) => axios.post(`/api/game/${code}/start`),
+  getPlayerTask: (code, nickname) =>
+    axios.get(`/api/game/${code}/task/${nickname}`),
+  submitEntry: (code, data) =>
+    axios.post(`/api/game/${code}/submit-entry`, data),
   submitDrawing: (code, data) => axios.post(`/api/game/${code}/submit`, data),
   endGame: (code) => axios.post(`/api/game/${code}/end`),
+  leaveGame: (code, nickname) =>
+    axios.post(`/api/game/${code}/leave`, { nickname }),
+  getResults: (code) => axios.get(`/api/game/${code}/results`),
 };
 
 export default {

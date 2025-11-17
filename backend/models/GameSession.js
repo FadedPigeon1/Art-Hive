@@ -18,8 +18,8 @@ const playerSchema = new mongoose.Schema({
 
 const drawingSchema = new mongoose.Schema({
   round: Number,
-  playerId: String,
   playerNickname: String,
+  chainId: Number, // Which chain this belongs to
   type: {
     type: String,
     enum: ["drawing", "prompt"],
@@ -29,6 +29,20 @@ const drawingSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+});
+
+const chainSchema = new mongoose.Schema({
+  chainId: Number,
+  originalPrompt: String,
+  originalPlayer: String,
+  entries: [
+    {
+      playerNickname: String,
+      type: String, // "prompt" or "drawing"
+      data: String,
+      round: Number,
+    },
+  ],
 });
 
 const gameSessionSchema = new mongoose.Schema(
@@ -41,7 +55,8 @@ const gameSessionSchema = new mongoose.Schema(
     },
     hostId: String,
     players: [playerSchema],
-    drawings: [drawingSchema],
+    chains: [chainSchema], // Store chains for Gartic Phone style
+    drawings: [drawingSchema], // Keep for backwards compatibility
     status: {
       type: String,
       enum: ["waiting", "in-progress", "finished"],

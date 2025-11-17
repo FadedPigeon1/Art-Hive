@@ -60,8 +60,20 @@ io.on("connection", (socket) => {
 
   socket.on("join-game", ({ code, nickname }) => {
     socket.join(code);
-    socket.to(code).emit("player-joined", { nickname, socketId: socket.id });
+    io.to(code).emit("player-joined", { nickname, socketId: socket.id });
     console.log(`${nickname} joined game ${code}`);
+  });
+
+  socket.on("start-game", ({ code }) => {
+    io.to(code).emit("game-started", { code });
+    console.log(`Game ${code} started`);
+  });
+
+  socket.on("entry-submitted", ({ code, nickname, round }) => {
+    io.to(code).emit("player-submitted", { nickname, round });
+    console.log(
+      `${nickname} submitted entry for round ${round} in game ${code}`
+    );
   });
 
   socket.on("submit-drawing", ({ code, drawing, round }) => {
@@ -70,10 +82,27 @@ io.on("connection", (socket) => {
       .emit("drawing-submitted", { drawing, round, socketId: socket.id });
   });
 
-  socket.on("submit-prompt", ({ code, prompt, round }) => {
-    socket
-      .to(code)
-      .emit("prompt-submitted", { prompt, round, socketId: socket.id });
+  socket.on("submit-prompt", ({ code, prompt, round, nickname }) => {
+    io.to(code).emit("prompt-submitted", {
+      prompt,
+      round,
+      nickname,
+      socketId: socket.id,
+    });
+  });
+
+  socket.on("next-round", ({ code, round }) => {
+    io.to(code).emit("next-round", { code, round });
+  });
+
+  socket.on("end-game", ({ code }) => {
+    io.to(code).emit("game-ended", { code });
+  });
+
+  socket.on("leave-game", ({ code, nickname }) => {
+    socket.leave(code);
+    io.to(code).emit("player-left", { nickname, socketId: socket.id });
+    console.log(`${nickname} left game ${code}`);
   });
 
   socket.on("disconnect", () => {
