@@ -1,13 +1,21 @@
 <svg width="150" height="150" viewBox="0 0 150 150" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#667eea;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#764ba2;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
   <!-- Background circle -->
-  <circle cx="75" cy="75" r="75" fill="#E5E7EB"/>
+  <circle cx="75" cy="75" r="75" fill="url(#bgGradient)"/>
   
   <!-- User icon -->
   <g transform="translate(75, 75)">
     <!-- Head -->
-    <circle cx="0" cy="-15" r="20" fill="#9CA3AF"/>
+    <circle cx="0" cy="-10" r="22" fill="white" opacity="0.9"/>
     
     <!-- Body -->
-    <path d="M -30 25 Q -30 5 -20 0 L 20 0 Q 30 5 30 25 L 30 50 L -30 50 Z" fill="#9CA3AF"/>
+    <path d="M -35 30 Q -35 8 -22 2 L 22 2 Q 35 8 35 30 L 35 55 L -35 55 Z" fill="white" opacity="0.9"/>
   </g>
 </svg>

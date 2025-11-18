@@ -7,8 +7,7 @@ import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
 import RemixModal from "./RemixModal";
 import Comments from "./Comments";
-
-const DEFAULT_AVATAR = "/default-avatar.svg";
+import { getProfilePicture } from "../utils/imageHelpers";
 
 const PostCard = ({ post, onDelete, onLike }) => {
   const { user, isAuthenticated } = useAuth();
@@ -73,7 +72,7 @@ const PostCard = ({ post, onDelete, onLike }) => {
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
         >
           <img
-            src={post.userId?.profilePic || DEFAULT_AVATAR}
+            src={getProfilePicture(post.userId?.profilePic)}
             alt={post.userId?.username}
             className="w-10 h-10 rounded-full object-cover"
           />

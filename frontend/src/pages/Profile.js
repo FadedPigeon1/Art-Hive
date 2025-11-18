@@ -6,8 +6,7 @@ import PostCard from "../components/PostCard";
 import UploadArtModal from "../components/UploadArtModal";
 import { toast } from "react-toastify";
 import { FiCalendar, FiEdit, FiPlus, FiCamera } from "react-icons/fi";
-
-const DEFAULT_AVATAR = "/default-avatar.svg";
+import { getProfilePicture } from "../utils/imageHelpers";
 
 const Profile = () => {
   const { userId } = useParams();
@@ -40,10 +39,16 @@ const Profile = () => {
     try {
       const { data } = await postsAPI.getUserPosts(userId);
       if (data.length > 0) {
-        setProfile(data[0].userId);
+        const userFromPost = data[0].userId;
+        setProfile(userFromPost);
         // Only set bio from posts if it's not own profile or if we don't have currentUser yet
         if (!isOwnProfile || !currentUser) {
-          setBio(data[0].userId.bio || "");
+          setBio(userFromPost.bio || "");
+        }
+      } else {
+        // If no posts, fetch user data directly
+        if (isOwnProfile && currentUser) {
+          setProfile(currentUser);
         }
       }
       setPosts(data);
@@ -160,7 +165,7 @@ const Profile = () => {
             {/* Profile Picture with Edit Overlay */}
             <div className="relative group">
               <img
-                src={profileData?.profilePic || DEFAULT_AVATAR}
+                src={getProfilePicture(profileData?.profilePic)}
                 alt={profileData?.username}
                 className="w-32 h-32 rounded-full object-cover border-4 border-primary-light"
               />
@@ -260,6 +265,22 @@ const Profile = () => {
                   </span>
                   <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
                     Posts
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
+                    {profileData?.followers?.length || 0}
+                  </span>
+                  <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
+                    Followers
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
+                    {profileData?.following?.length || 0}
+                  </span>
+                  <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
+                    Following
                   </span>
                 </div>
               </div>

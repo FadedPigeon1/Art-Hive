@@ -117,7 +117,10 @@ export const getUserPosts = async (req, res) => {
   try {
     const posts = await Post.find({ userId: req.params.userId })
       .sort({ createdAt: -1 })
-      .populate("userId", "username profilePic");
+      .populate(
+        "userId",
+        "username profilePic bio email dateJoined followers following"
+      );
 
     res.json(posts);
   } catch (error) {

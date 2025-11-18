@@ -97,6 +97,34 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
+  const followUser = async (userId) => {
+    try {
+      await axios.put(`/api/auth/follow/${userId}`);
+      // Reload user data to get updated following list
+      await loadUser();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to follow user",
+      };
+    }
+  };
+
+  const unfollowUser = async (userId) => {
+    try {
+      await axios.put(`/api/auth/unfollow/${userId}`);
+      // Reload user data to get updated following list
+      await loadUser();
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.response?.data?.message || "Failed to unfollow user",
+      };
+    }
+  };
+
   const value = {
     user,
     token,
@@ -105,6 +133,9 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    followUser,
+    unfollowUser,
+    loadUser,
     isAuthenticated: !!user,
   };
 

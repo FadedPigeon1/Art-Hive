@@ -11,8 +11,7 @@ import {
   FiPlus,
 } from "react-icons/fi";
 import { IoGameControllerOutline } from "react-icons/io5";
-
-const DEFAULT_AVATAR = "/default-avatar.svg";
+import { getProfilePicture } from "../utils/imageHelpers";
 
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -100,7 +99,7 @@ const Navbar = () => {
                   className="flex items-center space-x-2 hover:opacity-80 transition-opacity"
                 >
                   <img
-                    src={user?.profilePic || DEFAULT_AVATAR}
+                    src={getProfilePicture(user?.profilePic)}
                     alt={user?.username}
                     className="w-8 h-8 rounded-full object-cover"
                   />

@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { authAPI } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 import axios from "axios";
 import { toast } from "react-toastify";
-
-const DEFAULT_AVATAR = "/default-avatar.svg";
+import { getProfilePicture } from "../utils/imageHelpers";
 
 const SuggestedProfiles = () => {
+  const { followUser: authFollowUser, unfollowUser: authUnfollowUser } =
+    useAuth();
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [followingMap, setFollowingMap] = useState({});
@@ -30,35 +32,35 @@ const SuggestedProfiles = () => {
 
   const handleFollow = async (userId) => {
     try {
-      const token = localStorage.getItem("token");
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      const result = await authFollowUser(userId);
 
-      await authAPI.followUser(userId);
-
-      // Update the following map to show "Following"
-      setFollowingMap((prev) => ({ ...prev, [userId]: true }));
-
-      toast.success("User followed!");
+      if (result.success) {
+        // Update the following map to show "Following"
+        setFollowingMap((prev) => ({ ...prev, [userId]: true }));
+        toast.success("User followed!");
+      } else {
+        toast.error(result.message || "Failed to follow user");
+      }
     } catch (error) {
       console.error("Error following user:", error);
-      toast.error(error.response?.data?.message || "Failed to follow user");
+      toast.error("Failed to follow user");
     }
   };
 
   const handleUnfollow = async (userId) => {
     try {
-      const token = localStorage.getItem("token");
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      const result = await authUnfollowUser(userId);
 
-      await authAPI.unfollowUser(userId);
-
-      // Update the following map to show "Follow"
-      setFollowingMap((prev) => ({ ...prev, [userId]: false }));
-
-      toast.success("User unfollowed!");
+      if (result.success) {
+        // Update the following map to show "Follow"
+        setFollowingMap((prev) => ({ ...prev, [userId]: false }));
+        toast.success("User unfollowed!");
+      } else {
+        toast.error(result.message || "Failed to unfollow user");
+      }
     } catch (error) {
       console.error("Error unfollowing user:", error);
-      toast.error(error.response?.data?.message || "Failed to unfollow user");
+      toast.error("Failed to unfollow user");
     }
   };
 
@@ -83,7 +85,7 @@ const SuggestedProfiles = () => {
           >
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <img
-                src={suggestedUser.profilePic || DEFAULT_AVATAR}
+                src={getProfilePicture(suggestedUser.profilePic)}
                 alt={suggestedUser.username}
                 className="w-10 h-10 rounded-full object-cover"
               />

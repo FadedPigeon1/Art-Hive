@@ -3,8 +3,7 @@ import { useAuth } from "../context/AuthContext";
 import { commentsAPI } from "../utils/api";
 import { toast } from "react-toastify";
 import { FiSend, FiTrash2 } from "react-icons/fi";
-
-const DEFAULT_AVATAR = "/default-avatar.svg";
+import { getProfilePicture } from "../utils/imageHelpers";
 
 const Comments = ({ postId }) => {
   const { user, isAuthenticated } = useAuth();
@@ -76,7 +75,7 @@ const Comments = ({ postId }) => {
           className="p-4 flex items-center space-x-2"
         >
           <img
-            src={user?.profilePic || DEFAULT_AVATAR}
+            src={getProfilePicture(user?.profilePic)}
             alt={user?.username}
             className="w-8 h-8 rounded-full object-cover"
           />
@@ -108,7 +107,7 @@ const Comments = ({ postId }) => {
           comments.map((comment) => (
             <div key={comment._id} className="flex items-start space-x-2">
               <img
-                src={comment.userId?.profilePic || DEFAULT_AVATAR}
+                src={getProfilePicture(comment.userId?.profilePic)}
                 alt={comment.userId?.username}
                 className="w-8 h-8 rounded-full object-cover"
               />
