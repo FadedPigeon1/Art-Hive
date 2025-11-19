@@ -5,12 +5,12 @@ import { postsAPI } from "../utils/api";
 import PostCard from "../components/PostCard";
 import UploadArtModal from "../components/UploadArtModal";
 import { toast } from "react-toastify";
-import { FiCalendar, FiEdit, FiPlus, FiCamera } from "react-icons/fi";
+import { FiCalendar, FiEdit, FiPlus, FiCamera, FiUserPlus, FiUserMinus } from "react-icons/fi";
 import { getProfilePicture } from "../utils/imageHelpers";
 
 const Profile = () => {
   const { userId } = useParams();
-  const { user: currentUser, updateProfile } = useAuth();
+  const { user: currentUser, updateProfile, followUser, unfollowUser } = useAuth();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -20,6 +20,8 @@ const Profile = () => {
   const [saving, setSaving] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [followLoading, setFollowLoading] = useState(false);
 
   const isOwnProfile = currentUser?._id === userId;
 
@@ -34,6 +36,13 @@ const Profile = () => {
       setProfile(currentUser);
     }
   }, [currentUser, isOwnProfile]);
+
+  // Check if currently following this user
+  useEffect(() => {
+    if (currentUser && profile && !isOwnProfile) {
+      setIsFollowing(currentUser.following?.includes(userId) || false);
+    }
+  }, [currentUser, profile, userId, isOwnProfile]);
 
   const fetchUserPosts = async () => {
     try {
@@ -144,7 +153,52 @@ const Profile = () => {
     }
   };
 
-  if (loading) {
+  const handleFollowToggle = async () => {
+    if (!currentUser) {
+      toast.error("Please login to follow users");
+      return;
+    }
+
+    setFollowLoading(true);
+    try {
+      let result;
+      if (isFollowing) {
+        result = await unfollowUser(userId);
+        if (result.success) {
+          setIsFollowing(false);
+          toast.success("Unfollowed successfully");
+          // Update follower count in profile
+          if (profile) {
+            setProfile({
+              ...profile,
+              followers: profile.followers.filter((id) => id !== currentUser._id),
+            });
+          }
+        } else {
+          toast.error(result.message || "Failed to unfollow user");
+        }
+      } else {
+        result = await followUser(userId);
+        if (result.success) {
+          setIsFollowing(true);
+          toast.success("Following successfully");
+          // Update follower count in profile
+          if (profile) {
+            setProfile({
+              ...profile,
+              followers: [...(profile.followers || []), currentUser._id],
+            });
+          }
+        } else {
+          toast.error(result.message || "Failed to follow user");
+        }
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || "Failed to update follow status");
+    } finally {
+      setFollowLoading(false);
+    }
+  };  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
         <div className="text-text-primary-light dark:text-text-primary-dark">
@@ -200,13 +254,35 @@ const Profile = () => {
                 <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark">
                   {profileData?.username}
                 </h1>
-                {isOwnProfile && (
+                {isOwnProfile ? (
                   <button
                     onClick={handleEditClick}
                     className="flex items-center space-x-2 px-4 py-2 bg-surface-light dark:bg-surface-dark rounded-lg hover:bg-border-light dark:hover:bg-border-dark transition-colors"
                   >
                     <FiEdit size={18} />
                     <span>Edit Profile</span>
+                  </button>
+                ) : (
+                  <button
+                    onClick={handleFollowToggle}
+                    disabled={followLoading}
+                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
+                      isFollowing
+                        ? "bg-surface-light dark:bg-surface-dark hover:bg-border-light dark:hover:bg-border-dark text-text-primary-light dark:text-text-primary-dark"
+                        : "bg-blue-500 hover:bg-blue-600 text-white"
+                    } disabled:opacity-50`}
+                  >
+                    {followLoading ? (
+                      <>
+                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        <span>{isFollowing ? "Unfollowing..." : "Following..."}</span>
+                      </>
+                    ) : (
+                      <>
+                        {isFollowing ? <FiUserMinus size={18} /> : <FiUserPlus size={18} />}
+                        <span>{isFollowing ? "Unfollow" : "Follow"}</span>
+                      </>
+                    )}
                   </button>
                 )}
               </div>
