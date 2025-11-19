@@ -79,7 +79,10 @@ Art Hive/
     │   ├── components/        # Reusable components
     │   │   ├── Navbar.js
     │   │   ├── PostCard.js
-    │   │   └── Comments.js
+    │   │   ├── Comments.js
+    │   │   ├── RemixModal.js
+    │   │   ├── SuggestedProfiles.js
+    │   │   └── UploadArtModal.js
     │   ├── context/           # Global state
     │   │   ├── AuthContext.js
     │   │   └── ThemeContext.js
@@ -88,7 +91,7 @@ Art Hive/
     │   │   ├── Login.js
     │   │   ├── Register.js
     │   │   ├── Profile.js
-    │   │   ├── Sketchbook.js
+    │   │   ├── SketchbookPro.js
     │   │   └── Game.js
     │   ├── utils/
     │   │   └── api.js         # Axios API calls

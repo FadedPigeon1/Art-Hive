@@ -5,12 +5,24 @@ import { postsAPI } from "../utils/api";
 import PostCard from "../components/PostCard";
 import UploadArtModal from "../components/UploadArtModal";
 import { toast } from "react-toastify";
-import { FiCalendar, FiEdit, FiPlus, FiCamera, FiUserPlus, FiUserMinus } from "react-icons/fi";
+import {
+  FiCalendar,
+  FiEdit,
+  FiPlus,
+  FiCamera,
+  FiUserPlus,
+  FiUserMinus,
+} from "react-icons/fi";
 import { getProfilePicture } from "../utils/imageHelpers";
 
 const Profile = () => {
   const { userId } = useParams();
-  const { user: currentUser, updateProfile, followUser, unfollowUser } = useAuth();
+  const {
+    user: currentUser,
+    updateProfile,
+    followUser,
+    unfollowUser,
+  } = useAuth();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -171,7 +183,9 @@ const Profile = () => {
           if (profile) {
             setProfile({
               ...profile,
-              followers: profile.followers.filter((id) => id !== currentUser._id),
+              followers: profile.followers.filter(
+                (id) => id !== currentUser._id
+              ),
             });
           }
         } else {
@@ -194,11 +208,14 @@ const Profile = () => {
         }
       }
     } catch (error) {
-      toast.error(error.response?.data?.message || "Failed to update follow status");
+      toast.error(
+        error.response?.data?.message || "Failed to update follow status"
+      );
     } finally {
       setFollowLoading(false);
     }
-  };  if (loading) {
+  };
+  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
         <div className="text-text-primary-light dark:text-text-primary-dark">
@@ -275,11 +292,17 @@ const Profile = () => {
                     {followLoading ? (
                       <>
                         <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        <span>{isFollowing ? "Unfollowing..." : "Following..."}</span>
+                        <span>
+                          {isFollowing ? "Unfollowing..." : "Following..."}
+                        </span>
                       </>
                     ) : (
                       <>
-                        {isFollowing ? <FiUserMinus size={18} /> : <FiUserPlus size={18} />}
+                        {isFollowing ? (
+                          <FiUserMinus size={18} />
+                        ) : (
+                          <FiUserPlus size={18} />
+                        )}
                         <span>{isFollowing ? "Unfollow" : "Follow"}</span>
                       </>
                     )}
