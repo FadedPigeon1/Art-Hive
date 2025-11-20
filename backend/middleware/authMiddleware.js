@@ -46,12 +46,20 @@ export const optionalAuth = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-      req.user = await User.findById(decoded.id).select("-password");
+      // Only verify if token exists and is not empty
+      if (token && token !== "null" && token !== "undefined") {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        req.user = await User.findById(decoded.id).select("-password");
+      } else {
+        req.user = null;
+      }
     } catch (error) {
-      // Continue without user
+      // Continue without user - silently handle any token errors
+      console.log("Optional auth token error:", error.message);
       req.user = null;
     }
+  } else {
+    req.user = null;
   }
   next();
 };
