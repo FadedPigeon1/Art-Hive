@@ -6,22 +6,44 @@ import { toast } from "react-toastify";
 import { getProfilePicture } from "../utils/imageHelpers";
 
 const SuggestedProfiles = () => {
-  const { followUser: authFollowUser, unfollowUser: authUnfollowUser } =
-    useAuth();
+  const {
+    followUser: authFollowUser,
+    unfollowUser: authUnfollowUser,
+    user,
+  } = useAuth();
   const [suggestedUsers, setSuggestedUsers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [followingMap, setFollowingMap] = useState({});
 
   useEffect(() => {
-    fetchSuggestedUsers();
-  }, []);
+    // Only fetch if user is logged in
+    if (user) {
+      fetchSuggestedUsers();
+    } else {
+      setLoading(false);
+    }
+  }, [user]);
 
   const fetchSuggestedUsers = async () => {
     try {
       const token = localStorage.getItem("token");
+
+      // Check if token is valid
+      if (!token || token === "null" || token === "undefined") {
+        console.log("SuggestedProfiles: No valid token found");
+        setLoading(false);
+        return;
+      }
+
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
+      console.log("SuggestedProfiles: Fetching suggested users...");
       const response = await authAPI.getSuggestedUsers();
+      console.log(
+        "SuggestedProfiles: Received",
+        response.data.length,
+        "suggestions"
+      );
       setSuggestedUsers(response.data);
       setLoading(false);
     } catch (error) {
@@ -68,12 +90,16 @@ const SuggestedProfiles = () => {
     return null; // Don't show loading state for suggested profiles
   }
 
+  if (!user) {
+    return null; // Don't show if user is not logged in
+  }
+
   if (suggestedUsers.length === 0) {
     return null; // Don't show widget if no suggestions
   }
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-700 hidden lg:block">
+    <div className="fixed bottom-4 right-4 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-700 z-50 hidden lg:block">
       <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">
         Suggested Profiles
       </h3>

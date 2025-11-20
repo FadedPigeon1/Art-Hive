@@ -220,6 +220,9 @@ export const getSuggestedUsers = async (req, res) => {
   try {
     const currentUser = await User.findById(req.user._id);
 
+    console.log("Getting suggested users for:", currentUser.username);
+    console.log("User is following:", currentUser.following.length, "users");
+
     // Find users that:
     // 1. Are not the current user
     // 2. Current user is not already following
@@ -234,8 +237,11 @@ export const getSuggestedUsers = async (req, res) => {
       .limit(5)
       .sort({ followers: -1 }); // Sort by most followers
 
+    console.log("Found", suggestedUsers.length, "suggested users");
+
     res.json(suggestedUsers);
   } catch (error) {
+    console.error("Error in getSuggestedUsers:", error);
     res.status(500).json({ message: error.message });
   }
 };

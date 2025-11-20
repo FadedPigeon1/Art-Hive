@@ -12,6 +12,11 @@ export const protect = async (req, res, next) => {
       // Get token from header
       token = req.headers.authorization.split(" ")[1];
 
+      // Check if token is valid (not 'null' or 'undefined' string)
+      if (!token || token === "null" || token === "undefined") {
+        return res.status(401).json({ message: "Not authorized, no token" });
+      }
+
       // Verify token
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
@@ -29,9 +34,7 @@ export const protect = async (req, res, next) => {
       console.error(error);
       return res.status(401).json({ message: "Not authorized, token failed" });
     }
-  }
-
-  if (!token) {
+  } else {
     return res.status(401).json({ message: "Not authorized, no token" });
   }
 };
