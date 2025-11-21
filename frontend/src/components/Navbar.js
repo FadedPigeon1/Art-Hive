@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
@@ -9,6 +9,7 @@ import {
   FiSun,
   FiMoon,
   FiPlus,
+  FiSettings,
 } from "react-icons/fi";
 import { IoGameControllerOutline } from "react-icons/io5";
 import { getProfilePicture } from "../utils/imageHelpers";
@@ -17,6 +18,22 @@ const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const navigate = useNavigate();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const settingsRef = useRef(null);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (settingsRef.current && !settingsRef.current.contains(event.target)) {
+        setIsSettingsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -83,14 +100,45 @@ const Navbar = () => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
-              aria-label="Toggle theme"
-            >
-              {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
-            </button>
+            {/* Settings Dropdown */}
+            <div className="relative" ref={settingsRef}>
+              <button
+                onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                className="p-2 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                aria-label="Settings"
+              >
+                <FiSettings size={20} />
+              </button>
+
+              {/* Dropdown Menu */}
+              {isSettingsOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg shadow-lg py-2">
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                      setIsSettingsOpen(false);
+                    }}
+                    className="w-full px-4 py-2 text-left flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                  >
+                    {isDark ? (
+                      <>
+                        <FiSun size={18} />
+                        <span className="text-text-primary-light dark:text-text-primary-dark">
+                          Light Mode
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <FiMoon size={18} />
+                        <span className="text-text-primary-light dark:text-text-primary-dark">
+                          Dark Mode
+                        </span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
 
             {isAuthenticated ? (
               <>
