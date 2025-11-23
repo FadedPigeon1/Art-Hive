@@ -59,13 +59,26 @@ const UploadArtModal = ({ isOpen, onClose, onUploadSuccess }) => {
 
       // For now, we'll use a base64 string as the image URL
       // In production, you'd upload to a cloud storage service like AWS S3 or Cloudinary
+
+      // Combine title and description into caption
+      let caption = title.trim();
+      if (description.trim()) {
+        caption += `\n\n${description.trim()}`;
+      }
+
       const postData = {
-        title: title.trim(),
-        description: description.trim(),
+        caption: caption,
         imageUrl: imagePreview, // In production, replace with actual uploaded URL
       };
 
-      await postsAPI.createPost(postData);
+      console.log("Uploading post with data:", {
+        ...postData,
+        imageUrl: "[base64 data]",
+      });
+
+      const response = await postsAPI.createPost(postData);
+
+      console.log("Post created successfully:", response.data);
 
       toast.success("Artwork uploaded successfully!");
 

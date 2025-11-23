@@ -152,11 +152,11 @@ const PostCard = ({ post, onDelete, onLike }) => {
         )}
 
         {/* Caption */}
-        {post.caption && (
-          <p className="text-text-primary-light dark:text-text-primary-dark mt-2">
+        {post.caption && post.caption.trim() && (
+          <div className="text-text-primary-light dark:text-text-primary-dark mt-2">
             <span className="font-semibold">{post.userId?.username}</span>{" "}
-            {post.caption}
-          </p>
+            <span style={{ whiteSpace: "pre-wrap" }}>{post.caption}</span>
+          </div>
         )}
 
         {/* View Comments */}
