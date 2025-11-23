@@ -31,18 +31,31 @@ const drawingSchema = new mongoose.Schema({
   },
 });
 
+const entrySchema = new mongoose.Schema({
+  playerNickname: {
+    type: String,
+    required: true,
+  },
+  type: {
+    type: String,
+    required: true,
+    enum: ["prompt", "drawing"],
+  },
+  data: {
+    type: String,
+    required: true,
+  },
+  round: {
+    type: Number,
+    required: true,
+  },
+});
+
 const chainSchema = new mongoose.Schema({
   chainId: Number,
   originalPrompt: String,
   originalPlayer: String,
-  entries: [
-    {
-      playerNickname: String,
-      type: String, // "prompt" or "drawing"
-      data: String,
-      round: Number,
-    },
-  ],
+  entries: [entrySchema],
 });
 
 const gameSessionSchema = new mongoose.Schema(
