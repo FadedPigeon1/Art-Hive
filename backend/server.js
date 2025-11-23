@@ -99,6 +99,18 @@ io.on("connection", (socket) => {
     io.to(code).emit("game-ended", { code });
   });
 
+  socket.on("reveal-step", ({ code, chainIndex, stepIndex }) => {
+    socket.to(code).emit("reveal-next", { chainIndex, stepIndex });
+    console.log(
+      `Reveal step for game ${code}: chain ${chainIndex}, step ${stepIndex}`
+    );
+  });
+
+  socket.on("reveal-reset", ({ code }) => {
+    socket.to(code).emit("reveal-reset");
+    console.log(`Reveal reset for game ${code}`);
+  });
+
   socket.on("leave-game", ({ code, nickname }) => {
     socket.leave(code);
     io.to(code).emit("player-left", { nickname, socketId: socket.id });

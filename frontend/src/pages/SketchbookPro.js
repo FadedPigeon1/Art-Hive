@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { postsAPI } from "../utils/api";
+import { postsAPI, gameAPI } from "../utils/api";
 import { toast } from "react-toastify";
 import {
   FiTrash2,
@@ -54,6 +54,14 @@ const SketchbookPro = () => {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Game mode state
+  const [gameMode, setGameMode] = useState(false);
+  const [gameCode, setGameCode] = useState(null);
+  const [gameChainId, setGameChainId] = useState(null);
+  const [gameRound, setGameRound] = useState(null);
+  const [gamePrompt, setGamePrompt] = useState(null);
+  const [gameNickname, setGameNickname] = useState(null);
 
   // Canvas dimensions
   const [canvasWidth, setCanvasWidth] = useState(1200);
@@ -131,13 +139,29 @@ const SketchbookPro = () => {
   const [pendingWidth, setPendingWidth] = useState(canvasWidth);
   const [pendingHeight, setPendingHeight] = useState(canvasHeight);
 
-  // Read remix query param
+  // Read remix query param and game mode params
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const remix = params.get("remix");
     const remixId = params.get("remixId");
+    const isGameMode = params.get("gameMode") === "true";
+    const code = params.get("gameCode");
+    const chainId = params.get("chainId");
+    const round = params.get("round");
+    const prompt = params.get("prompt");
+    const nickname = params.get("nickname");
+
     setRemixImageUrl(remix || null);
     setRemixPostId(remixId || null);
+
+    if (isGameMode) {
+      setGameMode(true);
+      setGameCode(code);
+      setGameChainId(parseInt(chainId));
+      setGameRound(parseInt(round));
+      setGamePrompt(prompt ? decodeURIComponent(prompt) : null);
+      setGameNickname(nickname ? decodeURIComponent(nickname) : null);
+    }
   }, [location.search]);
 
   // History management functions (defined early to avoid hoisting issues)
@@ -764,6 +788,43 @@ const SketchbookPro = () => {
     }
   };
 
+  const handleSubmitToGame = async () => {
+    if (!gameMode || !gameCode || !gameNickname) {
+      toast.error("Invalid game session");
+      return;
+    }
+
+    setUploading(true);
+
+    try {
+      const canvas = mainCanvasRef.current;
+      const imageData = canvas.toDataURL("image/png");
+
+      console.log("[SKETCHBOOK] Submitting to game:", {
+        gameCode,
+        gameNickname,
+        gameChainId,
+        gameRound,
+      });
+
+      await gameAPI.submitEntry(gameCode, {
+        playerNickname: gameNickname,
+        chainId: gameChainId,
+        type: "drawing",
+        data: imageData,
+      });
+
+      toast.success("Drawing submitted to game!");
+      // Navigate back to game
+      navigate(`/game?code=${gameCode}&rejoin=true`);
+    } catch (error) {
+      console.error("[SKETCHBOOK] Submit error:", error);
+      toast.error(error.response?.data?.message || "Failed to submit drawing");
+    } finally {
+      setUploading(false);
+    }
+  };
+
   // Update color from HSL
   useEffect(() => {
     const color = hslToRgb(hsl.h, hsl.s, hsl.l);
@@ -775,7 +836,16 @@ const SketchbookPro = () => {
       {/* Top Toolbar */}
       <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-bold">Digital Sketchbook Pro</h1>
+          <h1 className="text-xl font-bold">
+            {gameMode ? "Game Drawing Challenge" : "Digital Sketchbook Pro"}
+          </h1>
+
+          {gameMode && gamePrompt && (
+            <div className="px-4 py-2 bg-blue-900/50 border border-blue-700 rounded-lg">
+              <p className="text-xs text-blue-300 mb-1">Draw this prompt:</p>
+              <p className="text-sm font-semibold italic">"{gamePrompt}"</p>
+            </div>
+          )}
 
           <div className="flex items-center space-x-2">
             <button
@@ -836,6 +906,14 @@ const SketchbookPro = () => {
         </div>
 
         <div className="flex items-center space-x-2">
+          {gameMode && (
+            <button
+              onClick={() => navigate(`/game?code=${gameCode}&rejoin=true`)}
+              className="flex items-center space-x-2 px-3 py-2 bg-gray-600 rounded hover:bg-gray-700"
+            >
+              <span className="text-sm">Cancel & Back to Game</span>
+            </button>
+          )}
           <button
             onClick={clearCanvas}
             className="flex items-center space-x-2 px-3 py-2 bg-red-600 rounded hover:bg-red-700"
@@ -850,14 +928,29 @@ const SketchbookPro = () => {
             <FiDownload size={16} />
             <span className="text-sm">Download</span>
           </button>
-          <button
-            onClick={handlePost}
-            disabled={uploading}
-            className="flex items-center space-x-2 px-3 py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
-          >
-            <FiUpload size={16} />
-            <span className="text-sm">{uploading ? "Posting..." : "Post"}</span>
-          </button>
+          {gameMode ? (
+            <button
+              onClick={handleSubmitToGame}
+              disabled={uploading}
+              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 font-semibold"
+            >
+              <FiUpload size={16} />
+              <span className="text-sm">
+                {uploading ? "Submitting..." : "Submit to Game"}
+              </span>
+            </button>
+          ) : (
+            <button
+              onClick={handlePost}
+              disabled={uploading}
+              className="flex items-center space-x-2 px-3 py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+            >
+              <FiUpload size={16} />
+              <span className="text-sm">
+                {uploading ? "Posting..." : "Post"}
+              </span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -1295,24 +1388,26 @@ const SketchbookPro = () => {
       </div>
 
       {/* Bottom Bar - Post Section */}
-      <div className="bg-gray-800 border-t border-gray-700 px-4 py-3">
-        <div className="max-w-2xl mx-auto flex items-end space-x-3">
-          <div className="flex-1">
-            <label className="text-xs font-medium mb-1 block">
-              Caption (optional)
-            </label>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              maxLength={500}
-              placeholder="Describe your artwork..."
-              className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-              rows={2}
-            />
-            <p className="text-xs text-gray-400 mt-1">{caption.length}/500</p>
+      {!gameMode && (
+        <div className="bg-gray-800 border-t border-gray-700 px-4 py-3">
+          <div className="max-w-2xl mx-auto flex items-end space-x-3">
+            <div className="flex-1">
+              <label className="text-xs font-medium mb-1 block">
+                Caption (optional)
+              </label>
+              <textarea
+                value={caption}
+                onChange={(e) => setCaption(e.target.value)}
+                maxLength={500}
+                placeholder="Describe your artwork..."
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
+                rows={2}
+              />
+              <p className="text-xs text-gray-400 mt-1">{caption.length}/500</p>
+            </div>
           </div>
         </div>
-      </div>
+      )}
     </div>
   );
 };

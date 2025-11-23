@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { io } from "socket.io-client";
 import { useAuth } from "../context/AuthContext";
 import { gameAPI, postsAPI } from "../utils/api";
@@ -11,8 +11,8 @@ const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
 const Game = () => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   const [socket, setSocket] = useState(null);
-  const canvasRef = useRef(null);
   const currentGameRef = useRef(null);
   const hasJoinedRoom = useRef(false);
   const shouldSaveToStorage = useRef(true);
@@ -34,19 +34,104 @@ const Game = () => {
   const [submittedCount, setSubmittedCount] = useState(0); // Track how many players have submitted
   const [totalPlayers, setTotalPlayers] = useState(0); // Total players in game
 
-  // Drawing state
-  const [brushColor, setBrushColor] = useState("#000000");
-  const [brushRadius, setBrushRadius] = useState(3);
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [context, setContext] = useState(null);
+  // Reveal state for results
+  const [currentRevealChain, setCurrentRevealChain] = useState(0);
+  const [currentRevealStep, setCurrentRevealStep] = useState(0);
+  const [isRevealing, setIsRevealing] = useState(false);
 
   // Keep currentGameRef in sync
   useEffect(() => {
     currentGameRef.current = currentGame;
   }, [currentGame]);
 
-  // Load game state from localStorage on mount
+  // Load game state from localStorage on mount OR rejoin from URL
   useEffect(() => {
+    // Check for rejoin parameter (returning from sketchbook)
+    const params = new URLSearchParams(location.search);
+    const rejoinCode = params.get("code");
+    const isRejoin = params.get("rejoin") === "true";
+
+    if (isRejoin && rejoinCode) {
+      console.log("[REJOIN] Rejoining game:", rejoinCode);
+
+      // Get saved game state
+      const savedGameState = localStorage.getItem("arthive_game_state");
+      if (savedGameState) {
+        try {
+          const {
+            gameCode: savedCode,
+            nickname: savedNickname,
+            gameState: savedState,
+          } = JSON.parse(savedGameState);
+
+          if (savedCode === rejoinCode.toUpperCase()) {
+            setGameCode(savedCode);
+            setNickname(savedNickname);
+
+            // Fetch current game state
+            gameAPI
+              .getGame(savedCode)
+              .then(({ data }) => {
+                setCurrentGame(data);
+
+                if (data.status === "in-progress") {
+                  // Check if already submitted for current round
+                  const playerChain = data.chains.find((chain) =>
+                    chain.entries.some(
+                      (e) =>
+                        e.playerNickname === savedNickname &&
+                        e.round === data.currentRound
+                    )
+                  );
+
+                  if (playerChain) {
+                    // Already submitted, mark as such
+                    setHasSubmitted(true);
+                    setCurrentRound(data.currentRound);
+                    setGameState("task");
+
+                    // Get task to show UI
+                    gameAPI
+                      .getPlayerTask(savedCode, savedNickname)
+                      .then(({ data: task }) => {
+                        setCurrentTask(task);
+                      });
+                  } else {
+                    // Need to fetch task
+                    setCurrentRound(data.currentRound);
+                    setGameState("task");
+
+                    gameAPI
+                      .getPlayerTask(savedCode, savedNickname)
+                      .then(({ data: task }) => {
+                        setCurrentTask(task);
+                      });
+                  }
+                } else if (data.status === "waiting") {
+                  setGameState("lobby");
+                } else if (data.status === "finished") {
+                  setGameState("results");
+                  gameAPI.getResults(savedCode).then(({ data: results }) => {
+                    setChains(results.chains);
+                  });
+                }
+
+                shouldSaveToStorage.current = true;
+              })
+              .catch((error) => {
+                console.error("[REJOIN] Failed to fetch game:", error);
+                localStorage.removeItem("arthive_game_state");
+                toast.error("Failed to rejoin game");
+              });
+
+            return;
+          }
+        } catch (error) {
+          console.error("[REJOIN] Error parsing saved state:", error);
+        }
+      }
+    }
+
     // Don't restore if we just left
     if (hasLeftGame.current) {
       hasLeftGame.current = false;
@@ -93,7 +178,7 @@ const Game = () => {
         shouldSaveToStorage.current = false;
       }
     }
-  }, []);
+  }, [location.search]);
 
   // Save game state to localStorage
   useEffect(() => {
@@ -235,11 +320,28 @@ const Game = () => {
         );
         setChains(results.chains);
         setGameState("results");
+        setCurrentRevealChain(0);
+        setCurrentRevealStep(0);
+        setIsRevealing(false);
         toast.info("Game finished!");
       } catch (error) {
         console.error("Failed to fetch results:", error);
         toast.error("Failed to load results");
       }
+    });
+
+    newSocket.on("reveal-next", ({ chainIndex, stepIndex }) => {
+      console.log("[REVEAL] Next step:", chainIndex, stepIndex);
+      setCurrentRevealChain(chainIndex);
+      setCurrentRevealStep(stepIndex);
+      setIsRevealing(true);
+    });
+
+    newSocket.on("reveal-reset", () => {
+      console.log("[REVEAL] Reset");
+      setCurrentRevealChain(0);
+      setCurrentRevealStep(0);
+      setIsRevealing(false);
     });
 
     return () => {
@@ -297,59 +399,6 @@ const Game = () => {
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [gameState, currentGame?.code, nickname]);
-
-  useEffect(() => {
-    if (gameState === "drawing" && canvasRef.current) {
-      const canvas = canvasRef.current;
-      const ctx = canvas.getContext("2d");
-      ctx.lineCap = "round";
-      ctx.lineJoin = "round";
-      setContext(ctx);
-
-      canvas.width = canvas.offsetWidth;
-      canvas.height = 400;
-
-      ctx.fillStyle = "#FFFFFF";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-    }
-  }, [gameState]);
-
-  const startDrawing = (e) => {
-    setIsDrawing(true);
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    if (context) {
-      context.beginPath();
-      context.moveTo(x, y);
-    }
-  };
-
-  const draw = (e) => {
-    if (!isDrawing || !context) return;
-
-    const rect = canvasRef.current.getBoundingClientRect();
-    const x = e.clientX - rect.left;
-    const y = e.clientY - rect.top;
-
-    context.strokeStyle = brushColor;
-    context.lineWidth = brushRadius * 2;
-    context.lineTo(x, y);
-    context.stroke();
-  };
-
-  const stopDrawing = () => {
-    setIsDrawing(false);
-  };
-
-  const clearCanvas = () => {
-    const canvas = canvasRef.current;
-    if (canvas && context) {
-      context.fillStyle = "#FFFFFF";
-      context.fillRect(0, 0, canvas.width, canvas.height);
-    }
-  };
 
   const handleCreateGame = async () => {
     if (!nickname.trim()) {
@@ -674,6 +723,70 @@ const Game = () => {
     toast.success("Game code copied!");
   };
 
+  const handleRevealNext = () => {
+    if (!currentGame || !chains || chains.length === 0) return;
+
+    const isHost = nickname === currentGame.hostId;
+    if (!isHost) {
+      toast.error("Only the host can control reveals");
+      return;
+    }
+
+    const currentChain = chains[currentRevealChain];
+    if (!currentChain) return;
+
+    // Show original prompt first, then each entry
+    const totalSteps = currentChain.entries.length + 1; // +1 for original prompt
+
+    if (currentRevealStep < totalSteps - 1) {
+      // Move to next step in current chain
+      const nextStep = currentRevealStep + 1;
+      setCurrentRevealStep(nextStep);
+      setIsRevealing(true);
+
+      if (socket) {
+        socket.emit("reveal-step", {
+          code: currentGame.code,
+          chainIndex: currentRevealChain,
+          stepIndex: nextStep,
+        });
+      }
+    } else if (currentRevealChain < chains.length - 1) {
+      // Move to next chain
+      const nextChain = currentRevealChain + 1;
+      setCurrentRevealChain(nextChain);
+      setCurrentRevealStep(0);
+      setIsRevealing(true);
+
+      if (socket) {
+        socket.emit("reveal-step", {
+          code: currentGame.code,
+          chainIndex: nextChain,
+          stepIndex: 0,
+        });
+      }
+    } else {
+      // All done
+      toast.info("All chains revealed!");
+    }
+  };
+
+  const handleRevealReset = () => {
+    const isHost = nickname === currentGame.hostId;
+    if (!isHost) {
+      toast.error("Only the host can control reveals");
+      return;
+    }
+
+    setCurrentRevealChain(0);
+    setCurrentRevealStep(0);
+    setIsRevealing(false);
+
+    if (socket) {
+      socket.emit("reveal-reset", { code: currentGame.code });
+    }
+  };
+
   // Render different game states
   if (gameState === "menu") {
     return (
@@ -914,61 +1027,31 @@ const Game = () => {
               </div>
             ) : isDrawingTask ? (
               <>
-                {/* Drawing Controls */}
-                <div className="mb-4 flex items-center space-x-4">
-                  <div className="flex space-x-2">
-                    {[
-                      "#000000",
-                      "#FF0000",
-                      "#00FF00",
-                      "#0000FF",
-                      "#FFFF00",
-                    ].map((color) => (
-                      <button
-                        key={color}
-                        onClick={() => setBrushColor(color)}
-                        className={`w-8 h-8 rounded-full border-2 ${
-                          brushColor === color
-                            ? "border-primary-light"
-                            : "border-gray-300"
-                        }`}
-                        style={{ backgroundColor: color }}
-                        disabled={hasSubmitted}
-                      />
-                    ))}
-                  </div>
-                  <input
-                    type="range"
-                    min="1"
-                    max="15"
-                    value={brushRadius}
-                    onChange={(e) => setBrushRadius(Number(e.target.value))}
-                    className="flex-1"
-                    disabled={hasSubmitted}
-                  />
+                {/* Use Sketchbook Pro Button */}
+                <div className="mb-4 text-center">
                   <button
-                    onClick={clearCanvas}
-                    className="px-4 py-2 bg-red-500 text-white rounded-lg hover:bg-red-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                    disabled={hasSubmitted}
-                  >
-                    Clear
-                  </button>
-                </div>
-
-                {/* Canvas */}
-                <div className="bg-white rounded-lg mb-4 overflow-hidden">
-                  <canvas
-                    ref={canvasRef}
-                    onMouseDown={startDrawing}
-                    onMouseMove={draw}
-                    onMouseUp={stopDrawing}
-                    onMouseLeave={stopDrawing}
-                    className="w-full cursor-crosshair"
-                    style={{
-                      touchAction: "none",
-                      pointerEvents: hasSubmitted ? "none" : "auto",
+                    onClick={() => {
+                      // Navigate to Sketchbook Pro with game context
+                      const promptToShow =
+                        currentTask?.previousEntry?.data || "";
+                      navigate(
+                        `/sketchbook?gameMode=true&gameCode=${
+                          currentGame.code
+                        }&chainId=${
+                          currentTask.chainId
+                        }&round=${currentRound}&prompt=${encodeURIComponent(
+                          promptToShow
+                        )}&nickname=${encodeURIComponent(nickname)}`
+                      );
                     }}
-                  />
+                    disabled={hasSubmitted}
+                    className="px-6 py-3 bg-primary-light text-white rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Open Sketchbook Pro to Draw
+                  </button>
+                  <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark mt-2">
+                    Use our advanced drawing tools to create your artwork
+                  </p>
                 </div>
               </>
             ) : null}
@@ -1011,6 +1094,9 @@ const Game = () => {
   }
 
   if (gameState === "results") {
+    const isHost = nickname === currentGame?.hostId;
+    const showStartButton = !isRevealing && isHost;
+
     return (
       <div className="min-h-screen bg-surface-light dark:bg-surface-dark py-6 px-4">
         <div className="max-w-6xl mx-auto">
@@ -1019,59 +1105,168 @@ const Game = () => {
               Game Results!
             </h1>
             <p className="text-center text-text-secondary-light dark:text-text-secondary-dark mb-8">
-              See how your prompts transformed through the game!
+              {isHost && !isRevealing && "Click 'Start Reveal' to begin!"}
+              {isHost && isRevealing && "Click 'Next' to reveal each step!"}
+              {!isHost && !isRevealing && "Waiting for host to start reveal..."}
+              {!isHost && isRevealing && "Watch as the host reveals each step!"}
             </p>
 
-            {/* Display each chain */}
-            {chains.map((chain, chainIndex) => (
-              <div
-                key={chain.chainId}
-                className="mb-8 p-6 bg-surface-light dark:bg-surface-dark rounded-lg border border-border-light dark:border-border-dark"
-              >
-                <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark mb-4">
-                  Chain {chainIndex + 1}: "{chain.originalPrompt}"
-                </h2>
-
-                <div className="space-y-4">
-                  {chain.entries.map((entry, entryIndex) => (
-                    <div
-                      key={entryIndex}
-                      className="p-4 bg-background-light dark:bg-background-dark rounded-lg"
+            {/* Host Controls */}
+            {isHost && (
+              <div className="mb-6 flex justify-center space-x-4">
+                {showStartButton ? (
+                  <button
+                    onClick={() => {
+                      setIsRevealing(true);
+                      setCurrentRevealChain(0);
+                      setCurrentRevealStep(0);
+                      if (socket) {
+                        socket.emit("reveal-step", {
+                          code: currentGame.code,
+                          chainIndex: 0,
+                          stepIndex: 0,
+                        });
+                      }
+                    }}
+                    className="px-8 py-4 bg-green-600 text-white rounded-lg font-bold text-lg hover:bg-green-700 transition-colors"
+                  >
+                    🎬 Start Reveal
+                  </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={handleRevealNext}
+                      disabled={
+                        currentRevealChain >= chains.length - 1 &&
+                        currentRevealStep >=
+                          (chains[currentRevealChain]?.entries?.length || 0)
+                      }
+                      className="px-6 py-3 bg-primary-light text-white rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary-dark">
-                          Round {entry.round} - {entry.playerNickname}
-                        </span>
-                        <span className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-                          {entry.type === "prompt" ? "Wrote" : "Drew"}
-                        </span>
-                      </div>
+                      ➡️ Next
+                    </button>
+                    <button
+                      onClick={handleRevealReset}
+                      className="px-6 py-3 bg-gray-600 text-white rounded-lg font-medium hover:bg-gray-700 transition-colors"
+                    >
+                      🔄 Reset
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
 
-                      {entry.type === "prompt" ? (
-                        <p className="text-lg text-text-primary-light dark:text-text-primary-dark italic">
-                          "{entry.data}"
-                        </p>
-                      ) : (
-                        <div className="relative">
-                          <img
-                            src={entry.data}
-                            alt={`Drawing by ${entry.playerNickname}`}
-                            className="max-w-md mx-auto rounded-lg border border-border-light dark:border-border-dark"
-                          />
-                          <button
-                            onClick={() => handleRepostToFeed(entry.data)}
-                            className="mt-2 flex items-center space-x-2 px-4 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors"
-                          >
-                            <FiUpload />
-                            <span>Post to Feed</span>
-                          </button>
-                        </div>
-                      )}
-                    </div>
-                  ))}
+            {/* Progress Indicator */}
+            {isRevealing && (
+              <div className="mb-6 flex justify-center">
+                <div className="bg-surface-light dark:bg-surface-dark px-4 py-2 rounded-lg border border-border-light dark:border-border-dark">
+                  <p className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                    Chain {currentRevealChain + 1} of {chains.length} - Step{" "}
+                    {currentRevealStep + 1} of{" "}
+                    {(chains[currentRevealChain]?.entries?.length || 0) + 1}
+                  </p>
                 </div>
               </div>
-            ))}
+            )}
+                </button>
+              </div>
+            )}
+
+            {/* Display chains with reveal logic */}
+            {chains.map((chain, chainIndex) => {
+              const isChainVisible = isRevealing
+                ? chainIndex <= currentRevealChain
+                : true;
+              const showAllSteps = !isRevealing || chainIndex < currentRevealChain;
+
+              if (!isChainVisible) return null;
+
+              return (
+                <div
+                  key={chain.chainId}
+                  className={`mb-8 p-6 bg-surface-light dark:bg-surface-dark rounded-lg border-2 ${
+                    isRevealing && chainIndex === currentRevealChain
+                      ? "border-primary-light shadow-lg"
+                      : "border-border-light dark:border-border-dark"
+                  }`}
+                >
+                  {/* Original Prompt - Show first */}
+                  {(showAllSteps || currentRevealStep >= 0) && (
+                    <div className="mb-6">
+                      <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-2">
+                        Chain {chainIndex + 1}
+                      </h2>
+                      <div className="p-4 bg-blue-900/20 border-2 border-blue-500 rounded-lg">
+                        <p className="text-xs text-blue-400 mb-1">
+                          Original Prompt by {chain.originalPlayer}:
+                        </p>
+                        <p className="text-xl text-text-primary-light dark:text-text-primary-dark font-semibold italic">
+                          "{chain.originalPrompt}"
+                        </p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chain Entries */}
+                  <div className="space-y-4">
+                    {chain.entries.map((entry, entryIndex) => {
+                      const shouldShow =
+                        showAllSteps ||
+                        (chainIndex === currentRevealChain &&
+                          entryIndex < currentRevealStep);
+
+                      if (!shouldShow) return null;
+
+                      const isCurrentReveal =
+                        isRevealing &&
+                        chainIndex === currentRevealChain &&
+                        entryIndex === currentRevealStep - 1;
+
+                      return (
+                        <div
+                          key={entryIndex}
+                          className={`p-4 rounded-lg transition-all duration-500 ${
+                            isCurrentReveal
+                              ? "bg-yellow-900/30 border-2 border-yellow-500 scale-105"
+                              : "bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark"
+                          }`}
+                        >
+                          <div className="flex items-center justify-between mb-3">
+                            <span className="text-sm font-semibold text-text-secondary-light dark:text-text-secondary-dark">
+                              Round {entry.round} - {entry.playerNickname}
+                            </span>
+                            <span className="text-xs px-2 py-1 bg-primary-light text-white rounded">
+                              {entry.type === "prompt" ? "Wrote" : "Drew"}
+                            </span>
+                          </div>
+
+                          {entry.type === "prompt" ? (
+                            <p className="text-lg text-text-primary-light dark:text-text-primary-dark italic">
+                              "{entry.data}"
+                            </p>
+                          ) : (
+                            <div className="relative">
+                              <img
+                                src={entry.data}
+                                alt={`Drawing by ${entry.playerNickname}`}
+                                className="max-w-md mx-auto rounded-lg border border-border-light dark:border-border-dark"
+                              />
+                              <button
+                                onClick={() => handleRepostToFeed(entry.data)}
+                                className="mt-2 flex items-center space-x-2 px-4 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors"
+                              >
+                                <FiUpload />
+                                <span>Post to Feed</span>
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
 
             <button
               onClick={() => {
@@ -1082,6 +1277,9 @@ const Game = () => {
                 setCurrentRound(0);
                 setCurrentTask(null);
                 setHasSubmitted(false);
+                setCurrentRevealChain(0);
+                setCurrentRevealStep(0);
+                setIsRevealing(false);
               }}
               className="w-full py-3 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark border border-border-light dark:border-border-dark rounded-lg font-medium hover:bg-border-light dark:hover:bg-border-dark transition-colors"
             >
