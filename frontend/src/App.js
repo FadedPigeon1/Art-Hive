@@ -45,14 +45,7 @@ function AppContent() {
           <Route path="/register" element={<Register />} />
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/game" element={<Game />} />
-          <Route
-            path="/sketchbook"
-            element={
-              <ProtectedRoute>
-                <Sketchbook />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/sketchbook" element={<Sketchbook />} />
         </Routes>
       </Router>
       <ToastContainer

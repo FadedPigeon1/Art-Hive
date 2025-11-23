@@ -454,7 +454,6 @@ const Game = () => {
         // All players submitted, move to next round
         console.log("[SUBMIT] All players submitted, moving to next round");
         setCurrentRound(response.data.gameSession.currentRound);
-        setHasSubmitted(false);
         setSubmittedCount(0); // Reset counter for new round
         // Fetch next task
         const { data: nextTask } = await gameAPI.getPlayerTask(
@@ -463,6 +462,7 @@ const Game = () => {
         );
         console.log("[SUBMIT] Next task:", nextTask);
         setCurrentTask(nextTask);
+        setHasSubmitted(nextTask.alreadySubmitted || false);
         toast.info(`Round ${response.data.gameSession.currentRound} started!`);
       }
     } catch (error) {
