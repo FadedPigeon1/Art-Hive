@@ -1,25 +1,44 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiX, FiSave } from "react-icons/fi";
 import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
 
 const EditPostModal = ({ isOpen, onClose, post, onEditSuccess }) => {
-  const [caption, setCaption] = useState(post?.caption || "");
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [saving, setSaving] = useState(false);
+
+  // Parse caption into title and description when modal opens
+  useEffect(() => {
+    if (post?.caption) {
+      const parts = post.caption.split("\n\n");
+      setTitle(parts[0] || "");
+      setDescription(parts.slice(1).join("\n\n") || "");
+    } else {
+      setTitle("");
+      setDescription("");
+    }
+  }, [post]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!caption.trim()) {
-      toast.error("Caption cannot be empty");
+    if (!title.trim()) {
+      toast.error("Title cannot be empty");
       return;
     }
 
     setSaving(true);
 
     try {
+      // Combine title and description into caption
+      let caption = title.trim();
+      if (description.trim()) {
+        caption += `\n\n${description.trim()}`;
+      }
+
       const updatedPost = await postsAPI.updatePost(post._id, {
-        caption: caption.trim(),
+        caption: caption,
       });
 
       toast.success("Post updated successfully!");
@@ -41,7 +60,6 @@ const EditPostModal = ({ isOpen, onClose, post, onEditSuccess }) => {
 
   const handleClose = () => {
     if (!saving) {
-      setCaption(post?.caption || "");
       onClose();
     }
   };
@@ -79,24 +97,42 @@ const EditPostModal = ({ isOpen, onClose, post, onEditSuccess }) => {
             />
           </div>
 
-          {/* Caption Input */}
+          {/* Title Input */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Caption
+              Title *
             </label>
-            <textarea
-              value={caption}
-              onChange={(e) => setCaption(e.target.value)}
-              maxLength={500}
-              rows={6}
-              placeholder="Edit your caption..."
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              maxLength={100}
+              placeholder="Edit your title..."
               disabled={saving}
-              className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-50"
+              className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
               required
-              style={{ whiteSpace: "pre-wrap" }}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-              {caption.length}/500 characters
+              {title.length}/100 characters
+            </p>
+          </div>
+
+          {/* Description Input */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description (Optional)
+            </label>
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              maxLength={400}
+              rows={4}
+              placeholder="Edit your description..."
+              disabled={saving}
+              className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none disabled:opacity-50"
+            />
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+              {description.length}/400 characters
             </p>
           </div>
 
