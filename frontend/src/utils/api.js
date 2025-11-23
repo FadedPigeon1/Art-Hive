@@ -48,6 +48,7 @@ export const postsAPI = {
   getPostById: (id) => axios.get(`/api/posts/${id}`),
   getUserPosts: (userId) => axios.get(`/api/posts/user/${userId}`),
   createPost: (postData) => axios.post("/api/posts", postData),
+  updatePost: (id, postData) => axios.put(`/api/posts/${id}`, postData),
   deletePost: (id) => axios.delete(`/api/posts/${id}`),
   likePost: (id) => axios.put(`/api/posts/${id}/like`),
   unlikePost: (id) => axios.put(`/api/posts/${id}/unlike`),

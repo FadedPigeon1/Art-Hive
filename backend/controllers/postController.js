@@ -128,6 +128,50 @@ export const getUserPosts = async (req, res) => {
   }
 };
 
+// @desc    Update a post
+// @route   PUT /api/posts/:id
+// @access  Private
+export const updatePost = async (req, res) => {
+  try {
+    const { caption } = req.body;
+    const post = await Post.findById(req.params.id);
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if user owns the post
+    if (post.userId.toString() !== req.user._id.toString()) {
+      return res
+        .status(403)
+        .json({ message: "Not authorized to edit this post" });
+    }
+
+    // Update caption
+    if (caption !== undefined) {
+      post.caption = caption;
+    }
+
+    await post.save();
+
+    const updatedPost = await Post.findById(post._id)
+      .populate("userId", "username profilePic")
+      .populate("remixedFrom", "userId imageUrl caption")
+      .populate({
+        path: "remixedFrom",
+        populate: { path: "userId", select: "username profilePic" },
+      })
+      .populate({
+        path: "comments",
+        populate: { path: "userId", select: "username profilePic" },
+      });
+
+    res.json(updatedPost);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Delete a post
 // @route   DELETE /api/posts/:id
 // @access  Private

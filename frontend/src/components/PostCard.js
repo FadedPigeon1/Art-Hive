@@ -1,11 +1,18 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { FiHeart, FiMessageCircle, FiTrash2, FiPlus } from "react-icons/fi";
+import {
+  FiHeart,
+  FiMessageCircle,
+  FiTrash2,
+  FiPlus,
+  FiEdit2,
+} from "react-icons/fi";
 import { FaHeart } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
 import RemixModal from "./RemixModal";
+import EditPostModal from "./EditPostModal";
 import Comments from "./Comments";
 import { getProfilePicture } from "../utils/imageHelpers";
 
@@ -18,6 +25,8 @@ const PostCard = ({ post, onDelete, onLike }) => {
   const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
   const [showComments, setShowComments] = useState(false);
   const [showRemixModal, setShowRemixModal] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [currentPost, setCurrentPost] = useState(post);
 
   const handleLike = async () => {
     if (!isAuthenticated) {
@@ -63,6 +72,10 @@ const PostCard = ({ post, onDelete, onLike }) => {
     navigate(`/sketchbook?remix=${remixUrl}&remixId=${remixId}`);
   };
 
+  const handleEditSuccess = (updatedPost) => {
+    setCurrentPost(updatedPost);
+  };
+
   return (
     <div className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg overflow-hidden mb-4">
       {/* Post Header */}
@@ -87,12 +100,22 @@ const PostCard = ({ post, onDelete, onLike }) => {
         </Link>
 
         {user?._id === post.userId?._id && (
-          <button
-            onClick={handleDelete}
-            className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
-          >
-            <FiTrash2 size={18} />
-          </button>
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-blue-500 transition-colors"
+              title="Edit post"
+            >
+              <FiEdit2 size={18} />
+            </button>
+            <button
+              onClick={handleDelete}
+              className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
+              title="Delete post"
+            >
+              <FiTrash2 size={18} />
+            </button>
+          </div>
         )}
       </div>
 
@@ -152,10 +175,14 @@ const PostCard = ({ post, onDelete, onLike }) => {
         )}
 
         {/* Caption */}
-        {post.caption && post.caption.trim() && (
+        {currentPost.caption && currentPost.caption.trim() && (
           <div className="text-text-primary-light dark:text-text-primary-dark mt-2">
-            <span className="font-semibold">{post.userId?.username}</span>{" "}
-            <span style={{ whiteSpace: "pre-wrap" }}>{post.caption}</span>
+            <span className="font-semibold">
+              {currentPost.userId?.username}
+            </span>{" "}
+            <span style={{ whiteSpace: "pre-wrap" }}>
+              {currentPost.caption}
+            </span>
           </div>
         )}
 
@@ -172,6 +199,14 @@ const PostCard = ({ post, onDelete, onLike }) => {
 
       {/* Comments Section */}
       {showComments && <Comments postId={post._id} />}
+
+      {/* Edit Post Modal */}
+      <EditPostModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        post={currentPost}
+        onEditSuccess={handleEditSuccess}
+      />
 
       {/* Remix Modal removed in favor of Sketchbook Pro-based remixing */}
     </div>

@@ -4,6 +4,7 @@ import {
   getAllPosts,
   getPostById,
   getUserPosts,
+  updatePost,
   deletePost,
   likePost,
   unlikePost,
@@ -32,6 +33,11 @@ router.get("/:id", optionalAuth, getPostById);
 // @desc    Get posts by user
 // @access  Public
 router.get("/user/:userId", getUserPosts);
+
+// @route   PUT /api/posts/:id
+// @desc    Update a post
+// @access  Private
+router.put("/:id", protect, updatePost);
 
 // @route   DELETE /api/posts/:id
 // @desc    Delete a post
