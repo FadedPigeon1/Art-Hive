@@ -76,6 +76,21 @@ const PostCard = ({ post, onDelete, onLike }) => {
     setCurrentPost(updatedPost);
   };
 
+  // Parse caption into title and description
+  const parseCaption = (caption) => {
+    if (!caption || !caption.trim()) {
+      return { title: "", description: "" };
+    }
+
+    const parts = caption.split("\n\n");
+    return {
+      title: parts[0] || "",
+      description: parts.slice(1).join("\n\n") || "",
+    };
+  };
+
+  const { title, description } = parseCaption(currentPost.caption);
+
   return (
     <div className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg overflow-hidden mb-4">
       {/* Post Header */}
@@ -118,6 +133,15 @@ const PostCard = ({ post, onDelete, onLike }) => {
           </div>
         )}
       </div>
+
+      {/* Post Title */}
+      {title && (
+        <div className="px-4 pb-3">
+          <h2 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
+            {title}
+          </h2>
+        </div>
+      )}
 
       {/* Post Image */}
       <div className="w-full bg-surface-light dark:bg-surface-dark">
@@ -174,15 +198,13 @@ const PostCard = ({ post, onDelete, onLike }) => {
           </p>
         )}
 
-        {/* Caption */}
-        {currentPost.caption && currentPost.caption.trim() && (
+        {/* Description */}
+        {description && (
           <div className="text-text-primary-light dark:text-text-primary-dark mt-2">
             <span className="font-semibold">
               {currentPost.userId?.username}
             </span>{" "}
-            <span style={{ whiteSpace: "pre-wrap" }}>
-              {currentPost.caption}
-            </span>
+            <span style={{ whiteSpace: "pre-wrap" }}>{description}</span>
           </div>
         )}
 
