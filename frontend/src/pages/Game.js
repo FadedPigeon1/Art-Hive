@@ -148,18 +148,28 @@ const Game = () => {
     });
 
     newSocket.on("game-started", async (data) => {
+      console.log("[SOCKET] Game started event received:", data);
       setGameState("task");
       setCurrentRound(1);
       setHasSubmitted(false);
+      setSubmittedCount(0);
       // Fetch the first task
       try {
+        console.log(
+          "[SOCKET] Fetching task for:",
+          currentGameRef.current?.code,
+          nickname
+        );
         const { data: task } = await gameAPI.getPlayerTask(
           currentGameRef.current.code,
           nickname
         );
+        console.log("[SOCKET] Task received:", task);
         setCurrentTask(task);
+        setTotalPlayers(currentGameRef.current?.players?.length || 0);
       } catch (error) {
-        console.error("Failed to get task:", error);
+        console.error("[SOCKET] Failed to get task:", error);
+        toast.error("Failed to load task. Please refresh.");
       }
       toast.info("Game started!");
     });
@@ -386,38 +396,44 @@ const Game = () => {
   const handleStartGame = async () => {
     if (!currentGame) return;
 
-    console.log("Starting game with code:", currentGame.code);
-    console.log("Current game state:", currentGame);
+    console.log("[START GAME] Starting game with code:", currentGame.code);
+    console.log("[START GAME] Current game state:", currentGame);
+    console.log("[START GAME] Player nickname:", nickname);
 
     try {
       // Update game status in database
       const response = await gameAPI.startGame(currentGame.code);
-      console.log("Start game response:", response);
+      console.log("[START GAME] Start game response:", response);
 
-      // Update local state
+      // Update local state immediately
+      const updatedGame = response.data.gameSession;
+      setCurrentGame(updatedGame);
       setCurrentRound(1);
       setHasSubmitted(false);
       setSubmittedCount(0);
-      setTotalPlayers(currentGame.players.length);
+      setTotalPlayers(updatedGame.players.length);
 
       // Get first task
+      console.log("[START GAME] Fetching first task for:", nickname);
       const { data: task } = await gameAPI.getPlayerTask(
-        currentGame.code,
+        updatedGame.code,
         nickname
       );
+      console.log("[START GAME] First task received:", task);
       setCurrentTask(task);
       setGameState("task");
 
       // Notify other players via socket
       if (socket) {
-        socket.emit("start-game", { code: currentGame.code });
+        console.log("[START GAME] Emitting start-game socket event");
+        socket.emit("start-game", { code: updatedGame.code });
       }
 
       toast.success("Game started!");
     } catch (error) {
       toast.error("Failed to start game");
-      console.error("Start game error:", error);
-      console.error("Error response:", error.response?.data);
+      console.error("[START GAME] Error:", error);
+      console.error("[START GAME] Error response:", error.response?.data);
     }
   };
 
@@ -460,10 +476,21 @@ const Game = () => {
   };
 
   const handleSubmitTask = async () => {
-    if (!currentTask) return;
+    if (!currentTask) {
+      console.error("[SUBMIT] No current task");
+      toast.error("No task available");
+      return;
+    }
 
     let data;
     const taskType = currentTask.taskType;
+
+    console.log("[SUBMIT] Submitting task:", {
+      taskType,
+      chainId: currentTask.chainId,
+      round: currentRound,
+      nickname,
+    });
 
     // Validate and get data
     if (taskType === "prompt") {
@@ -472,19 +499,34 @@ const Game = () => {
         return;
       }
       data = promptText;
+      console.log("[SUBMIT] Prompt data:", data);
     } else if (taskType === "drawing") {
-      if (!canvasRef.current) return;
+      if (!canvasRef.current) {
+        console.error("[SUBMIT] Canvas ref not available");
+        return;
+      }
       data = canvasRef.current.toDataURL("image/png");
+      console.log("[SUBMIT] Drawing data length:", data.length);
     }
 
     try {
       // Submit entry
+      console.log("[SUBMIT] Calling API with:", {
+        code: currentGame.code,
+        playerNickname: nickname,
+        chainId: currentTask.chainId,
+        type: taskType,
+        dataLength: data.length,
+      });
+
       const response = await gameAPI.submitEntry(currentGame.code, {
         playerNickname: nickname,
         chainId: currentTask.chainId,
         type: taskType,
         data: data,
       });
+
+      console.log("[SUBMIT] API response:", response.data);
 
       setHasSubmitted(true);
       setPromptText("");
@@ -497,6 +539,7 @@ const Game = () => {
 
       // Notify via socket
       if (socket) {
+        console.log("[SUBMIT] Emitting entry-submitted socket event");
         socket.emit("entry-submitted", {
           code: currentGame.code,
           nickname,
@@ -510,10 +553,12 @@ const Game = () => {
 
       // Check if game ended or round advanced
       if (response.data.gameSession.status === "finished") {
+        console.log("[SUBMIT] Game finished");
         setGameState("results");
         setCurrentGame(response.data.gameSession);
       } else if (response.data.allSubmitted) {
         // All players submitted, move to next round
+        console.log("[SUBMIT] All players submitted, moving to next round");
         setCurrentRound(response.data.gameSession.currentRound);
         setHasSubmitted(false);
         setSubmittedCount(0); // Reset counter for new round
@@ -522,12 +567,16 @@ const Game = () => {
           currentGame.code,
           nickname
         );
+        console.log("[SUBMIT] Next task:", nextTask);
         setCurrentTask(nextTask);
         toast.info(`Round ${response.data.gameSession.currentRound} started!`);
       }
     } catch (error) {
-      console.error("Submit error:", error);
-      toast.error("Failed to submit");
+      console.error("[SUBMIT] Error:", error);
+      console.error("[SUBMIT] Error response:", error.response?.data);
+      toast.error(
+        error.response?.data?.message || "Failed to submit. Please try again."
+      );
     }
   };
 
