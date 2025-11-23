@@ -66,6 +66,7 @@ export const useGameSocket = ({
           nickname
         );
         setCurrentTask(task);
+        setHasSubmitted(task.alreadySubmitted || false);
         setTotalPlayers(currentGameRef.current?.players?.length || 0);
       } catch (error) {
         console.error("[SOCKET] Failed to get task:", error);
@@ -116,6 +117,7 @@ export const useGameSocket = ({
           nickname
         );
         setCurrentTask(task);
+        setHasSubmitted(task.alreadySubmitted || false);
         toast.info(`Round ${data.round} started!`);
       } catch (error) {
         console.error("Failed to fetch next task:", error);

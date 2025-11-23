@@ -95,38 +95,16 @@ const Game = () => {
                 setCurrentGame(data);
 
                 if (data.status === "in-progress") {
-                  // Check if already submitted for current round
-                  const playerChain = data.chains.find((chain) =>
-                    chain.entries.some(
-                      (e) =>
-                        e.playerNickname === savedNickname &&
-                        e.round === data.currentRound
-                    )
-                  );
+                  setCurrentRound(data.currentRound);
+                  setGameState("task");
 
-                  if (playerChain) {
-                    // Already submitted, mark as such
-                    setHasSubmitted(true);
-                    setCurrentRound(data.currentRound);
-                    setGameState("task");
-
-                    // Get task to show UI
-                    gameAPI
-                      .getPlayerTask(savedCode, savedNickname)
-                      .then(({ data: task }) => {
-                        setCurrentTask(task);
-                      });
-                  } else {
-                    // Need to fetch task
-                    setCurrentRound(data.currentRound);
-                    setGameState("task");
-
-                    gameAPI
-                      .getPlayerTask(savedCode, savedNickname)
-                      .then(({ data: task }) => {
-                        setCurrentTask(task);
-                      });
-                  }
+                  // Get task to show UI and check submission status
+                  gameAPI
+                    .getPlayerTask(savedCode, savedNickname)
+                    .then(({ data: task }) => {
+                      setCurrentTask(task);
+                      setHasSubmitted(task.alreadySubmitted || false);
+                    });
                 } else if (data.status === "waiting") {
                   setGameState("lobby");
                 } else if (data.status === "finished") {
@@ -254,6 +232,7 @@ const Game = () => {
               nickname
             );
             setCurrentTask(task);
+            setHasSubmitted(task.alreadySubmitted || false);
             setCurrentRound(updatedGame.currentRound);
             setGameState("task");
             toast.info("Game started!");
@@ -338,6 +317,7 @@ const Game = () => {
       );
       console.log("[START GAME] First task received:", task);
       setCurrentTask(task);
+      setHasSubmitted(task.alreadySubmitted || false);
       setGameState("task");
 
       // Notify other players via socket

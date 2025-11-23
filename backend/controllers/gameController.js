@@ -263,7 +263,16 @@ export const getPlayerTask = async (req, res) => {
       hasPreviousEntry: !!response.previousEntry,
     });
 
-    res.json(response);
+    // Check if player already submitted for this round in this chain
+    const playerChain = gameSession.chains[chainIndex];
+    const alreadySubmitted = playerChain.entries.some(
+      (e) => e.playerNickname === nickname && e.round === round
+    );
+
+    res.json({
+      ...response,
+      alreadySubmitted,
+    });
   } catch (error) {
     console.error("[GET TASK ERROR]", error);
     res.status(500).json({ message: error.message, stack: error.stack });
