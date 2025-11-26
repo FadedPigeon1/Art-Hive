@@ -58,6 +58,7 @@ const postSchema = new mongoose.Schema(
 // Index for faster queries
 postSchema.index({ createdAt: -1 });
 postSchema.index({ userId: 1 });
+postSchema.index({ caption: "text" });
 
 const Post = mongoose.model("Post", postSchema);
 

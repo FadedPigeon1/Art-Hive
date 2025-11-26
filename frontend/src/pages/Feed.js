@@ -18,7 +18,7 @@ const Feed = () => {
   useEffect(() => {
     const handler = setTimeout(
       () => setDebouncedSearch(searchQuery.trim()),
-      450
+      300
     );
     return () => clearTimeout(handler);
   }, [searchQuery]);
@@ -37,7 +37,7 @@ const Feed = () => {
     setLoading(true);
 
     try {
-      const { data } = await postsAPI.getAllPosts(page, 20, debouncedSearch);
+      const { data } = await postsAPI.getAllPosts(page, 10, debouncedSearch);
       if (page === 1) {
         setPosts(data.posts);
       } else {
@@ -60,6 +60,16 @@ const Feed = () => {
     setPosts(posts.filter((post) => post._id !== postId));
   };
 
+  const handlePostLiked = (postId, newLikesCount) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === postId
+          ? { ...post, likes: Array(newLikesCount).fill(null) }
+          : post
+      )
+    );
+  };
+
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
   };
@@ -67,8 +77,11 @@ const Feed = () => {
   if (loading && page === 1) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
-        <div className="text-text-primary-light dark:text-text-primary-dark">
-          Loading feed...
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-12 h-12 border-4 border-primary-light border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-text-primary-light dark:text-text-primary-dark">
+            Loading feed...
+          </div>
         </div>
       </div>
     );
@@ -96,7 +109,7 @@ const Feed = () => {
                 key={post._id}
                 post={post}
                 onDelete={handlePostDeleted}
-                onLike={fetchPosts}
+                onLike={(likesCount) => handlePostLiked(post._id, likesCount)}
               />
             ))}
 
@@ -112,8 +125,8 @@ const Feed = () => {
         )}
       </div>
 
-      {/* Suggested Profiles Widget */}
-      <SuggestedProfiles />
+      {/* Suggested Profiles Widget - Only show after posts load */}
+      {!loading && posts.length > 0 && <SuggestedProfiles />}
     </div>
   );
 };

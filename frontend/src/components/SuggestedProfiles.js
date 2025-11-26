@@ -30,20 +30,13 @@ const SuggestedProfiles = () => {
 
       // Check if token is valid
       if (!token || token === "null" || token === "undefined") {
-        console.log("SuggestedProfiles: No valid token found");
         setLoading(false);
         return;
       }
 
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      console.log("SuggestedProfiles: Fetching suggested users...");
       const response = await authAPI.getSuggestedUsers();
-      console.log(
-        "SuggestedProfiles: Received",
-        response.data.length,
-        "suggestions"
-      );
       setSuggestedUsers(response.data);
       setLoading(false);
     } catch (error) {

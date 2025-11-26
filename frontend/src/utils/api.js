@@ -8,7 +8,8 @@ axios.defaults.baseURL = API_URL;
 // Add request interceptor for debugging
 axios.interceptors.request.use(
   (config) => {
-    console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
+    // Disabled console logging for better performance
+    // console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {

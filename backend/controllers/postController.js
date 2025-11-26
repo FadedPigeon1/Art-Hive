@@ -61,7 +61,12 @@ export const getAllPosts = async (req, res) => {
     let filter = {};
     if (q && q.length > 0) {
       const regex = new RegExp(q, "i");
-      const matchingUsers = await User.find({ username: regex }).select("_id");
+
+      // Run user search in parallel with limit for performance
+      const [matchingUsers] = await Promise.all([
+        User.find({ username: regex }).select("_id").limit(50).lean(),
+      ]);
+
       const userIds = matchingUsers.map((u) => u._id);
 
       filter = {
@@ -69,23 +74,26 @@ export const getAllPosts = async (req, res) => {
       };
     }
 
-    const posts = await Post.find(filter)
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .populate("userId", "username profilePic")
-      .populate("remixedFrom", "userId imageUrl caption")
-      .populate({
-        path: "remixedFrom",
-        populate: { path: "userId", select: "username profilePic" },
-      })
-      .populate({
-        path: "comments",
-        populate: { path: "userId", select: "username profilePic" },
-        options: { sort: { createdAt: -1 }, limit: 3 },
-      });
+    const [posts, total] = await Promise.all([
+      Post.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .populate("userId", "username profilePic")
+        .populate("remixedFrom", "userId imageUrl")
+        .populate({
+          path: "remixedFrom",
+          populate: { path: "userId", select: "username profilePic" },
+        })
+        .lean(),
+      Post.countDocuments(filter),
+    ]);
 
-    const total = await Post.countDocuments(filter);
+    // Skip loading comments in feed for better performance
+    // Comments will be loaded on demand when user clicks to view them
+    posts.forEach((post) => {
+      post.comments = [];
+    });
 
     res.json({
       posts,
@@ -136,7 +144,8 @@ export const getUserPosts = async (req, res) => {
       .populate(
         "userId",
         "username profilePic bio email dateJoined followers following"
-      );
+      )
+      .lean();
 
     res.json(posts);
   } catch (error) {

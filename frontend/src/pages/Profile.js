@@ -38,6 +38,7 @@ const Profile = () => {
   const isOwnProfile = currentUser?._id === userId;
 
   useEffect(() => {
+    setLoading(true);
     fetchUserPosts();
   }, [userId]);
 
@@ -218,8 +219,11 @@ const Profile = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
-        <div className="text-text-primary-light dark:text-text-primary-dark">
-          Loading profile...
+        <div className="flex flex-col items-center space-y-3">
+          <div className="w-12 h-12 border-4 border-primary-light border-t-transparent rounded-full animate-spin"></div>
+          <div className="text-text-primary-light dark:text-text-primary-dark">
+            Loading profile...
+          </div>
         </div>
       </div>
     );

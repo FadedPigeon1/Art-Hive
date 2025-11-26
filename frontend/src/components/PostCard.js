@@ -39,12 +39,13 @@ const PostCard = ({ post, onDelete, onLike }) => {
         await postsAPI.unlikePost(post._id);
         setLikesCount((prev) => prev - 1);
         setIsLiked(false);
+        if (onLike) onLike(likesCount - 1);
       } else {
         await postsAPI.likePost(post._id);
         setLikesCount((prev) => prev + 1);
         setIsLiked(true);
+        if (onLike) onLike(likesCount + 1);
       }
-      if (onLike) onLike();
     } catch (error) {
       toast.error("Failed to update like");
     }
@@ -102,6 +103,7 @@ const PostCard = ({ post, onDelete, onLike }) => {
           <img
             src={getProfilePicture(post.userId?.profilePic)}
             alt={post.userId?.username}
+            loading="lazy"
             className="w-10 h-10 rounded-full object-cover"
           />
           <div>
@@ -148,6 +150,7 @@ const PostCard = ({ post, onDelete, onLike }) => {
         <img
           src={post.imageUrl}
           alt="Post"
+          loading="lazy"
           className="w-full max-h-[600px] object-contain"
         />
       </div>

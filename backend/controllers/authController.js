@@ -218,10 +218,9 @@ export const unfollowUser = async (req, res) => {
 // @access  Private
 export const getSuggestedUsers = async (req, res) => {
   try {
-    const currentUser = await User.findById(req.user._id);
-
-    console.log("Getting suggested users for:", currentUser.username);
-    console.log("User is following:", currentUser.following.length, "users");
+    const currentUser = await User.findById(req.user._id)
+      .select("following")
+      .lean();
 
     // Find users that:
     // 1. Are not the current user
@@ -229,15 +228,13 @@ export const getSuggestedUsers = async (req, res) => {
     // 3. Have at least one post (optional, for quality suggestions)
     const suggestedUsers = await User.find({
       _id: {
-        $ne: currentUser._id,
+        $ne: req.user._id,
         $nin: currentUser.following,
       },
     })
-      .select("username profilePic bio followers")
+      .select("username profilePic bio")
       .limit(5)
-      .sort({ followers: -1 }); // Sort by most followers
-
-    console.log("Found", suggestedUsers.length, "suggested users");
+      .lean();
 
     res.json(suggestedUsers);
   } catch (error) {
