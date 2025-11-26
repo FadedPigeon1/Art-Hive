@@ -43,8 +43,12 @@ export const authAPI = {
 
 // Posts API
 export const postsAPI = {
-  getAllPosts: (page = 1, limit = 20) =>
-    axios.get(`/api/posts?page=${page}&limit=${limit}`),
+  getAllPosts: (page = 1, limit = 20, q = "") =>
+    axios.get(
+      `/api/posts?page=${page}&limit=${limit}${
+        q && q.length ? `&q=${encodeURIComponent(q)}` : ""
+      }`
+    ),
   getPostById: (id) => axios.get(`/api/posts/${id}`),
   getUserPosts: (userId) => axios.get(`/api/posts/user/${userId}`),
   createPost: (postData) => axios.post("/api/posts", postData),

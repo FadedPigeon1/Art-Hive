@@ -1,22 +1,43 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import PostCard from "../components/PostCard";
 import SuggestedProfiles from "../components/SuggestedProfiles";
 import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
+import { useSearch } from "../context/SearchContext";
 
 const Feed = () => {
+  const { searchQuery } = useSearch();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const isFetchingRef = useRef(false);
 
+  // Debounce search input from context
   useEffect(() => {
-    fetchPosts();
-  }, [page]);
+    const handler = setTimeout(
+      () => setDebouncedSearch(searchQuery.trim()),
+      450
+    );
+    return () => clearTimeout(handler);
+  }, [searchQuery]);
 
-  const fetchPosts = async () => {
+  // Reset paging when search changes
+  useEffect(() => {
+    setPage(1);
+    setPosts([]);
+    setHasMore(true);
+  }, [debouncedSearch]);
+
+  const fetchPosts = useCallback(async () => {
+    if (isFetchingRef.current) return;
+
+    isFetchingRef.current = true;
+    setLoading(true);
+
     try {
-      const { data } = await postsAPI.getAllPosts(page, 20);
+      const { data } = await postsAPI.getAllPosts(page, 20, debouncedSearch);
       if (page === 1) {
         setPosts(data.posts);
       } else {
@@ -27,8 +48,13 @@ const Feed = () => {
       toast.error("Failed to load posts");
     } finally {
       setLoading(false);
+      isFetchingRef.current = false;
     }
-  };
+  }, [page, debouncedSearch]);
+
+  useEffect(() => {
+    fetchPosts();
+  }, [fetchPosts]);
 
   const handlePostDeleted = (postId) => {
     setPosts(posts.filter((post) => post._id !== postId));
@@ -58,7 +84,9 @@ const Feed = () => {
         {posts.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-text-secondary-light dark:text-text-secondary-dark">
-              No posts yet. Be the first to share your art!
+              {debouncedSearch
+                ? `No posts found for "${debouncedSearch}"`
+                : "No posts yet. Be the first to share your art!"}
             </p>
           </div>
         ) : (

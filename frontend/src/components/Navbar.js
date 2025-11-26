@@ -1,7 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useTheme } from "../context/ThemeContext";
+import { useSearch } from "../context/SearchContext";
 import {
   FiHome,
   FiUser,
@@ -10,6 +11,8 @@ import {
   FiMoon,
   FiPlus,
   FiSettings,
+  FiSearch,
+  FiX,
 } from "react-icons/fi";
 import { IoGameControllerOutline } from "react-icons/io5";
 import { getProfilePicture } from "../utils/imageHelpers";
@@ -17,9 +20,14 @@ import { getProfilePicture } from "../utils/imageHelpers";
 const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const { isDark, toggleTheme } = useTheme();
+  const { searchQuery, setSearchQuery, isSearchOpen, openSearch, closeSearch } =
+    useSearch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
+  const searchRef = useRef(null);
+  const searchInputRef = useRef(null);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -27,13 +35,32 @@ const Navbar = () => {
       if (settingsRef.current && !settingsRef.current.contains(event.target)) {
         setIsSettingsOpen(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
+        closeSearch();
+      }
     };
 
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, []);
+  }, [closeSearch]);
+
+  // Focus search input when opened
+  useEffect(() => {
+    if (isSearchOpen && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [isSearchOpen]);
+
+  const handleSearchClick = () => {
+    if (!isSearchOpen) {
+      openSearch();
+      if (location.pathname !== "/") {
+        navigate("/");
+      }
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -100,6 +127,15 @@ const Navbar = () => {
 
           {/* Right Section */}
           <div className="flex items-center space-x-4">
+            {/* Search Icon */}
+            <button
+              onClick={handleSearchClick}
+              className="p-2 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+              aria-label="Search"
+            >
+              <FiSearch size={20} />
+            </button>
+
             {/* Settings Dropdown */}
             <div className="relative" ref={settingsRef}>
               <button
@@ -183,6 +219,35 @@ const Navbar = () => {
           </div>
         </div>
       </div>
+
+      {/* Search Popup */}
+      {isSearchOpen && (
+        <div className="absolute top-full left-0 right-0 bg-background-light dark:bg-background-dark border-b border-border-light dark:border-border-dark shadow-lg">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <div className="flex items-center space-x-2" ref={searchRef}>
+              <FiSearch
+                className="text-text-secondary-light dark:text-text-secondary-dark"
+                size={20}
+              />
+              <input
+                ref={searchInputRef}
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search posts or users..."
+                className="flex-1 px-4 py-2 rounded-lg border border-border-light dark:border-border-dark bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark focus:outline-none focus:ring-2 focus:ring-primary-light"
+              />
+              <button
+                onClick={closeSearch}
+                className="p-2 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                aria-label="Close search"
+              >
+                <FiX size={20} />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };

@@ -1,5 +1,6 @@
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
+import User from "../models/User.js";
 
 // @desc    Create a new post
 // @route   POST /api/posts
@@ -53,7 +54,22 @@ export const getAllPosts = async (req, res) => {
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
 
-    const posts = await Post.find()
+    // Support simple search via `q` query param. Search caption text
+    // and usernames. This is a basic implementation using regex and
+    // an extra lookup for matching users.
+    const q = req.query.q ? req.query.q.trim() : null;
+    let filter = {};
+    if (q && q.length > 0) {
+      const regex = new RegExp(q, "i");
+      const matchingUsers = await User.find({ username: regex }).select("_id");
+      const userIds = matchingUsers.map((u) => u._id);
+
+      filter = {
+        $or: [{ caption: { $regex: regex } }, { userId: { $in: userIds } }],
+      };
+    }
+
+    const posts = await Post.find(filter)
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -69,7 +85,7 @@ export const getAllPosts = async (req, res) => {
         options: { sort: { createdAt: -1 }, limit: 3 },
       });
 
-    const total = await Post.countDocuments();
+    const total = await Post.countDocuments(filter);
 
     res.json({
       posts,

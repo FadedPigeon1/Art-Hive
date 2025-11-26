@@ -9,6 +9,7 @@ import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
+import { SearchProvider } from "./context/SearchContext";
 import Navbar from "./components/Navbar";
 import Feed from "./pages/Feed";
 import Login from "./pages/Login";
@@ -68,7 +69,9 @@ function App() {
   return (
     <ThemeProvider>
       <AuthProvider>
-        <AppContent />
+        <SearchProvider>
+          <AppContent />
+        </SearchProvider>
       </AuthProvider>
     </ThemeProvider>
   );
