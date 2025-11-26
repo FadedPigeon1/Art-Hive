@@ -184,7 +184,11 @@ const PostCard = ({ post, onDelete, onLike }) => {
             className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light transition-colors"
           >
             <FiMessageCircle size={24} />
-            <span>{post.comments?.length || 0}</span>
+            <span>
+              {post.commentCount !== undefined
+                ? post.commentCount
+                : post.comments?.length || 0}
+            </span>
           </button>
 
           <button
@@ -221,12 +225,17 @@ const PostCard = ({ post, onDelete, onLike }) => {
         )}
 
         {/* View Comments */}
-        {post.comments && post.comments.length > 0 && (
+        {(post.commentCount > 0 ||
+          (post.comments && post.comments.length > 0)) && (
           <button
             onClick={() => setShowComments(!showComments)}
             className="text-text-secondary-light dark:text-text-secondary-dark text-sm mt-2 hover:underline"
           >
-            {showComments ? "Hide" : "View"} comments ({post.comments.length})
+            {showComments ? "Hide" : "View"} comments (
+            {post.commentCount !== undefined
+              ? post.commentCount
+              : post.comments?.length}
+            )
           </button>
         )}
       </div>

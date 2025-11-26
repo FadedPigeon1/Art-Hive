@@ -74,11 +74,11 @@ export const getAllPosts = async (req, res) => {
       };
     }
 
-    const [posts, total] = await Promise.all([
+    const [posts] = await Promise.all([
       Post.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit)
+        .limit(limit + 1) // Fetch one extra to check if there are more
         .populate("userId", "username profilePic")
         .populate("remixedFrom", "userId imageUrl")
         .populate({
@@ -86,20 +86,25 @@ export const getAllPosts = async (req, res) => {
           populate: { path: "userId", select: "username profilePic" },
         })
         .lean(),
-      Post.countDocuments(filter),
     ]);
+
+    // Check if there are more posts
+    const hasMore = posts.length > limit;
+    if (hasMore) {
+      posts.pop(); // Remove the extra post
+    }
 
     // Skip loading comments in feed for better performance
     // Comments will be loaded on demand when user clicks to view them
     posts.forEach((post) => {
+      post.commentCount = post.comments ? post.comments.length : 0;
       post.comments = [];
     });
 
     res.json({
       posts,
       page,
-      pages: Math.ceil(total / limit),
-      total,
+      hasMore,
     });
   } catch (error) {
     res.status(500).json({ message: error.message });

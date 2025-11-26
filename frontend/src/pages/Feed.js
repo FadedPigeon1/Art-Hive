@@ -43,7 +43,7 @@ const Feed = () => {
       } else {
         setPosts((prev) => [...prev, ...data.posts]);
       }
-      setHasMore(page < data.pages);
+      setHasMore(data.hasMore);
     } catch (error) {
       toast.error("Failed to load posts");
     } finally {
