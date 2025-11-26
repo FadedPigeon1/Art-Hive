@@ -34,19 +34,28 @@ const PostCard = ({ post, onDelete, onLike }) => {
       return;
     }
 
+    // Optimistic update - update UI immediately
+    const previousLiked = isLiked;
+    const previousCount = likesCount;
+
+    const newLiked = !isLiked;
+    const newCount = newLiked ? likesCount + 1 : likesCount - 1;
+
+    setIsLiked(newLiked);
+    setLikesCount(newCount);
+    if (onLike) onLike(newCount);
+
     try {
-      if (isLiked) {
-        await postsAPI.unlikePost(post._id);
-        setLikesCount((prev) => prev - 1);
-        setIsLiked(false);
-        if (onLike) onLike(likesCount - 1);
-      } else {
+      if (newLiked) {
         await postsAPI.likePost(post._id);
-        setLikesCount((prev) => prev + 1);
-        setIsLiked(true);
-        if (onLike) onLike(likesCount + 1);
+      } else {
+        await postsAPI.unlikePost(post._id);
       }
     } catch (error) {
+      // Revert on error
+      setIsLiked(previousLiked);
+      setLikesCount(previousCount);
+      if (onLike) onLike(previousCount);
       toast.error("Failed to update like");
     }
   };

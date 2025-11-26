@@ -231,7 +231,7 @@ export const deletePost = async (req, res) => {
 // @access  Private
 export const likePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).select("_id likes");
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -256,7 +256,7 @@ export const likePost = async (req, res) => {
 // @access  Private
 export const unlikePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id);
+    const post = await Post.findById(req.params.id).select("_id likes");
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
