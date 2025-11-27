@@ -12,6 +12,7 @@ import {
   unstarPost,
   getPostRemixes,
   getStarredPosts,
+  getLikedPosts,
 } from "../controllers/postController.js";
 import { protect, optionalAuth } from "../middleware/authMiddleware.js";
 
@@ -31,6 +32,11 @@ router.get("/", optionalAuth, getAllPosts);
 // @desc    Get starred posts
 // @access  Private
 router.get("/starred", protect, getStarredPosts);
+
+// @route   GET /api/posts/liked
+// @desc    Get liked posts
+// @access  Private
+router.get("/liked", protect, getLikedPosts);
 
 // @route   GET /api/posts/user/:userId
 // @desc    Get posts by user

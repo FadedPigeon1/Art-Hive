@@ -5,40 +5,17 @@ import User from "../models/User.js";
 const mapPostSummaries = (posts, currentUserId) => {
   const currentUserStringId = currentUserId ? currentUserId.toString() : null;
 
-  console.log("mapPostSummaries - currentUserId:", currentUserId);
-  console.log("mapPostSummaries - currentUserStringId:", currentUserStringId);
-
   return posts.map((post, index) => {
     const likes = post.likes || [];
     const stars = post.stars || [];
     const comments = post.comments || [];
 
-    if (index === 0) {
-      console.log("First post likes array:", likes);
-      console.log(
-        "Likes as strings:",
-        likes.map((id) => id.toString())
-      );
-      console.log("Checking against user:", currentUserStringId);
-    }
-
     const likedByCurrentUser = currentUserStringId
-      ? likes.some((id) => {
-          const match = id.toString() === currentUserStringId;
-          if (index === 0)
-            console.log(
-              `Comparing ${id.toString()} === ${currentUserStringId}: ${match}`
-            );
-          return match;
-        })
+      ? likes.some((id) => id.toString() === currentUserStringId)
       : false;
     const starredByCurrentUser = currentUserStringId
       ? stars.some((id) => id.toString() === currentUserStringId)
       : false;
-
-    if (index === 0) {
-      console.log("First post likedByCurrentUser:", likedByCurrentUser);
-    }
 
     const summary = {
       ...post,
@@ -169,9 +146,6 @@ export const getAllPosts = async (req, res) => {
       likedByCurrentUser: lightweightPosts[0]?.likedByCurrentUser,
     });
 
-    // Add cache headers for better performance
-    res.setHeader("Cache-Control", "private, max-age=60"); // Cache for 1 minute
-
     res.json({
       posts: lightweightPosts,
       page,
@@ -272,9 +246,6 @@ export const getUserPosts = async (req, res) => {
       followersCount: user.followers?.length || 0,
       followingCount: user.following?.length || 0,
     };
-
-    // Add cache headers for profile data
-    res.setHeader("Cache-Control", "private, max-age=120"); // Cache for 2 minutes
 
     res.json({
       user: sanitizedUser,
@@ -578,7 +549,46 @@ export const getStarredPosts = async (req, res) => {
 
     const lightweightPosts = mapPostSummaries(posts, req.user._id);
 
-    res.setHeader("Cache-Control", "private, max-age=60");
+    res.json({
+      posts: lightweightPosts,
+      page,
+      hasMore,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get liked posts by user
+// @route   GET /api/posts/liked
+// @access  Private
+export const getLikedPosts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const posts = await Post.find({ likes: req.user._id })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit + 1)
+      .select(
+        "title imageUrl userId remixCount remixedFrom createdAt likes stars comments isGameArt"
+      )
+      .populate("userId", "username profilePic")
+      .populate({
+        path: "remixedFrom",
+        select: "imageUrl title userId",
+        populate: { path: "userId", select: "username profilePic" },
+      })
+      .lean();
+
+    const hasMore = posts.length > limit;
+    if (hasMore) {
+      posts.pop();
+    }
+
+    const lightweightPosts = mapPostSummaries(posts, req.user._id);
 
     res.json({
       posts: lightweightPosts,

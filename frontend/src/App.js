@@ -18,6 +18,7 @@ import Profile from "./pages/Profile";
 import Sketchbook from "./pages/SketchbookPro";
 import Game from "./pages/Game";
 import Favorites from "./pages/Favorites";
+import LikedPosts from "./pages/LikedPosts";
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -53,6 +54,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <Favorites />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/liked"
+            element={
+              <ProtectedRoute>
+                <LikedPosts />
               </ProtectedRoute>
             }
           />

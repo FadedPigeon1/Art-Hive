@@ -50,6 +50,8 @@ export const postsAPI = {
     ),
   getStarredPosts: (page = 1, limit = 20) =>
     axios.get(`/api/posts/starred?page=${page}&limit=${limit}`),
+  getLikedPosts: (page = 1, limit = 20) =>
+    axios.get(`/api/posts/liked?page=${page}&limit=${limit}`),
   getPostById: (id) => axios.get(`/api/posts/${id}`),
   getUserPosts: (userId, page = 1, limit = 9) =>
     axios.get(`/api/posts/user/${userId}?page=${page}&limit=${limit}`),

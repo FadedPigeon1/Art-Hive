@@ -161,6 +161,14 @@ const Navbar = () => {
                         <FiStar size={18} className="text-yellow-500" />
                         <span>Favorites</span>
                       </Link>
+                      <Link
+                        to="/liked"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full px-4 py-2 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-primary-light dark:text-text-primary-dark"
+                      >
+                        <FiHeart size={18} className="text-red-500" />
+                        <span>Liked Posts</span>
+                      </Link>
                       <div className="border-t border-border-light dark:border-border-dark my-1"></div>
                     </>
                   )}
