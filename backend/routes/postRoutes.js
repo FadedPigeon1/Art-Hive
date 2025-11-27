@@ -8,7 +8,10 @@ import {
   deletePost,
   likePost,
   unlikePost,
+  starPost,
+  unstarPost,
   getPostRemixes,
+  getStarredPosts,
 } from "../controllers/postController.js";
 import { protect, optionalAuth } from "../middleware/authMiddleware.js";
 
@@ -24,15 +27,25 @@ router.post("/", protect, createPost);
 // @access  Public (optional auth to see if user liked)
 router.get("/", optionalAuth, getAllPosts);
 
-// @route   GET /api/posts/:id
-// @desc    Get post by ID
-// @access  Public
-router.get("/:id", optionalAuth, getPostById);
+// @route   GET /api/posts/starred
+// @desc    Get starred posts
+// @access  Private
+router.get("/starred", protect, getStarredPosts);
 
 // @route   GET /api/posts/user/:userId
 // @desc    Get posts by user
 // @access  Public (optional auth for liked flag)
 router.get("/user/:userId", optionalAuth, getUserPosts);
+
+// @route   GET /api/posts/:id/remixes
+// @desc    Get remixes of a post
+// @access  Public
+router.get("/:id/remixes", getPostRemixes);
+
+// @route   GET /api/posts/:id
+// @desc    Get post by ID
+// @access  Public
+router.get("/:id", optionalAuth, getPostById);
 
 // @route   PUT /api/posts/:id
 // @desc    Update a post
@@ -54,9 +67,14 @@ router.put("/:id/like", protect, likePost);
 // @access  Private
 router.put("/:id/unlike", protect, unlikePost);
 
-// @route   GET /api/posts/:id/remixes
-// @desc    Get remixes of a post
-// @access  Public
-router.get("/:id/remixes", getPostRemixes);
+// @route   PUT /api/posts/:id/star
+// @desc    Star a post
+// @access  Private
+router.put("/:id/star", protect, starPost);
+
+// @route   PUT /api/posts/:id/unstar
+// @desc    Unstar a post
+// @access  Private
+router.put("/:id/unstar", protect, unstarPost);
 
 export default router;

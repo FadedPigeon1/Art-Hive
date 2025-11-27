@@ -13,6 +13,8 @@ import {
   FiSettings,
   FiSearch,
   FiX,
+  FiStar,
+  FiHeart,
 } from "react-icons/fi";
 import { IoGameControllerOutline } from "react-icons/io5";
 import { getProfilePicture } from "../utils/imageHelpers";
@@ -148,7 +150,20 @@ const Navbar = () => {
 
               {/* Dropdown Menu */}
               {isSettingsOpen && (
-                <div className="absolute right-0 mt-2 w-48 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg shadow-lg py-2">
+                <div className="absolute right-0 mt-2 w-52 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg shadow-lg py-2">
+                  {isAuthenticated && (
+                    <>
+                      <Link
+                        to="/favorites"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full px-4 py-2 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-primary-light dark:text-text-primary-dark"
+                      >
+                        <FiStar size={18} className="text-yellow-500" />
+                        <span>Favorites</span>
+                      </Link>
+                      <div className="border-t border-border-light dark:border-border-dark my-1"></div>
+                    </>
+                  )}
                   <button
                     onClick={() => {
                       toggleTheme();

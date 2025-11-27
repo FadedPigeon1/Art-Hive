@@ -8,8 +8,6 @@ axios.defaults.baseURL = API_URL;
 // Add request interceptor for debugging
 axios.interceptors.request.use(
   (config) => {
-    // Disabled console logging for better performance
-    // console.log(`API Request: ${config.method?.toUpperCase()} ${config.url}`);
     return config;
   },
   (error) => {
@@ -50,6 +48,8 @@ export const postsAPI = {
         q && q.length ? `&q=${encodeURIComponent(q)}` : ""
       }`
     ),
+  getStarredPosts: (page = 1, limit = 20) =>
+    axios.get(`/api/posts/starred?page=${page}&limit=${limit}`),
   getPostById: (id) => axios.get(`/api/posts/${id}`),
   getUserPosts: (userId, page = 1, limit = 9) =>
     axios.get(`/api/posts/user/${userId}?page=${page}&limit=${limit}`),
@@ -58,6 +58,8 @@ export const postsAPI = {
   deletePost: (id) => axios.delete(`/api/posts/${id}`),
   likePost: (id) => axios.put(`/api/posts/${id}/like`),
   unlikePost: (id) => axios.put(`/api/posts/${id}/unlike`),
+  starPost: (id) => axios.put(`/api/posts/${id}/star`),
+  unstarPost: (id) => axios.put(`/api/posts/${id}/unstar`),
   getPostRemixes: (id) => axios.get(`/api/posts/${id}/remixes`),
 };
 

@@ -5,21 +5,52 @@ import User from "../models/User.js";
 const mapPostSummaries = (posts, currentUserId) => {
   const currentUserStringId = currentUserId ? currentUserId.toString() : null;
 
-  return posts.map((post) => {
+  console.log("mapPostSummaries - currentUserId:", currentUserId);
+  console.log("mapPostSummaries - currentUserStringId:", currentUserStringId);
+
+  return posts.map((post, index) => {
     const likes = post.likes || [];
+    const stars = post.stars || [];
     const comments = post.comments || [];
+
+    if (index === 0) {
+      console.log("First post likes array:", likes);
+      console.log(
+        "Likes as strings:",
+        likes.map((id) => id.toString())
+      );
+      console.log("Checking against user:", currentUserStringId);
+    }
+
     const likedByCurrentUser = currentUserStringId
-      ? likes.some((id) => id.toString() === currentUserStringId)
+      ? likes.some((id) => {
+          const match = id.toString() === currentUserStringId;
+          if (index === 0)
+            console.log(
+              `Comparing ${id.toString()} === ${currentUserStringId}: ${match}`
+            );
+          return match;
+        })
       : false;
+    const starredByCurrentUser = currentUserStringId
+      ? stars.some((id) => id.toString() === currentUserStringId)
+      : false;
+
+    if (index === 0) {
+      console.log("First post likedByCurrentUser:", likedByCurrentUser);
+    }
 
     const summary = {
       ...post,
       likesCount: likes.length,
+      starsCount: stars.length,
       commentCount: comments.length,
       likedByCurrentUser,
+      starredByCurrentUser,
     };
 
     delete summary.likes;
+    delete summary.stars;
     delete summary.comments;
 
     return summary;
@@ -110,7 +141,7 @@ export const getAllPosts = async (req, res) => {
         .skip(skip)
         .limit(limit + 1) // Fetch one extra to check if there are more
         .select(
-          "title imageUrl userId remixCount remixedFrom createdAt likes comments isGameArt"
+          "title imageUrl userId remixCount remixedFrom createdAt likes stars comments isGameArt"
         )
         .populate("userId", "username profilePic")
         .populate({
@@ -127,7 +158,16 @@ export const getAllPosts = async (req, res) => {
       posts.pop(); // Remove the extra post
     }
 
+    console.log("getAllPosts - User ID:", req.user?._id);
+    console.log("Sample post likes (first post):", posts[0]?.likes);
+
     const lightweightPosts = mapPostSummaries(posts, req.user?._id);
+
+    console.log("Sample mapped post (first post):", {
+      id: lightweightPosts[0]?._id,
+      likesCount: lightweightPosts[0]?.likesCount,
+      likedByCurrentUser: lightweightPosts[0]?.likedByCurrentUser,
+    });
 
     // Add cache headers for better performance
     res.setHeader("Cache-Control", "private, max-age=60"); // Cache for 1 minute
@@ -188,7 +228,9 @@ export const getUserPosts = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit + 1)
-        .select("title imageUrl createdAt remixedFrom likes comments isGameArt")
+        .select(
+          "title imageUrl createdAt remixedFrom likes stars comments isGameArt"
+        )
         .populate({
           path: "remixedFrom",
           select: "imageUrl title userId",
@@ -324,22 +366,39 @@ export const deletePost = async (req, res) => {
 // @access  Private
 export const likePost = async (req, res) => {
   try {
+    console.log(
+      "Like request - Post ID:",
+      req.params.id,
+      "User ID:",
+      req.user._id
+    );
     const post = await Post.findById(req.params.id).select("_id likes");
 
     if (!post) {
+      console.log("Post not found:", req.params.id);
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // Check if already liked
-    if (post.likes.includes(req.user._id)) {
+    console.log("Post likes array:", post.likes);
+
+    // Check if already liked - convert ObjectIds to strings for comparison
+    const alreadyLiked = post.likes.some(
+      (id) => id.toString() === req.user._id.toString()
+    );
+
+    console.log("Already liked?", alreadyLiked);
+
+    if (alreadyLiked) {
       return res.status(400).json({ message: "Post already liked" });
     }
 
     post.likes.push(req.user._id);
     await post.save();
 
+    console.log("Post liked successfully, new count:", post.likes.length);
     res.json({ message: "Post liked", likes: post.likes.length });
   } catch (error) {
+    console.error("Like error:", error);
     res.status(500).json({ message: error.message });
   }
 };
@@ -349,14 +408,29 @@ export const likePost = async (req, res) => {
 // @access  Private
 export const unlikePost = async (req, res) => {
   try {
+    console.log(
+      "Unlike request - Post ID:",
+      req.params.id,
+      "User ID:",
+      req.user._id
+    );
     const post = await Post.findById(req.params.id).select("_id likes");
 
     if (!post) {
+      console.log("Post not found:", req.params.id);
       return res.status(404).json({ message: "Post not found" });
     }
 
-    // Check if not liked
-    if (!post.likes.includes(req.user._id)) {
+    console.log("Post likes array:", post.likes);
+
+    // Check if not liked - convert ObjectIds to strings for comparison
+    const isLiked = post.likes.some(
+      (id) => id.toString() === req.user._id.toString()
+    );
+
+    console.log("Is liked?", isLiked);
+
+    if (!isLiked) {
       return res.status(400).json({ message: "Post not liked yet" });
     }
 
@@ -365,7 +439,79 @@ export const unlikePost = async (req, res) => {
     );
     await post.save();
 
+    console.log("Post unliked successfully, new count:", post.likes.length);
     res.json({ message: "Post unliked", likes: post.likes.length });
+  } catch (error) {
+    console.error("Unlike error:", error);
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Star a post
+// @route   PUT /api/posts/:id/star
+// @access  Private
+export const starPost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id).select("_id stars");
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if already starred - convert ObjectIds to strings for comparison
+    const alreadyStarred = post.stars.some(
+      (id) => id.toString() === req.user._id.toString()
+    );
+
+    if (alreadyStarred) {
+      return res.status(400).json({ message: "Post already starred" });
+    }
+
+    post.stars.push(req.user._id);
+    await post.save();
+
+    // Also add to user's starred posts
+    await User.findByIdAndUpdate(req.user._id, {
+      $addToSet: { starredPosts: req.params.id },
+    });
+
+    res.json({ message: "Post starred", stars: post.stars.length });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Unstar a post
+// @route   PUT /api/posts/:id/unstar
+// @access  Private
+export const unstarPost = async (req, res) => {
+  try {
+    const post = await Post.findById(req.params.id).select("_id stars");
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if not starred - convert ObjectIds to strings for comparison
+    const isStarred = post.stars.some(
+      (id) => id.toString() === req.user._id.toString()
+    );
+
+    if (!isStarred) {
+      return res.status(400).json({ message: "Post not starred yet" });
+    }
+
+    post.stars = post.stars.filter(
+      (id) => id.toString() !== req.user._id.toString()
+    );
+    await post.save();
+
+    // Also remove from user's starred posts
+    await User.findByIdAndUpdate(req.user._id, {
+      $pull: { starredPosts: req.params.id },
+    });
+
+    res.json({ message: "Post unstarred", stars: post.stars.length });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -386,6 +532,59 @@ export const getPostRemixes = async (req, res) => {
       });
 
     res.json(remixes);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Get starred posts by user
+// @route   GET /api/posts/starred
+// @access  Private
+export const getStarredPosts = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 20;
+    const skip = (page - 1) * limit;
+
+    const user = await User.findById(req.user._id)
+      .select("starredPosts")
+      .lean();
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const starredPostIds = user.starredPosts || [];
+
+    const posts = await Post.find({ _id: { $in: starredPostIds } })
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit + 1)
+      .select(
+        "title imageUrl userId remixCount remixedFrom createdAt likes stars comments isGameArt"
+      )
+      .populate("userId", "username profilePic")
+      .populate({
+        path: "remixedFrom",
+        select: "imageUrl title userId",
+        populate: { path: "userId", select: "username profilePic" },
+      })
+      .lean();
+
+    const hasMore = posts.length > limit;
+    if (hasMore) {
+      posts.pop();
+    }
+
+    const lightweightPosts = mapPostSummaries(posts, req.user._id);
+
+    res.setHeader("Cache-Control", "private, max-age=60");
+
+    res.json({
+      posts: lightweightPosts,
+      page,
+      hasMore,
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }

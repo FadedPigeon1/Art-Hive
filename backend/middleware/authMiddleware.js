@@ -49,11 +49,17 @@ export const optionalAuth = async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(" ")[1];
+      console.log(
+        "OptionalAuth - Token received:",
+        token?.substring(0, 20) + "..."
+      );
       // Only verify if token exists and is not empty
       if (token && token !== "null" && token !== "undefined") {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         req.user = await User.findById(decoded.id).select("-password");
+        console.log("OptionalAuth - User found:", req.user?._id);
       } else {
+        console.log("OptionalAuth - Invalid token string");
         req.user = null;
       }
     } catch (error) {
@@ -62,6 +68,7 @@ export const optionalAuth = async (req, res, next) => {
       req.user = null;
     }
   } else {
+    console.log("OptionalAuth - No authorization header");
     req.user = null;
   }
   next();

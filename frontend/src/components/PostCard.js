@@ -6,8 +6,9 @@ import {
   FiTrash2,
   FiPlus,
   FiEdit2,
+  FiStar,
 } from "react-icons/fi";
-import { FaHeart } from "react-icons/fa";
+import { FaHeart, FaStar } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
 import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
@@ -29,8 +30,22 @@ const PostCard = ({ post, onDelete, onLike }) => {
     return 0;
   };
 
+  const deriveInitialStars = (incomingPost) => {
+    if (typeof incomingPost.starsCount === "number") {
+      return incomingPost.starsCount;
+    }
+    if (Array.isArray(incomingPost.stars)) {
+      return incomingPost.stars.length;
+    }
+    return 0;
+  };
+
   const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(deriveInitialLikes(post));
+  const [isStarred, setIsStarred] = useState(
+    post.starredByCurrentUser || false
+  );
+  const [starsCount, setStarsCount] = useState(deriveInitialStars(post));
   const [showComments, setShowComments] = useState(false);
   const [showRemixModal, setShowRemixModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -40,6 +55,8 @@ const PostCard = ({ post, onDelete, onLike }) => {
     setCurrentPost(post);
     setIsLiked(post.likedByCurrentUser || false);
     setLikesCount(deriveInitialLikes(post));
+    setIsStarred(post.starredByCurrentUser || false);
+    setStarsCount(deriveInitialStars(post));
   }, [post]);
 
   const handleLike = async () => {
@@ -67,10 +84,56 @@ const PostCard = ({ post, onDelete, onLike }) => {
       }
     } catch (error) {
       // Revert on error
+      console.error("Like error:", error);
+      console.error("Error response:", error.response?.data);
+      console.error("Post ID:", post._id);
+      console.error(
+        "Current state - isLiked:",
+        previousLiked,
+        "newLiked:",
+        newLiked
+      );
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
-      if (onLike) onLike(previousCount);
-      toast.error("Failed to update like");
+      if (onLike)
+        onLike({
+          likesCount: previousCount,
+          likedByCurrentUser: previousLiked,
+        });
+      const errorMsg = error.response?.data?.message || "Failed to update like";
+      toast.error(errorMsg);
+    }
+  };
+
+  const handleStar = async () => {
+    if (!isAuthenticated) {
+      toast.error("Please login to star posts");
+      return;
+    }
+
+    // Optimistic update - update UI immediately
+    const previousStarred = isStarred;
+    const previousCount = starsCount;
+
+    const newStarred = !isStarred;
+    const newCount = newStarred ? starsCount + 1 : starsCount - 1;
+
+    setIsStarred(newStarred);
+    setStarsCount(newCount);
+
+    try {
+      if (newStarred) {
+        await postsAPI.starPost(post._id);
+        toast.success("Added to favorites!");
+      } else {
+        await postsAPI.unstarPost(post._id);
+        toast.success("Removed from favorites");
+      }
+    } catch (error) {
+      // Revert on error
+      setIsStarred(previousStarred);
+      setStarsCount(previousCount);
+      toast.error("Failed to update favorite");
     }
   };
 
@@ -214,6 +277,19 @@ const PostCard = ({ post, onDelete, onLike }) => {
             <FiPlus size={24} />
             <span>{post.remixCount || 0}</span>
           </button>
+
+          <button
+            onClick={handleStar}
+            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-yellow-500 transition-colors"
+            title={isStarred ? "Remove from favorites" : "Add to favorites"}
+          >
+            {isStarred ? (
+              <FaStar size={24} className="text-yellow-500" />
+            ) : (
+              <FiStar size={24} />
+            )}
+            <span>{starsCount}</span>
+          </button>
         </div>
 
         {/* Remix Attribution */}
@@ -278,6 +354,9 @@ export default memo(PostCard, (prevProps, nextProps) => {
     prevProps.post._id === nextProps.post._id &&
     prevProps.post.likesCount === nextProps.post.likesCount &&
     prevProps.post.likedByCurrentUser === nextProps.post.likedByCurrentUser &&
+    prevProps.post.starsCount === nextProps.post.starsCount &&
+    prevProps.post.starredByCurrentUser ===
+      nextProps.post.starredByCurrentUser &&
     prevProps.post.commentCount === nextProps.post.commentCount
   );
 });

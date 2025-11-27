@@ -1,76 +1,35 @@
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import PostCard from "../components/PostCard";
-import SuggestedProfiles from "../components/SuggestedProfiles";
 import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
-import { useSearch } from "../context/SearchContext";
-import { useAuth } from "../context/AuthContext";
+import { FiStar } from "react-icons/fi";
 
-const Feed = () => {
-  const { searchQuery } = useSearch();
-  const { loading: authLoading } = useAuth();
+const Favorites = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const isFetchingRef = useRef(false);
 
-  // Debounce search input from context
-  useEffect(() => {
-    const handler = setTimeout(
-      () => setDebouncedSearch(searchQuery.trim()),
-      300
-    );
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  // Reset paging when search changes
-  useEffect(() => {
-    setPage(1);
-    setPosts([]);
-    setHasMore(true);
-  }, [debouncedSearch]);
-
-  const fetchPosts = useCallback(async () => {
-    if (isFetchingRef.current) return;
-
-    isFetchingRef.current = true;
+  const fetchStarredPosts = useCallback(async () => {
     setLoading(true);
-
     try {
-      const { data } = await postsAPI.getAllPosts(page, 10, debouncedSearch);
-      console.log("Feed - First post from API:", data.posts[0]);
-      console.log(
-        "First post likedByCurrentUser:",
-        data.posts[0]?.likedByCurrentUser
-      );
-      console.log("First post likesCount:", data.posts[0]?.likesCount);
-
+      const { data } = await postsAPI.getStarredPosts(page, 10);
       if (page === 1) {
         setPosts(data.posts);
-        // Preload first 3 images for faster perceived loading
-        data.posts.slice(0, 3).forEach((post) => {
-          const img = new Image();
-          img.src = post.imageUrl;
-        });
       } else {
         setPosts((prev) => [...prev, ...data.posts]);
       }
       setHasMore(data.hasMore);
     } catch (error) {
-      toast.error("Failed to load posts");
+      toast.error("Failed to load favorites");
     } finally {
       setLoading(false);
-      isFetchingRef.current = false;
     }
-  }, [page, debouncedSearch]);
+  }, [page]);
 
   useEffect(() => {
-    if (!authLoading) {
-      fetchPosts();
-    }
-  }, [fetchPosts, authLoading]);
+    fetchStarredPosts();
+  }, [fetchStarredPosts]);
 
   const handlePostDeleted = (postId) => {
     setPosts(posts.filter((post) => post._id !== postId));
@@ -104,9 +63,12 @@ const Feed = () => {
     return (
       <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
         <div className="max-w-2xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
-            Art Feed
-          </h1>
+          <div className="flex items-center space-x-2 mb-6">
+            <FiStar className="text-yellow-500" size={28} />
+            <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+              Favorites
+            </h1>
+          </div>
           {/* Skeleton loaders */}
           {[1, 2, 3].map((i) => (
             <div
@@ -133,16 +95,24 @@ const Feed = () => {
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
       <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
-          Art Feed
-        </h1>
+        <div className="flex items-center space-x-2 mb-6">
+          <FiStar className="text-yellow-500" size={28} />
+          <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark">
+            Favorites
+          </h1>
+        </div>
 
         {posts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-text-secondary-light dark:text-text-secondary-dark">
-              {debouncedSearch
-                ? `No posts found for "${debouncedSearch}"`
-                : "No posts yet. Be the first to share your art!"}
+          <div className="text-center py-12 bg-background-light dark:bg-background-dark rounded-lg border border-border-light dark:border-border-dark">
+            <FiStar
+              className="mx-auto mb-4 text-text-secondary-light dark:text-text-secondary-dark"
+              size={48}
+            />
+            <p className="text-text-secondary-light dark:text-text-secondary-dark text-lg">
+              No favorites yet
+            </p>
+            <p className="text-text-secondary-light dark:text-text-secondary-dark mt-2">
+              Star posts you love to save them here!
             </p>
           </div>
         ) : (
@@ -175,11 +145,8 @@ const Feed = () => {
           </>
         )}
       </div>
-
-      {/* Suggested Profiles Widget - Only show after posts load */}
-      {!loading && posts.length > 0 && <SuggestedProfiles />}
     </div>
   );
 };
 
-export default Feed;
+export default Favorites;

@@ -17,6 +17,7 @@ import Register from "./pages/Register";
 import Profile from "./pages/Profile";
 import Sketchbook from "./pages/SketchbookPro";
 import Game from "./pages/Game";
+import Favorites from "./pages/Favorites";
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -47,6 +48,14 @@ function AppContent() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/game" element={<Game />} />
           <Route path="/sketchbook" element={<Sketchbook />} />
+          <Route
+            path="/favorites"
+            element={
+              <ProtectedRoute>
+                <Favorites />
+              </ProtectedRoute>
+            }
+          />
         </Routes>
       </Router>
       <ToastContainer

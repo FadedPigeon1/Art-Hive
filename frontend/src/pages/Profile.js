@@ -22,6 +22,7 @@ const Profile = () => {
     updateProfile,
     followUser,
     unfollowUser,
+    loading: authLoading,
   } = useAuth();
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
@@ -84,12 +85,14 @@ const Profile = () => {
   );
 
   useEffect(() => {
-    setPosts([]);
-    setPage(1);
-    setHasMore(true);
-    setTotalPosts(0);
-    fetchUserPosts(1);
-  }, [fetchUserPosts]);
+    if (!authLoading) {
+      setPosts([]);
+      setPage(1);
+      setHasMore(true);
+      setTotalPosts(0);
+      fetchUserPosts(1);
+    }
+  }, [fetchUserPosts, authLoading]);
 
   // Check if currently following this user
   useEffect(() => {

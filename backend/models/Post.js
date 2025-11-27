@@ -28,6 +28,12 @@ const postSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    stars: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
     comments: [
       {
         type: mongoose.Schema.Types.ObjectId,
