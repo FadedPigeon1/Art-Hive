@@ -42,11 +42,11 @@ export const authAPI = {
 
 // Posts API
 export const postsAPI = {
-  getAllPosts: (page = 1, limit = 20, q = "") =>
+  getAllPosts: (page = 1, limit = 20, q = "", sort = "") =>
     axios.get(
       `/api/posts?page=${page}&limit=${limit}${
         q && q.length ? `&q=${encodeURIComponent(q)}` : ""
-      }`
+      }${sort ? `&sort=${sort}` : ""}`
     ),
   getStarredPosts: (page = 1, limit = 20) =>
     axios.get(`/api/posts/starred?page=${page}&limit=${limit}`),

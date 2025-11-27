@@ -96,7 +96,7 @@ const SuggestedProfiles = () => {
   }
 
   return (
-    <div className="fixed bottom-4 right-4 w-80 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-700 z-50 hidden lg:block">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-700">
       <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">
         Suggested Profiles
       </h3>

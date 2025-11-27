@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import PostCard from "../components/PostCard";
 import SuggestedProfiles from "../components/SuggestedProfiles";
+import TrendingCarousel from "../components/TrendingCarousel";
+import CreativeActions from "../components/CreativeActions";
 import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
 import { useSearch } from "../context/SearchContext";
@@ -40,12 +42,6 @@ const Feed = () => {
 
     try {
       const { data } = await postsAPI.getAllPosts(page, 10, debouncedSearch);
-      console.log("Feed - First post from API:", data.posts[0]);
-      console.log(
-        "First post likedByCurrentUser:",
-        data.posts[0]?.likedByCurrentUser
-      );
-      console.log("First post likesCount:", data.posts[0]?.likesCount);
 
       if (page === 1) {
         setPosts(data.posts);
@@ -100,84 +96,84 @@ const Feed = () => {
     setPage((prev) => prev + 1);
   };
 
-  if (loading && page === 1) {
-    return (
-      <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
-        <div className="max-w-2xl mx-auto px-4 py-6">
-          <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
-            Art Feed
-          </h1>
-          {/* Skeleton loaders */}
-          {[1, 2, 3].map((i) => (
-            <div
-              key={i}
-              className="bg-background-light dark:bg-background-dark rounded-lg p-4 mb-4 animate-pulse"
-            >
-              <div className="flex items-center space-x-3 mb-3">
-                <div className="w-10 h-10 bg-surface-light dark:bg-surface-dark rounded-full"></div>
-                <div className="flex-1">
-                  <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-1/4 mb-2"></div>
-                  <div className="h-3 bg-surface-light dark:bg-surface-dark rounded w-1/6"></div>
-                </div>
-              </div>
-              <div className="w-full h-96 bg-surface-light dark:bg-surface-dark rounded-lg mb-3"></div>
-              <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-3/4 mb-2"></div>
-              <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-1/2"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
-      <div className="max-w-2xl mx-auto px-4 py-6">
-        <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
-          Art Feed
-        </h1>
+      <div className="max-w-6xl mx-auto px-4 py-6">
+        {/* Trending Section - Only show on first page and no search */}
+        {!debouncedSearch && <TrendingCarousel />}
 
-        {posts.length === 0 ? (
-          <div className="text-center py-12">
-            <p className="text-text-secondary-light dark:text-text-secondary-dark">
-              {debouncedSearch
-                ? `No posts found for "${debouncedSearch}"`
-                : "No posts yet. Be the first to share your art!"}
-            </p>
-          </div>
-        ) : (
-          <>
-            {posts.map((post) => (
-              <PostCard
-                key={post._id}
-                post={post}
-                onDelete={handlePostDeleted}
-                onLike={(stats) => handlePostLiked(post._id, stats)}
-              />
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          {/* Main Feed Column */}
+          <div className="lg:col-span-2">
+            <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
+              Art Feed
+            </h1>
 
-            {hasMore && (
-              <button
-                onClick={handleLoadMore}
-                disabled={loading}
-                className="w-full py-3 mt-4 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
-              >
-                {loading ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    <span>Loading...</span>
-                  </>
-                ) : (
-                  <span>Load More</span>
+            {loading && page === 1 ? (
+              // Skeleton loaders
+              [1, 2, 3].map((i) => (
+                <div
+                  key={i}
+                  className="bg-background-light dark:bg-background-dark rounded-lg p-4 mb-4 animate-pulse"
+                >
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="w-10 h-10 bg-surface-light dark:bg-surface-dark rounded-full"></div>
+                    <div className="flex-1">
+                      <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-1/4 mb-2"></div>
+                      <div className="h-3 bg-surface-light dark:bg-surface-dark rounded w-1/6"></div>
+                    </div>
+                  </div>
+                  <div className="w-full h-96 bg-surface-light dark:bg-surface-dark rounded-lg mb-3"></div>
+                  <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-3/4 mb-2"></div>
+                  <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-1/2"></div>
+                </div>
+              ))
+            ) : posts.length === 0 ? (
+              <div className="text-center py-12">
+                <p className="text-text-secondary-light dark:text-text-secondary-dark">
+                  {debouncedSearch
+                    ? `No posts found for "${debouncedSearch}"`
+                    : "No posts yet. Be the first to share your art!"}
+                </p>
+              </div>
+            ) : (
+              <>
+                {posts.map((post) => (
+                  <PostCard
+                    key={post._id}
+                    post={post}
+                    onDelete={handlePostDeleted}
+                    onLike={(stats) => handlePostLiked(post._id, stats)}
+                  />
+                ))}
+
+                {hasMore && (
+                  <button
+                    onClick={handleLoadMore}
+                    disabled={loading}
+                    className="w-full py-3 mt-4 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
+                  >
+                    {loading ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        <span>Loading...</span>
+                      </>
+                    ) : (
+                      <span>Load More</span>
+                    )}
+                  </button>
                 )}
-              </button>
+              </>
             )}
-          </>
-        )}
-      </div>
+          </div>
 
-      {/* Suggested Profiles Widget - Only show after posts load */}
-      {!loading && posts.length > 0 && <SuggestedProfiles />}
+          {/* Sidebar Column */}
+          <div className="hidden lg:block space-y-8">
+            <CreativeActions />
+            <SuggestedProfiles />
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

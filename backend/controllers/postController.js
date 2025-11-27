@@ -91,6 +91,7 @@ export const getAllPosts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+    const sortType = req.query.sort; // 'trending' or undefined
 
     // Support simple search via `q` query param. Search caption text
     // and usernames. This is a basic implementation using regex and
@@ -112,8 +113,80 @@ export const getAllPosts = async (req, res) => {
       };
     }
 
-    const [posts] = await Promise.all([
-      Post.find(filter)
+    let posts;
+
+    if (sortType === "trending") {
+      posts = await Post.aggregate([
+        { $match: filter },
+        {
+          $addFields: {
+            likesCount: { $size: { $ifNull: ["$likes", []] } },
+          },
+        },
+        { $sort: { likesCount: -1, createdAt: -1 } },
+        { $skip: skip },
+        { $limit: limit + 1 },
+        // Lookup userId
+        {
+          $lookup: {
+            from: "users",
+            localField: "userId",
+            foreignField: "_id",
+            as: "userId",
+          },
+        },
+        { $unwind: "$userId" },
+        // Lookup remixedFrom
+        {
+          $lookup: {
+            from: "posts",
+            localField: "remixedFrom",
+            foreignField: "_id",
+            as: "remixedFrom",
+          },
+        },
+        {
+          $unwind: { path: "$remixedFrom", preserveNullAndEmptyArrays: true },
+        },
+        // Lookup remixedFrom.userId
+        {
+          $lookup: {
+            from: "users",
+            localField: "remixedFrom.userId",
+            foreignField: "_id",
+            as: "remixedFrom.userId",
+          },
+        },
+        {
+          $unwind: {
+            path: "$remixedFrom.userId",
+            preserveNullAndEmptyArrays: true,
+          },
+        },
+        {
+          $project: {
+            title: 1,
+            imageUrl: 1,
+            remixCount: 1,
+            createdAt: 1,
+            likes: 1,
+            stars: 1,
+            comments: 1,
+            isGameArt: 1,
+            "userId.username": 1,
+            "userId.profilePic": 1,
+            "userId._id": 1,
+            "remixedFrom._id": 1,
+            "remixedFrom.imageUrl": 1,
+            "remixedFrom.title": 1,
+            "remixedFrom.userId.username": 1,
+            "remixedFrom.userId.profilePic": 1,
+            "remixedFrom.userId._id": 1,
+          },
+        },
+      ]);
+    } else {
+      posts = await Post.find(filter)
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit + 1) // Fetch one extra to check if there are more
@@ -126,8 +199,8 @@ export const getAllPosts = async (req, res) => {
           select: "imageUrl title userId",
           populate: { path: "userId", select: "username profilePic" },
         })
-        .lean(),
-    ]);
+        .lean();
+    }
 
     // Check if there are more posts
     const hasMore = posts.length > limit;
