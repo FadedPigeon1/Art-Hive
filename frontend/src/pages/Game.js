@@ -514,6 +514,7 @@ const Game = () => {
 
     try {
       await postsAPI.createPost({
+        title: `Game Art - ${currentGame.code}`,
         imageUrl: drawingUrl,
         caption: `Created in ArtHive Game - Code: ${currentGame.code}`,
         isGameArt: true,

@@ -6,15 +6,21 @@ import User from "../models/User.js";
 // @route   POST /api/posts
 // @access  Private
 export const createPost = async (req, res) => {
-  const { imageUrl, caption, isGameArt, gameSessionId, remixedFrom } = req.body;
+  const { title, imageUrl, caption, isGameArt, gameSessionId, remixedFrom } =
+    req.body;
 
   try {
     if (!imageUrl) {
       return res.status(400).json({ message: "Image URL is required" });
     }
 
+    if (!title) {
+      return res.status(400).json({ message: "Title is required" });
+    }
+
     const post = await Post.create({
       userId: req.user._id,
+      title,
       imageUrl,
       caption: caption || "",
       isGameArt: isGameArt || false,

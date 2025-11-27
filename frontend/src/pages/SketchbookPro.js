@@ -128,6 +128,7 @@ const SketchbookPro = () => {
   const [historyStep, setHistoryStep] = useState(-1);
 
   // UI state
+  const [title, setTitle] = useState("");
   const [caption, setCaption] = useState("");
   const [uploading, setUploading] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
@@ -767,6 +768,11 @@ const SketchbookPro = () => {
       return;
     }
 
+    if (!title.trim()) {
+      toast.error("Please add a title to your artwork");
+      return;
+    }
+
     setUploading(true);
 
     try {
@@ -774,6 +780,7 @@ const SketchbookPro = () => {
       const imageData = canvas.toDataURL("image/png");
 
       await postsAPI.createPost({
+        title,
         imageUrl: imageData,
         caption,
         remixedFrom: remixPostId || undefined,
@@ -1390,8 +1397,21 @@ const SketchbookPro = () => {
       {/* Bottom Bar - Post Section */}
       {!gameMode && (
         <div className="bg-gray-800 border-t border-gray-700 px-4 py-3">
-          <div className="max-w-2xl mx-auto flex items-end space-x-3">
-            <div className="flex-1">
+          <div className="max-w-2xl mx-auto flex flex-col space-y-3">
+            <div>
+              <label className="text-xs font-medium mb-1 block">
+                Title <span className="text-red-500">*</span>
+              </label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                maxLength={100}
+                placeholder="Give your artwork a title..."
+                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
               <label className="text-xs font-medium mb-1 block">
                 Caption (optional)
               </label>

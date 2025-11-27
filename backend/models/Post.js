@@ -7,6 +7,12 @@ const postSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    title: {
+      type: String,
+      required: [true, "Please add a title"],
+      maxlength: [100, "Title cannot exceed 100 characters"],
+      trim: true,
+    },
     imageUrl: {
       type: String,
       required: [true, "Please add an image URL"],

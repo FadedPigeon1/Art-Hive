@@ -5,6 +5,9 @@ import { toast } from "react-toastify";
 
 const RemixModal = ({ post, onClose, onRemixCreated }) => {
   const canvasRef = useRef(null);
+  const [title, setTitle] = useState(
+    post.title ? `Remix of ${post.title}` : "My Remix"
+  );
   const [caption, setCaption] = useState(
     `Remix of @${post.userId?.username}'s artwork`
   );
@@ -82,8 +85,8 @@ const RemixModal = ({ post, onClose, onRemixCreated }) => {
   };
 
   const handleSubmit = async () => {
-    if (!caption.trim()) {
-      toast.error("Please add a caption");
+    if (!title.trim()) {
+      toast.error("Please add a title");
       return;
     }
 
@@ -95,6 +98,7 @@ const RemixModal = ({ post, onClose, onRemixCreated }) => {
 
       // Create the remix post
       await postsAPI.createPost({
+        title,
         imageUrl,
         caption,
         remixedFrom: post._id,
@@ -188,6 +192,21 @@ const RemixModal = ({ post, onClose, onRemixCreated }) => {
               onMouseLeave={stopDrawing}
               className="max-w-full h-auto cursor-crosshair bg-white"
               style={{ display: "block", margin: "0 auto" }}
+            />
+          </div>
+
+          {/* Title */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">
+              Title <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Give your remix a title"
+              className="w-full p-3 border border-border-light dark:border-border-dark rounded-lg bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark focus:outline-none focus:ring-2 focus:ring-primary-light"
+              maxLength={100}
             />
           </div>
 

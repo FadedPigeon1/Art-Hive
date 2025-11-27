@@ -60,14 +60,9 @@ const UploadArtModal = ({ isOpen, onClose, onUploadSuccess }) => {
       // For now, we'll use a base64 string as the image URL
       // In production, you'd upload to a cloud storage service like AWS S3 or Cloudinary
 
-      // Combine title and description into caption
-      let caption = title.trim();
-      if (description.trim()) {
-        caption += `\n\n${description.trim()}`;
-      }
-
       const postData = {
-        caption: caption,
+        title: title.trim(),
+        caption: description.trim(),
         imageUrl: imagePreview, // In production, replace with actual uploaded URL
       };
 
