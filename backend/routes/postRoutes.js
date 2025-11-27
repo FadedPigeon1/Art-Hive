@@ -31,8 +31,8 @@ router.get("/:id", optionalAuth, getPostById);
 
 // @route   GET /api/posts/user/:userId
 // @desc    Get posts by user
-// @access  Public
-router.get("/user/:userId", getUserPosts);
+// @access  Public (optional auth for liked flag)
+router.get("/user/:userId", optionalAuth, getUserPosts);
 
 // @route   PUT /api/posts/:id
 // @desc    Update a post

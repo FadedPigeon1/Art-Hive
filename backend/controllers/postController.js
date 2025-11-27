@@ -2,6 +2,30 @@ import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 
+const mapPostSummaries = (posts, currentUserId) => {
+  const currentUserStringId = currentUserId ? currentUserId.toString() : null;
+
+  return posts.map((post) => {
+    const likes = post.likes || [];
+    const comments = post.comments || [];
+    const likedByCurrentUser = currentUserStringId
+      ? likes.some((id) => id.toString() === currentUserStringId)
+      : false;
+
+    const summary = {
+      ...post,
+      likesCount: likes.length,
+      commentCount: comments.length,
+      likedByCurrentUser,
+    };
+
+    delete summary.likes;
+    delete summary.comments;
+
+    return summary;
+  });
+};
+
 // @desc    Create a new post
 // @route   POST /api/posts
 // @access  Private
@@ -35,7 +59,7 @@ export const createPost = async (req, res) => {
 
     const populatedPost = await Post.findById(post._id)
       .populate("userId", "username profilePic")
-      .populate("remixedFrom", "userId imageUrl caption")
+      .populate("remixedFrom", "userId imageUrl caption title")
       .populate({
         path: "remixedFrom",
         populate: { path: "userId", select: "username profilePic" },
@@ -85,10 +109,13 @@ export const getAllPosts = async (req, res) => {
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit + 1) // Fetch one extra to check if there are more
+        .select(
+          "title imageUrl userId remixCount remixedFrom createdAt likes comments isGameArt"
+        )
         .populate("userId", "username profilePic")
-        .populate("remixedFrom", "userId imageUrl")
         .populate({
           path: "remixedFrom",
+          select: "imageUrl title userId",
           populate: { path: "userId", select: "username profilePic" },
         })
         .lean(),
@@ -100,15 +127,13 @@ export const getAllPosts = async (req, res) => {
       posts.pop(); // Remove the extra post
     }
 
-    // Skip loading comments in feed for better performance
-    // Comments will be loaded on demand when user clicks to view them
-    posts.forEach((post) => {
-      post.commentCount = post.comments ? post.comments.length : 0;
-      post.comments = [];
-    });
+    const lightweightPosts = mapPostSummaries(posts, req.user?._id);
+
+    // Add cache headers for better performance
+    res.setHeader("Cache-Control", "private, max-age=60"); // Cache for 1 minute
 
     res.json({
-      posts,
+      posts: lightweightPosts,
       page,
       hasMore,
     });
@@ -124,7 +149,7 @@ export const getPostById = async (req, res) => {
   try {
     const post = await Post.findById(req.params.id)
       .populate("userId", "username profilePic bio")
-      .populate("remixedFrom", "userId imageUrl caption")
+      .populate("remixedFrom", "userId imageUrl caption title")
       .populate({
         path: "remixedFrom",
         populate: { path: "userId", select: "username profilePic" },
@@ -150,15 +175,72 @@ export const getPostById = async (req, res) => {
 // @access  Public
 export const getUserPosts = async (req, res) => {
   try {
-    const posts = await Post.find({ userId: req.params.userId })
-      .sort({ createdAt: -1 })
-      .populate(
-        "userId",
-        "username profilePic bio email dateJoined followers following"
-      )
-      .lean();
+    const { userId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 9;
+    const skip = (page - 1) * limit;
 
-    res.json(posts);
+    const [user, posts, totalPosts] = await Promise.all([
+      User.findById(userId)
+        .select("username profilePic bio email dateJoined followers following")
+        .lean(),
+      Post.find({ userId })
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit + 1)
+        .select("title imageUrl createdAt remixedFrom likes comments isGameArt")
+        .populate({
+          path: "remixedFrom",
+          select: "imageUrl title userId",
+          populate: { path: "userId", select: "username profilePic" },
+        })
+        .lean(),
+      page === 1 ? Post.countDocuments({ userId }) : Promise.resolve(0), // Only count on first page
+    ]);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    const hasMore = posts.length > limit;
+    if (hasMore) {
+      posts.pop();
+    }
+
+    const sanitizedPosts = mapPostSummaries(posts, req.user?._id);
+
+    const summarizedPosts = sanitizedPosts.map((post) => ({
+      _id: post._id,
+      title: post.title,
+      imageUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      likesCount: post.likesCount,
+      commentCount: post.commentCount,
+      remixedFrom: post.remixedFrom,
+      isGameArt: post.isGameArt,
+    }));
+
+    const sanitizedUser = {
+      _id: user._id,
+      username: user.username,
+      profilePic: user.profilePic,
+      bio: user.bio,
+      email: user.email,
+      dateJoined: user.dateJoined,
+      followersCount: user.followers?.length || 0,
+      followingCount: user.following?.length || 0,
+    };
+
+    // Add cache headers for profile data
+    res.setHeader("Cache-Control", "private, max-age=120"); // Cache for 2 minutes
+
+    res.json({
+      user: sanitizedUser,
+      posts: summarizedPosts,
+      page,
+      hasMore,
+      totalPosts: page === 1 ? totalPosts : undefined, // Only send total on first page
+    });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -192,7 +274,7 @@ export const updatePost = async (req, res) => {
 
     const updatedPost = await Post.findById(post._id)
       .populate("userId", "username profilePic")
-      .populate("remixedFrom", "userId imageUrl caption")
+      .populate("remixedFrom", "userId imageUrl caption title")
       .populate({
         path: "remixedFrom",
         populate: { path: "userId", select: "username profilePic" },
@@ -297,7 +379,7 @@ export const getPostRemixes = async (req, res) => {
     const remixes = await Post.find({ remixedFrom: req.params.id })
       .sort({ createdAt: -1 })
       .populate("userId", "username profilePic")
-      .populate("remixedFrom", "userId imageUrl caption")
+      .populate("remixedFrom", "userId imageUrl caption title")
       .populate({
         path: "remixedFrom",
         populate: { path: "userId", select: "username profilePic" },

@@ -51,7 +51,8 @@ export const postsAPI = {
       }`
     ),
   getPostById: (id) => axios.get(`/api/posts/${id}`),
-  getUserPosts: (userId) => axios.get(`/api/posts/user/${userId}`),
+  getUserPosts: (userId, page = 1, limit = 9) =>
+    axios.get(`/api/posts/user/${userId}?page=${page}&limit=${limit}`),
   createPost: (postData) => axios.post("/api/posts", postData),
   updatePost: (id, postData) => axios.put(`/api/posts/${id}`, postData),
   deletePost: (id) => axios.delete(`/api/posts/${id}`),

@@ -233,8 +233,12 @@ export const getSuggestedUsers = async (req, res) => {
       },
     })
       .select("username profilePic bio")
+      .sort({ createdAt: -1 }) // Show newer users first
       .limit(5)
       .lean();
+
+    // Add cache headers
+    res.setHeader("Cache-Control", "private, max-age=300"); // Cache for 5 minutes
 
     res.json(suggestedUsers);
   } catch (error) {

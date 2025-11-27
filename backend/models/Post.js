@@ -63,8 +63,9 @@ const postSchema = new mongoose.Schema(
 
 // Index for faster queries
 postSchema.index({ createdAt: -1 });
-postSchema.index({ userId: 1 });
+postSchema.index({ userId: 1, createdAt: -1 }); // Compound index for user posts sorted by date
 postSchema.index({ caption: "text" });
+postSchema.index({ remixedFrom: 1 }); // Index for remix queries
 
 const Post = mongoose.model("Post", postSchema);
 

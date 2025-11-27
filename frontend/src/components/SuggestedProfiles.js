@@ -18,7 +18,11 @@ const SuggestedProfiles = () => {
   useEffect(() => {
     // Only fetch if user is logged in
     if (user) {
-      fetchSuggestedUsers();
+      // Delay loading suggested profiles to prioritize feed loading
+      const timer = setTimeout(() => {
+        fetchSuggestedUsers();
+      }, 1000);
+      return () => clearTimeout(timer);
     } else {
       setLoading(false);
     }

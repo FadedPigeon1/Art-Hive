@@ -40,6 +40,11 @@ const Feed = () => {
       const { data } = await postsAPI.getAllPosts(page, 10, debouncedSearch);
       if (page === 1) {
         setPosts(data.posts);
+        // Preload first 3 images for faster perceived loading
+        data.posts.slice(0, 3).forEach((post) => {
+          const img = new Image();
+          img.src = post.imageUrl;
+        });
       } else {
         setPosts((prev) => [...prev, ...data.posts]);
       }
@@ -60,11 +65,21 @@ const Feed = () => {
     setPosts(posts.filter((post) => post._id !== postId));
   };
 
-  const handlePostLiked = (postId, newLikesCount) => {
+  const handlePostLiked = (postId, stats) => {
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
         post._id === postId
-          ? { ...post, likes: Array(newLikesCount).fill(null) }
+          ? {
+              ...post,
+              likesCount:
+                typeof stats.likesCount === "number"
+                  ? stats.likesCount
+                  : post.likesCount,
+              likedByCurrentUser:
+                typeof stats.likedByCurrentUser === "boolean"
+                  ? stats.likedByCurrentUser
+                  : post.likedByCurrentUser,
+            }
           : post
       )
     );
@@ -76,12 +91,29 @@ const Feed = () => {
 
   if (loading && page === 1) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="w-12 h-12 border-4 border-primary-light border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-text-primary-light dark:text-text-primary-dark">
-            Loading feed...
-          </div>
+      <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
+        <div className="max-w-2xl mx-auto px-4 py-6">
+          <h1 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark mb-6">
+            Art Feed
+          </h1>
+          {/* Skeleton loaders */}
+          {[1, 2, 3].map((i) => (
+            <div
+              key={i}
+              className="bg-background-light dark:bg-background-dark rounded-lg p-4 mb-4 animate-pulse"
+            >
+              <div className="flex items-center space-x-3 mb-3">
+                <div className="w-10 h-10 bg-surface-light dark:bg-surface-dark rounded-full"></div>
+                <div className="flex-1">
+                  <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-1/4 mb-2"></div>
+                  <div className="h-3 bg-surface-light dark:bg-surface-dark rounded w-1/6"></div>
+                </div>
+              </div>
+              <div className="w-full h-96 bg-surface-light dark:bg-surface-dark rounded-lg mb-3"></div>
+              <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-3/4 mb-2"></div>
+              <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-1/2"></div>
+            </div>
+          ))}
         </div>
       </div>
     );
@@ -109,16 +141,24 @@ const Feed = () => {
                 key={post._id}
                 post={post}
                 onDelete={handlePostDeleted}
-                onLike={(likesCount) => handlePostLiked(post._id, likesCount)}
+                onLike={(stats) => handlePostLiked(post._id, stats)}
               />
             ))}
 
             {hasMore && (
               <button
                 onClick={handleLoadMore}
-                className="w-full py-3 mt-4 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors"
+                disabled={loading}
+                className="w-full py-3 mt-4 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
               >
-                Load More
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <span>Load More</span>
+                )}
               </button>
             )}
           </>

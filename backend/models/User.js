@@ -74,6 +74,8 @@ userSchema.methods.matchPassword = async function (enteredPassword) {
 
 // Add index for faster username searches
 userSchema.index({ username: 1 });
+// Add index for faster createdAt sorting (for suggested users)
+userSchema.index({ createdAt: -1 });
 
 const User = mongoose.model("User", userSchema);
 

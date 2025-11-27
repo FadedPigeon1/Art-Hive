@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { postsAPI } from "../utils/api";
@@ -26,6 +26,10 @@ const Profile = () => {
   const [profile, setProfile] = useState(null);
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [totalPosts, setTotalPosts] = useState(0);
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState("");
   const [editBio, setEditBio] = useState("");
@@ -35,54 +39,70 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
+  const POSTS_PER_PAGE = 9;
   const isOwnProfile = currentUser?._id === userId;
 
-  useEffect(() => {
-    setLoading(true);
-    fetchUserPosts();
-  }, [userId]);
+  const fetchUserPosts = useCallback(
+    async (requestedPage = 1) => {
+      try {
+        if (requestedPage === 1) {
+          setLoading(true);
+        } else {
+          setLoadingMore(true);
+        }
 
-  // Update bio when currentUser changes (after profile update)
+        const { data } = await postsAPI.getUserPosts(
+          userId,
+          requestedPage,
+          POSTS_PER_PAGE
+        );
+
+        if (requestedPage === 1) {
+          setProfile(data.user);
+          setBio(data.user?.bio || "");
+          setPosts(data.posts);
+        } else {
+          setPosts((prev) => [...prev, ...data.posts]);
+        }
+
+        setPage(requestedPage);
+        setHasMore(data.hasMore);
+        if (data.totalPosts !== undefined) {
+          setTotalPosts(data.totalPosts);
+        }
+      } catch (error) {
+        toast.error("Failed to load profile");
+      } finally {
+        if (requestedPage === 1) {
+          setLoading(false);
+        } else {
+          setLoadingMore(false);
+        }
+      }
+    },
+    [POSTS_PER_PAGE, userId]
+  );
+
   useEffect(() => {
-    if (isOwnProfile && currentUser) {
-      setBio(currentUser.bio || "");
-      setProfile(currentUser);
-    }
-  }, [currentUser, isOwnProfile]);
+    setPosts([]);
+    setPage(1);
+    setHasMore(true);
+    setTotalPosts(0);
+    fetchUserPosts(1);
+  }, [fetchUserPosts]);
 
   // Check if currently following this user
   useEffect(() => {
-    if (currentUser && profile && !isOwnProfile) {
+    if (currentUser && !isOwnProfile) {
       setIsFollowing(currentUser.following?.includes(userId) || false);
+    } else if (isOwnProfile) {
+      setIsFollowing(false);
     }
-  }, [currentUser, profile, userId, isOwnProfile]);
-
-  const fetchUserPosts = async () => {
-    try {
-      const { data } = await postsAPI.getUserPosts(userId);
-      if (data.length > 0) {
-        const userFromPost = data[0].userId;
-        setProfile(userFromPost);
-        // Only set bio from posts if it's not own profile or if we don't have currentUser yet
-        if (!isOwnProfile || !currentUser) {
-          setBio(userFromPost.bio || "");
-        }
-      } else {
-        // If no posts, fetch user data directly
-        if (isOwnProfile && currentUser) {
-          setProfile(currentUser);
-        }
-      }
-      setPosts(data);
-    } catch (error) {
-      toast.error("Failed to load profile");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [currentUser, userId, isOwnProfile]);
 
   const handlePostDeleted = (postId) => {
-    setPosts(posts.filter((post) => post._id !== postId));
+    setPosts((prev) => prev.filter((post) => post._id !== postId));
+    setTotalPosts((prev) => Math.max(0, prev - 1));
   };
 
   const handleEditClick = () => {
@@ -98,6 +118,7 @@ const Profile = () => {
         setBio(editBio);
         setEditing(false);
         toast.success("Profile updated successfully!");
+        setProfile((prev) => (prev ? { ...prev, bio: editBio } : prev));
       } else {
         toast.error(result.message || "Failed to update profile");
       }
@@ -114,7 +135,9 @@ const Profile = () => {
   };
 
   const handleUploadSuccess = () => {
-    fetchUserPosts(); // Refresh posts after successful upload
+    setHasMore(true);
+    setPage(1);
+    fetchUserPosts(1);
   };
 
   const handleProfilePicChange = async (e) => {
@@ -149,7 +172,7 @@ const Profile = () => {
               setProfile({ ...profile, profilePic: reader.result });
             }
             // Refresh to get updated data
-            fetchUserPosts();
+            fetchUserPosts(1);
           } else {
             toast.error(result.message || "Failed to update profile picture");
           }
@@ -184,9 +207,7 @@ const Profile = () => {
           if (profile) {
             setProfile({
               ...profile,
-              followers: profile.followers.filter(
-                (id) => id !== currentUser._id
-              ),
+              followersCount: Math.max(0, (profile.followersCount || 0) - 1),
             });
           }
         } else {
@@ -201,7 +222,7 @@ const Profile = () => {
           if (profile) {
             setProfile({
               ...profile,
-              followers: [...(profile.followers || []), currentUser._id],
+              followersCount: (profile.followersCount || 0) + 1,
             });
           }
         } else {
@@ -218,18 +239,64 @@ const Profile = () => {
   };
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
-        <div className="flex flex-col items-center space-y-3">
-          <div className="w-12 h-12 border-4 border-primary-light border-t-transparent rounded-full animate-spin"></div>
-          <div className="text-text-primary-light dark:text-text-primary-dark">
-            Loading profile...
+      <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          {/* Profile Header Skeleton */}
+          <div className="bg-background-light dark:bg-background-dark rounded-lg shadow-lg p-6 mb-6 border border-border-light dark:border-border-dark animate-pulse">
+            <div className="flex items-start space-x-6">
+              <div className="w-32 h-32 rounded-full bg-surface-light dark:bg-surface-dark"></div>
+              <div className="flex-1">
+                <div className="h-8 bg-surface-light dark:bg-surface-dark rounded w-1/3 mb-3"></div>
+                <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-1/2 mb-3"></div>
+                <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-2/3 mb-4"></div>
+                <div className="flex items-center space-x-6">
+                  <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-20"></div>
+                  <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-20"></div>
+                  <div className="h-4 bg-surface-light dark:bg-surface-dark rounded w-20"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+          {/* Posts Grid Skeleton */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[1, 2, 3, 4, 5, 6].map((i) => (
+              <div
+                key={i}
+                className="aspect-square bg-surface-light dark:bg-surface-dark rounded-lg animate-pulse"
+              ></div>
+            ))}
           </div>
         </div>
       </div>
     );
   }
 
-  const profileData = profile || currentUser;
+  const fallbackProfile =
+    !profile && isOwnProfile && currentUser
+      ? {
+          ...currentUser,
+          followersCount: currentUser.followers?.length || 0,
+          followingCount: currentUser.following?.length || 0,
+        }
+      : null;
+
+  const profileData = profile || fallbackProfile;
+
+  if (!profileData) {
+    return (
+      <div className="flex justify-center items-center min-h-screen bg-background-light dark:bg-background-dark">
+        <div className="text-text-primary-light dark:text-text-primary-dark">
+          Profile not found.
+        </div>
+      </div>
+    );
+  }
+
+  const loadMorePosts = () => {
+    if (hasMore && !loadingMore) {
+      fetchUserPosts(page + 1);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
@@ -357,14 +424,16 @@ const Profile = () => {
                 <FiCalendar size={16} />
                 <span className="text-sm">
                   Joined{" "}
-                  {new Date(profileData?.dateJoined).toLocaleDateString()}
+                  {profileData?.dateJoined
+                    ? new Date(profileData.dateJoined).toLocaleDateString()
+                    : "—"}
                 </span>
               </div>
 
               <div className="flex items-center space-x-6 mt-4">
                 <div>
                   <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {posts.length}
+                    {totalPosts}
                   </span>
                   <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
                     Posts
@@ -372,7 +441,7 @@ const Profile = () => {
                 </div>
                 <div>
                   <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {profileData?.followers?.length || 0}
+                    {profileData?.followersCount || 0}
                   </span>
                   <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
                     Followers
@@ -380,7 +449,7 @@ const Profile = () => {
                 </div>
                 <div>
                   <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {profileData?.following?.length || 0}
+                    {profileData?.followingCount || 0}
                   </span>
                   <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
                     Following
@@ -417,11 +486,13 @@ const Profile = () => {
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {posts.map((post) => (
+              {posts.map((post, index) => (
                 <div key={post._id} className="aspect-square">
                   <img
                     src={post.imageUrl}
-                    alt="Post"
+                    alt={post.title || "Post"}
+                    loading={index < 6 ? "eager" : "lazy"}
+                    decoding="async"
                     className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
                     onClick={() =>
                       (window.location.href = `/?post=${post._id}`)
@@ -429,6 +500,25 @@ const Profile = () => {
                   />
                 </div>
               ))}
+            </div>
+          )}
+
+          {posts.length > 0 && hasMore && (
+            <div className="flex justify-center mt-6">
+              <button
+                onClick={loadMorePosts}
+                disabled={loadingMore}
+                className="px-6 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg hover:bg-border-light dark:hover:bg-border-dark transition-colors disabled:opacity-50 flex items-center space-x-2"
+              >
+                {loadingMore ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading...</span>
+                  </>
+                ) : (
+                  <span>Load More</span>
+                )}
+              </button>
             </div>
           )}
         </div>

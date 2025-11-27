@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState, memo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   FiHeart,
@@ -19,14 +19,28 @@ import { getProfilePicture } from "../utils/imageHelpers";
 const PostCard = ({ post, onDelete, onLike }) => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
-  const [isLiked, setIsLiked] = useState(
-    post.likes?.includes(user?._id) || false
-  );
-  const [likesCount, setLikesCount] = useState(post.likes?.length || 0);
+  const deriveInitialLikes = (incomingPost) => {
+    if (typeof incomingPost.likesCount === "number") {
+      return incomingPost.likesCount;
+    }
+    if (Array.isArray(incomingPost.likes)) {
+      return incomingPost.likes.length;
+    }
+    return 0;
+  };
+
+  const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
+  const [likesCount, setLikesCount] = useState(deriveInitialLikes(post));
   const [showComments, setShowComments] = useState(false);
   const [showRemixModal, setShowRemixModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [currentPost, setCurrentPost] = useState(post);
+
+  useEffect(() => {
+    setCurrentPost(post);
+    setIsLiked(post.likedByCurrentUser || false);
+    setLikesCount(deriveInitialLikes(post));
+  }, [post]);
 
   const handleLike = async () => {
     if (!isAuthenticated) {
@@ -43,7 +57,7 @@ const PostCard = ({ post, onDelete, onLike }) => {
 
     setIsLiked(newLiked);
     setLikesCount(newCount);
-    if (onLike) onLike(newCount);
+    if (onLike) onLike({ likesCount: newCount, likedByCurrentUser: newLiked });
 
     try {
       if (newLiked) {
@@ -86,20 +100,21 @@ const PostCard = ({ post, onDelete, onLike }) => {
     setCurrentPost(updatedPost);
   };
 
-  // Parse caption into title and description
-  const parseCaption = (caption) => {
-    if (!caption || !caption.trim()) {
+  const legacyCaption = useMemo(() => {
+    if (!currentPost.caption) {
       return { title: "", description: "" };
     }
-
-    const parts = caption.split("\n\n");
+    const parts = currentPost.caption.split("\n\n");
     return {
       title: parts[0] || "",
       description: parts.slice(1).join("\n\n") || "",
     };
-  };
+  }, [currentPost.caption]);
 
-  const { title, description } = parseCaption(currentPost.caption);
+  const displayTitle = currentPost.title || legacyCaption.title;
+  const displayDescription = currentPost.title
+    ? currentPost.caption
+    : legacyCaption.description;
 
   return (
     <div className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg overflow-hidden mb-4">
@@ -146,10 +161,10 @@ const PostCard = ({ post, onDelete, onLike }) => {
       </div>
 
       {/* Post Title */}
-      {title && (
+      {displayTitle && (
         <div className="px-4 pb-3">
           <h2 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">
-            {title}
+            {displayTitle}
           </h2>
         </div>
       )}
@@ -158,8 +173,9 @@ const PostCard = ({ post, onDelete, onLike }) => {
       <div className="w-full bg-surface-light dark:bg-surface-dark">
         <img
           src={post.imageUrl}
-          alt="Post"
+          alt={displayTitle || "Post"}
           loading="lazy"
+          decoding="async"
           className="w-full max-h-[600px] object-contain"
         />
       </div>
@@ -215,12 +231,12 @@ const PostCard = ({ post, onDelete, onLike }) => {
         )}
 
         {/* Description */}
-        {description && (
+        {displayDescription && (
           <div className="text-text-primary-light dark:text-text-primary-dark mt-2">
             <span className="font-semibold">
               {currentPost.userId?.username}
             </span>{" "}
-            <span style={{ whiteSpace: "pre-wrap" }}>{description}</span>
+            <span style={{ whiteSpace: "pre-wrap" }}>{displayDescription}</span>
           </div>
         )}
 
@@ -256,4 +272,12 @@ const PostCard = ({ post, onDelete, onLike }) => {
   );
 };
 
-export default PostCard;
+export default memo(PostCard, (prevProps, nextProps) => {
+  // Only re-render if the post ID changes or key props change
+  return (
+    prevProps.post._id === nextProps.post._id &&
+    prevProps.post.likesCount === nextProps.post.likesCount &&
+    prevProps.post.likedByCurrentUser === nextProps.post.likedByCurrentUser &&
+    prevProps.post.commentCount === nextProps.post.commentCount
+  );
+});
