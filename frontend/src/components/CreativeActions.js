@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FaPalette, FaGamepad } from "react-icons/fa";
 
@@ -10,8 +10,38 @@ const CreativeActions = () => {
     "Underwater Tea Party",
     "Steampunk Robot",
     "Space Cowboy",
+    "Future Forest",
+    "Crystal Cave",
+    "Flying Car",
+    "Magical Library",
+    "Dragon's Hoard",
+    "Haunted House",
+    "Alien Landscape",
+    "Pixel Art Hero",
+    "Sunset Boulevard",
   ];
-  const randomPrompt = prompts[Math.floor(Math.random() * prompts.length)];
+
+  // Get a consistent prompt based on the current date (Central Time)
+  const dailyPrompt = useMemo(() => {
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat("en-US", {
+      timeZone: "America/Chicago",
+      year: "numeric",
+      month: "numeric",
+      day: "numeric",
+    });
+    const dateString = formatter.format(now);
+
+    let hash = 0;
+    for (let i = 0; i < dateString.length; i++) {
+      const char = dateString.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash |= 0; // Convert to 32bit integer
+    }
+
+    const index = Math.abs(hash) % prompts.length;
+    return prompts[index];
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -22,9 +52,9 @@ const CreativeActions = () => {
           <FaPalette className="text-2xl opacity-80" />
         </div>
         <p className="text-purple-100 mb-2 text-sm">Today's Prompt:</p>
-        <p className="text-2xl font-black mb-6">"{randomPrompt}"</p>
+        <p className="text-2xl font-black mb-6">"{dailyPrompt}"</p>
         <Link
-          to={`/sketchbook?prompt=${encodeURIComponent(randomPrompt)}`}
+          to={`/sketchbook?prompt=${encodeURIComponent(dailyPrompt)}`}
           className="block w-full text-center bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-purple-50 transition"
         >
           Start Drawing
