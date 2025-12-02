@@ -23,7 +23,12 @@ export const useGameSocket = ({
   nickname,
 }) => {
   useEffect(() => {
-    const newSocket = io(SOCKET_URL);
+    const newSocket = io(SOCKET_URL, {
+      transports: ["websocket"],
+      reconnection: true,
+      reconnectionAttempts: 20,
+      reconnectionDelay: 1000,
+    });
     setSocket(newSocket);
 
     newSocket.on("player-joined", async (data) => {

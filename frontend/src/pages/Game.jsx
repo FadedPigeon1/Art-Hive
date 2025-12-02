@@ -141,15 +141,14 @@ const Game = () => {
     const savedGameState = localStorage.getItem("arthive_game_state");
     if (savedGameState) {
       try {
-        const {
-          gameCode: savedCode,
-          nickname: savedNickname,
-          gameState: savedState,
-        } = JSON.parse(savedGameState);
-        if (savedCode && savedNickname && savedState === "lobby") {
+        const { gameCode: savedCode, nickname: savedNickname } =
+          JSON.parse(savedGameState);
+
+        if (savedCode && savedNickname) {
           // Try to rejoin the game
           setGameCode(savedCode);
           setNickname(savedNickname);
+
           gameAPI
             .getGame(savedCode)
             .then(({ data }) => {
@@ -160,8 +159,28 @@ const Game = () => {
 
               if (playerStillInGame) {
                 setCurrentGame(data);
-                setGameState("lobby");
                 shouldSaveToStorage.current = true;
+
+                // Determine state based on backend status
+                if (data.status === "waiting") {
+                  setGameState("lobby");
+                } else if (data.status === "in-progress") {
+                  setGameState("task");
+                  setCurrentRound(data.currentRound);
+                  // Fetch task
+                  gameAPI
+                    .getPlayerTask(savedCode, savedNickname)
+                    .then(({ data: task }) => {
+                      setCurrentTask(task);
+                      setHasSubmitted(task.alreadySubmitted || false);
+                    })
+                    .catch(console.error);
+                } else if (data.status === "finished") {
+                  setGameState("results");
+                  gameAPI.getResults(savedCode).then(({ data: results }) => {
+                    setChains(results.chains);
+                  });
+                }
               } else {
                 // Player was removed, clear the saved state and don't restore
                 localStorage.removeItem("arthive_game_state");
@@ -182,7 +201,13 @@ const Game = () => {
 
   // Save game state to localStorage
   useEffect(() => {
-    if (currentGame && gameState === "lobby" && shouldSaveToStorage.current) {
+    if (
+      currentGame &&
+      (gameState === "lobby" ||
+        gameState === "task" ||
+        gameState === "results") &&
+      shouldSaveToStorage.current
+    ) {
       localStorage.setItem(
         "arthive_game_state",
         JSON.stringify({
