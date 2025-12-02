@@ -379,7 +379,7 @@ const Game = () => {
     }
   };
 
-  const handleSubmitTask = async () => {
+  const handleSubmitTask = async (drawingData = null) => {
     if (!currentTask) {
       console.error("[SUBMIT] No current task");
       toast.error("No task available");
@@ -405,9 +405,13 @@ const Game = () => {
       data = promptText;
       console.log("[SUBMIT] Prompt data:", data);
     } else if (taskType === "drawing") {
-      // Drawings are submitted from Sketchbook Pro, not here
-      toast.error("Please use Sketchbook Pro to submit drawings");
-      return;
+      if (drawingData) {
+        data = drawingData;
+      } else {
+        // Drawings are submitted from Sketchbook Pro, not here
+        toast.error("Please use Sketchbook Pro to submit drawings");
+        return;
+      }
     }
 
     try {

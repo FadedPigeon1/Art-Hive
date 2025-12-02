@@ -14,6 +14,10 @@ const playerSchema = new mongoose.Schema({
     type: Boolean,
     default: true,
   },
+  isLeft: {
+    type: Boolean,
+    default: false,
+  },
 });
 
 const drawingSchema = new mongoose.Schema({

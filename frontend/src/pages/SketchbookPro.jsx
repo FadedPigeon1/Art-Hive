@@ -48,7 +48,16 @@ const BLEND_MODES = [
   { value: "lighten", label: "Lighten" },
 ];
 
-const SketchbookPro = () => {
+const SketchbookPro = ({
+  embedded = false,
+  gameModeProp = false,
+  gameCodeProp = null,
+  gameChainIdProp = null,
+  gameRoundProp = null,
+  gamePromptProp = null,
+  gameNicknameProp = null,
+  onGameSubmit = null,
+}) => {
   const mainCanvasRef = useRef(null);
   const compositeCanvasRef = useRef(null);
   const { isAuthenticated } = useAuth();
@@ -56,12 +65,12 @@ const SketchbookPro = () => {
   const location = useLocation();
 
   // Game mode state
-  const [gameMode, setGameMode] = useState(false);
-  const [gameCode, setGameCode] = useState(null);
-  const [gameChainId, setGameChainId] = useState(null);
-  const [gameRound, setGameRound] = useState(null);
-  const [gamePrompt, setGamePrompt] = useState(null);
-  const [gameNickname, setGameNickname] = useState(null);
+  const [gameMode, setGameMode] = useState(gameModeProp);
+  const [gameCode, setGameCode] = useState(gameCodeProp);
+  const [gameChainId, setGameChainId] = useState(gameChainIdProp);
+  const [gameRound, setGameRound] = useState(gameRoundProp);
+  const [gamePrompt, setGamePrompt] = useState(gamePromptProp);
+  const [gameNickname, setGameNickname] = useState(gameNicknameProp);
 
   // Canvas dimensions
   const [canvasWidth, setCanvasWidth] = useState(1200);
@@ -142,6 +151,16 @@ const SketchbookPro = () => {
 
   // Read remix query param and game mode params
   useEffect(() => {
+    if (embedded) {
+      setGameMode(gameModeProp);
+      setGameCode(gameCodeProp);
+      setGameChainId(gameChainIdProp);
+      setGameRound(gameRoundProp);
+      setGamePrompt(gamePromptProp);
+      setGameNickname(gameNicknameProp);
+      return;
+    }
+
     const params = new URLSearchParams(location.search);
     const remix = params.get("remix");
     const remixId = params.get("remixId");
@@ -163,7 +182,16 @@ const SketchbookPro = () => {
       setGamePrompt(prompt ? decodeURIComponent(prompt) : null);
       setGameNickname(nickname ? decodeURIComponent(nickname) : null);
     }
-  }, [location.search]);
+  }, [
+    location.search,
+    embedded,
+    gameModeProp,
+    gameCodeProp,
+    gameChainIdProp,
+    gameRoundProp,
+    gamePromptProp,
+    gameNicknameProp,
+  ]);
 
   // History management functions (defined early to avoid hoisting issues)
   const saveToHistory = useCallback(() => {
@@ -842,6 +870,12 @@ const SketchbookPro = () => {
       const canvas = mainCanvasRef.current;
       const imageData = canvas.toDataURL("image/png");
 
+      if (onGameSubmit) {
+        await onGameSubmit(imageData);
+        setUploading(false);
+        return;
+      }
+
       console.log("[SKETCHBOOK] Submitting to game:", {
         gameCode,
         gameNickname,
@@ -874,7 +908,7 @@ const SketchbookPro = () => {
   }, [hsl]);
 
   return (
-    <div className="h-screen bg-[#1a1a1a] text-gray-200 flex flex-col overflow-hidden font-sans">
+    <div className="h-[calc(100vh-80px)] bg-[#1a1a1a] text-gray-200 flex flex-col overflow-hidden font-sans">
       {/* Top Toolbar */}
       <div className="h-16 bg-[#252525] border-b border-[#333] px-6 flex items-center justify-between shadow-md z-20">
         <div className="flex items-center space-x-6">
@@ -961,7 +995,7 @@ const SketchbookPro = () => {
         </div>
 
         <div className="flex items-center space-x-3">
-          {gameMode && (
+          {gameMode && !embedded && (
             <button
               onClick={() => navigate(`/game?code=${gameCode}&rejoin=true`)}
               className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"

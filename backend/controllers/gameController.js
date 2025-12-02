@@ -337,7 +337,50 @@ export const submitEntry = async (req, res) => {
       });
     }
 
-    // Validate chainId
+    // Find player index
+    const playerIndex = gameSession.players.findIndex(
+      (p) => p.nickname === playerNickname
+    );
+    if (playerIndex === -1) {
+      return res.status(404).json({ message: "Player not found in game" });
+    }
+
+    // Calculate expected chain
+    // Note: currentRound is 1-based.
+    // Formula from getPlayerTask: const chainIndex = (playerIndex + round - 1) % gameSession.players.length;
+    const expectedChainIndex =
+      (playerIndex + gameSession.currentRound - 1) % gameSession.players.length;
+
+    if (chainId !== expectedChainIndex) {
+      console.log(
+        `[SUBMIT ENTRY] Invalid chain for player. Expected ${expectedChainIndex}, got ${chainId}`
+      );
+      return res.status(400).json({
+        message: "Invalid chain for this round",
+        expected: expectedChainIndex,
+        received: chainId,
+      });
+    }
+
+    // Check if player already submitted for this round (globally)
+    const alreadySubmittedGlobal = gameSession.chains.some((c) =>
+      c.entries.some(
+        (e) =>
+          e.playerNickname === playerNickname &&
+          e.round === gameSession.currentRound
+      )
+    );
+
+    if (alreadySubmittedGlobal) {
+      console.log(
+        `[SUBMIT ENTRY] Player ${playerNickname} already submitted for round ${gameSession.currentRound}`
+      );
+      return res
+        .status(400)
+        .json({ message: "You have already submitted for this round" });
+    }
+
+    // Validate chainId (redundant but safe)
     if (chainId < 0 || chainId >= gameSession.chains.length) {
       console.log(
         "[SUBMIT ENTRY] Invalid chainId:",
@@ -361,25 +404,6 @@ export const submitEntry = async (req, res) => {
         gameSession.chains.length
       );
       return res.status(404).json({ message: "Chain not found" });
-    }
-
-    // Check if player already submitted for this round
-    const alreadySubmitted = chain.entries.some(
-      (e) =>
-        e.round === gameSession.currentRound &&
-        e.playerNickname === playerNickname
-    );
-
-    if (alreadySubmitted) {
-      console.log(
-        "[SUBMIT ENTRY] Player already submitted for this round:",
-        playerNickname,
-        "Round:",
-        gameSession.currentRound
-      );
-      return res.status(400).json({
-        message: "You have already submitted for this round",
-      });
     }
 
     // Add entry to chain
@@ -412,9 +436,24 @@ export const submitEntry = async (req, res) => {
     console.log("[SUBMIT ENTRY] Game session saved successfully");
 
     // Check if all players have submitted for this round
-    const submittedCount = gameSession.chains.filter((c) => {
-      return c.entries.some((e) => e.round === gameSession.currentRound);
-    }).length;
+    // We count unique players who have submitted for this round
+    const submittedPlayersCount = new Set();
+    gameSession.chains.forEach((c) => {
+      c.entries.forEach((e) => {
+        if (e.round === gameSession.currentRound) {
+          submittedPlayersCount.add(e.playerNickname);
+        }
+      });
+    });
+
+    // Also count players who have left as "submitted" (to prevent stalling)
+    gameSession.players.forEach((p) => {
+      if (p.isLeft) {
+        submittedPlayersCount.add(p.nickname);
+      }
+    });
+
+    const submittedCount = submittedPlayersCount.size;
     const totalPlayers = gameSession.players.length;
     const allSubmitted = submittedCount === totalPlayers;
 
@@ -531,7 +570,21 @@ export const leaveGameSession = async (req, res) => {
       return res.status(404).json({ message: "Game not found" });
     }
 
-    // Remove player from the game
+    // If game is in progress, mark player as left but keep them in the array
+    // to preserve player indices for chain rotation logic
+    if (gameSession.status === "in-progress") {
+      const player = gameSession.players.find((p) => p.nickname === nickname);
+      if (player) {
+        player.isLeft = true;
+        await gameSession.save();
+      }
+      return res.json({
+        message: "Left game successfully (marked as left)",
+        gameSession,
+      });
+    }
+
+    // Remove player from the game if not in progress
     gameSession.players = gameSession.players.filter(
       (player) => player.nickname !== nickname
     );
