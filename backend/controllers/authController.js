@@ -121,6 +121,18 @@ export const updateProfile = async (req, res) => {
       user.username = req.body.username || user.username;
       user.bio = req.body.bio !== undefined ? req.body.bio : user.bio;
       user.profilePic = req.body.profilePic || user.profilePic;
+      user.coverImage = req.body.coverImage || user.coverImage;
+      user.location =
+        req.body.location !== undefined ? req.body.location : user.location;
+      user.website =
+        req.body.website !== undefined ? req.body.website : user.website;
+
+      if (req.body.socialLinks) {
+        user.socialLinks = {
+          ...user.socialLinks,
+          ...req.body.socialLinks,
+        };
+      }
 
       if (req.body.password) {
         user.password = req.body.password;
@@ -133,7 +145,11 @@ export const updateProfile = async (req, res) => {
         username: updatedUser.username,
         email: updatedUser.email,
         profilePic: updatedUser.profilePic,
+        coverImage: updatedUser.coverImage,
         bio: updatedUser.bio,
+        location: updatedUser.location,
+        website: updatedUser.website,
+        socialLinks: updatedUser.socialLinks,
         token: generateToken(updatedUser._id),
       });
     } else {

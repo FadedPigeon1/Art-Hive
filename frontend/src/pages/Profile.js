@@ -12,6 +12,12 @@ import {
   FiCamera,
   FiUserPlus,
   FiUserMinus,
+  FiMapPin,
+  FiLink,
+  FiInstagram,
+  FiTwitter,
+  FiGlobe,
+  FiImage,
 } from "react-icons/fi";
 import { getProfilePicture } from "../utils/imageHelpers";
 
@@ -31,12 +37,32 @@ const Profile = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [totalPosts, setTotalPosts] = useState(0);
+
+  // Edit Mode State
   const [editing, setEditing] = useState(false);
   const [bio, setBio] = useState("");
+  const [location, setLocation] = useState("");
+  const [website, setWebsite] = useState("");
+  const [socialLinks, setSocialLinks] = useState({
+    instagram: "",
+    twitter: "",
+    portfolio: "",
+  });
+
+  // Form State
   const [editBio, setEditBio] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [editWebsite, setEditWebsite] = useState("");
+  const [editSocialLinks, setEditSocialLinks] = useState({
+    instagram: "",
+    twitter: "",
+    portfolio: "",
+  });
+
   const [saving, setSaving] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [uploadingProfilePic, setUploadingProfilePic] = useState(false);
+  const [uploadingCover, setUploadingCover] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
 
@@ -61,6 +87,15 @@ const Profile = () => {
         if (requestedPage === 1) {
           setProfile(data.user);
           setBio(data.user?.bio || "");
+          setLocation(data.user?.location || "");
+          setWebsite(data.user?.website || "");
+          setSocialLinks(
+            data.user?.socialLinks || {
+              instagram: "",
+              twitter: "",
+              portfolio: "",
+            }
+          );
           setPosts(data.posts);
         } else {
           setPosts((prev) => [...prev, ...data.posts]);
@@ -110,18 +145,31 @@ const Profile = () => {
 
   const handleEditClick = () => {
     setEditBio(bio);
+    setEditLocation(location);
+    setEditWebsite(website);
+    setEditSocialLinks({ ...socialLinks });
     setEditing(true);
   };
 
   const handleSaveProfile = async () => {
     setSaving(true);
     try {
-      const result = await updateProfile({ bio: editBio });
+      const updates = {
+        bio: editBio,
+        location: editLocation,
+        website: editWebsite,
+        socialLinks: editSocialLinks,
+      };
+
+      const result = await updateProfile(updates);
       if (result.success) {
         setBio(editBio);
+        setLocation(editLocation);
+        setWebsite(editWebsite);
+        setSocialLinks(editSocialLinks);
         setEditing(false);
         toast.success("Profile updated successfully!");
-        setProfile((prev) => (prev ? { ...prev, bio: editBio } : prev));
+        setProfile((prev) => (prev ? { ...prev, ...updates } : prev));
       } else {
         toast.error(result.message || "Failed to update profile");
       }
@@ -133,7 +181,6 @@ const Profile = () => {
   };
 
   const handleCancelEdit = () => {
-    setEditBio(bio);
     setEditing(false);
   };
 
@@ -143,52 +190,55 @@ const Profile = () => {
     fetchUserPosts(1);
   };
 
-  const handleProfilePicChange = async (e) => {
+  const handleImageUpload = async (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
     const validTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
     if (!validTypes.includes(file.type)) {
       toast.error("Please upload a valid image (JPEG, PNG, GIF, or WebP)");
       return;
     }
 
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("Image size should be less than 5MB");
       return;
     }
 
-    setUploadingProfilePic(true);
+    const setLoading =
+      type === "cover" ? setUploadingCover : setUploadingProfilePic;
+    setLoading(true);
 
     try {
-      // Convert to base64
       const reader = new FileReader();
       reader.onloadend = async () => {
         try {
-          const result = await updateProfile({ profilePic: reader.result });
+          const update =
+            type === "cover"
+              ? { coverImage: reader.result }
+              : { profilePic: reader.result };
+          const result = await updateProfile(update);
+
           if (result.success) {
-            toast.success("Profile picture updated!");
-            // Update local profile state
+            toast.success(
+              `${type === "cover" ? "Cover image" : "Profile picture"} updated!`
+            );
             if (profile) {
-              setProfile({ ...profile, profilePic: reader.result });
+              setProfile({ ...profile, ...update });
             }
-            // Refresh to get updated data
-            fetchUserPosts(1);
           } else {
-            toast.error(result.message || "Failed to update profile picture");
+            toast.error(result.message || "Failed to update image");
           }
         } catch (error) {
-          toast.error("Failed to update profile picture");
+          toast.error("Failed to update image");
         } finally {
-          setUploadingProfilePic(false);
+          setLoading(false);
         }
       };
       reader.readAsDataURL(file);
     } catch (error) {
       toast.error("Failed to process image");
-      setUploadingProfilePic(false);
+      setLoading(false);
     }
   };
 
@@ -303,177 +353,383 @@ const Profile = () => {
 
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
-      <div className="max-w-4xl mx-auto px-4 py-6">
-        {/* Profile Header */}
-        <div className="bg-background-light dark:bg-background-dark rounded-lg shadow-lg p-6 mb-6 border border-border-light dark:border-border-dark">
-          <div className="flex items-start space-x-6">
-            {/* Profile Picture with Edit Overlay */}
-            <div className="relative group">
-              <img
-                src={getProfilePicture(profileData?.profilePic)}
-                alt={profileData?.username}
-                className="w-32 h-32 rounded-full object-cover border-4 border-primary-light"
-              />
-              {isOwnProfile && (
-                <label
-                  className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
-                  title="Click to change profile picture"
-                >
-                  <div className="text-white text-center">
-                    {uploadingProfilePic ? (
-                      <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    ) : (
-                      <>
-                        <FiCamera size={32} className="mx-auto" />
-                        <span className="text-xs mt-1 block">Change Photo</span>
-                      </>
-                    )}
-                  </div>
-                  <input
-                    type="file"
-                    className="hidden"
-                    accept="image/jpeg,image/png,image/gif,image/webp"
-                    onChange={handleProfilePicChange}
-                    disabled={uploadingProfilePic}
-                  />
-                </label>
-              )}
-            </div>
+      {/* Cover Image Banner */}
+      <div className="relative h-48 md:h-64 bg-gray-300 dark:bg-gray-700 overflow-hidden group">
+        {profileData?.coverImage ? (
+          <img
+            src={profileData.coverImage}
+            alt="Cover"
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-r from-blue-400 to-purple-500 opacity-75"></div>
+        )}
 
-            <div className="flex-1">
-              <div className="flex items-center justify-between mb-2">
-                <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark">
-                  {profileData?.username}
-                </h1>
-                {isOwnProfile ? (
-                  <button
-                    onClick={handleEditClick}
-                    className="flex items-center space-x-2 px-4 py-2 bg-surface-light dark:bg-surface-dark rounded-lg hover:bg-border-light dark:hover:bg-border-dark transition-colors"
-                  >
-                    <FiEdit size={18} />
-                    <span>Edit Profile</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={handleFollowToggle}
-                    disabled={followLoading}
-                    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-colors ${
-                      isFollowing
-                        ? "bg-surface-light dark:bg-surface-dark hover:bg-border-light dark:hover:bg-border-dark text-text-primary-light dark:text-text-primary-dark"
-                        : "bg-blue-500 hover:bg-blue-600 text-white"
-                    } disabled:opacity-50`}
-                  >
-                    {followLoading ? (
-                      <>
-                        <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        <span>
-                          {isFollowing ? "Unfollowing..." : "Following..."}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        {isFollowing ? (
-                          <FiUserMinus size={18} />
+        {isOwnProfile && (
+          <label className="absolute top-4 right-4 p-2 bg-black/50 hover:bg-black/70 rounded-full cursor-pointer text-white transition-colors opacity-0 group-hover:opacity-100">
+            {uploadingCover ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <FiCamera size={20} />
+            )}
+            <input
+              type="file"
+              className="hidden"
+              accept="image/jpeg,image/png,image/gif,image/webp"
+              onChange={(e) => handleImageUpload(e, "cover")}
+              disabled={uploadingCover}
+            />
+          </label>
+        )}
+      </div>
+
+      <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="relative -mt-16 mb-6">
+          <div className="bg-background-light dark:bg-background-dark rounded-xl shadow-lg p-6 border border-border-light dark:border-border-dark">
+            <div className="flex flex-col md:flex-row items-start md:items-end gap-6">
+              {/* Profile Picture */}
+              <div className="relative -mt-20 md:-mt-24 flex-shrink-0">
+                <div className="relative group">
+                  <img
+                    src={getProfilePicture(profileData?.profilePic)}
+                    alt={profileData?.username}
+                    className="w-32 h-32 md:w-40 md:h-40 rounded-full object-cover border-4 border-background-light dark:border-background-dark shadow-md bg-surface-light dark:bg-surface-dark"
+                  />
+                  {isOwnProfile && (
+                    <label
+                      className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer border-4 border-transparent"
+                      title="Change Profile Picture"
+                    >
+                      <div className="text-white text-center">
+                        {uploadingProfilePic ? (
+                          <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto"></div>
                         ) : (
-                          <FiUserPlus size={18} />
+                          <FiCamera size={24} />
                         )}
-                        <span>{isFollowing ? "Unfollow" : "Follow"}</span>
-                      </>
-                    )}
-                  </button>
-                )}
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={(e) => handleImageUpload(e, "profile")}
+                        disabled={uploadingProfilePic}
+                      />
+                    </label>
+                  )}
+                </div>
               </div>
 
-              <p className="text-text-secondary-light dark:text-text-secondary-dark mb-3">
-                {profileData?.email}
-              </p>
+              {/* User Info & Actions */}
+              <div className="flex-1 w-full md:w-auto">
+                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                  <div>
+                    <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      {profileData?.username}
+                    </h1>
+                    <p className="text-text-secondary-light dark:text-text-secondary-dark">
+                      {profileData?.email}
+                    </p>
+                  </div>
 
+                  <div className="flex items-center gap-3">
+                    {isOwnProfile ? (
+                      <button
+                        onClick={handleEditClick}
+                        className="flex items-center space-x-2 px-4 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-text-primary-light dark:text-text-primary-dark font-medium"
+                      >
+                        <FiEdit size={16} />
+                        <span>Edit Profile</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleFollowToggle}
+                        disabled={followLoading}
+                        className={`flex items-center space-x-2 px-6 py-2 rounded-lg transition-colors font-medium ${
+                          isFollowing
+                            ? "bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800"
+                            : "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+                        } disabled:opacity-50`}
+                      >
+                        {followLoading ? (
+                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        ) : isFollowing ? (
+                          <>
+                            <FiUserMinus size={18} />
+                            <span>Unfollow</span>
+                          </>
+                        ) : (
+                          <>
+                            <FiUserPlus size={18} />
+                            <span>Follow</span>
+                          </>
+                        )}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* Stats Row */}
+                <div className="flex items-center gap-6 md:gap-8 border-t border-border-light dark:border-border-dark pt-4 mt-4">
+                  <div className="text-center md:text-left">
+                    <span className="block text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      {totalPosts}
+                    </span>
+                    <span className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                      Artworks
+                    </span>
+                  </div>
+                  <div className="text-center md:text-left">
+                    <span className="block text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      {profileData?.followersCount || 0}
+                    </span>
+                    <span className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                      Followers
+                    </span>
+                  </div>
+                  <div className="text-center md:text-left">
+                    <span className="block text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                      {profileData?.followingCount || 0}
+                    </span>
+                    <span className="text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                      Following
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Bio & Details Section */}
+            <div className="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
               {editing ? (
-                <div className="mb-4">
-                  <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-2">
-                    Bio
-                  </label>
-                  <textarea
-                    value={editBio}
-                    onChange={(e) => setEditBio(e.target.value)}
-                    maxLength={200}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary-light resize-none"
-                    placeholder="Tell us about yourself..."
-                  />
-                  <div className="flex space-x-2 mt-3">
+                <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
+                  <div>
+                    <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
+                      Bio
+                    </label>
+                    <textarea
+                      value={editBio}
+                      onChange={(e) => setEditBio(e.target.value)}
+                      maxLength={500}
+                      rows={3}
+                      className="w-full px-3 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                      placeholder="Tell us about yourself..."
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
+                        Location
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                          <FiMapPin size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          value={editLocation}
+                          onChange={(e) => setEditLocation(e.target.value)}
+                          maxLength={50}
+                          className="w-full pl-10 pr-3 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="City, Country"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
+                        Website
+                      </label>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                          <FiGlobe size={16} />
+                        </div>
+                        <input
+                          type="url"
+                          value={editWebsite}
+                          onChange={(e) => setEditWebsite(e.target.value)}
+                          className="w-full pl-10 pr-3 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="https://your-portfolio.com"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <label className="block text-sm font-medium text-text-primary-light dark:text-text-primary-dark">
+                      Social Links
+                    </label>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                          <FiInstagram size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          value={editSocialLinks.instagram}
+                          onChange={(e) =>
+                            setEditSocialLinks({
+                              ...editSocialLinks,
+                              instagram: e.target.value,
+                            })
+                          }
+                          className="w-full pl-10 pr-3 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Instagram username"
+                        />
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                          <FiTwitter size={16} />
+                        </div>
+                        <input
+                          type="text"
+                          value={editSocialLinks.twitter}
+                          onChange={(e) =>
+                            setEditSocialLinks({
+                              ...editSocialLinks,
+                              twitter: e.target.value,
+                            })
+                          }
+                          className="w-full pl-10 pr-3 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Twitter username"
+                        />
+                      </div>
+                      <div className="relative">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
+                          <FiLink size={16} />
+                        </div>
+                        <input
+                          type="url"
+                          value={editSocialLinks.portfolio}
+                          onChange={(e) =>
+                            setEditSocialLinks({
+                              ...editSocialLinks,
+                              portfolio: e.target.value,
+                            })
+                          }
+                          className="w-full pl-10 pr-3 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          placeholder="Portfolio URL"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="flex justify-end space-x-3 pt-2">
+                    <button
+                      onClick={handleCancelEdit}
+                      className="px-4 py-2 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    >
+                      Cancel
+                    </button>
                     <button
                       onClick={handleSaveProfile}
                       disabled={saving}
-                      className="px-4 py-2 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50"
+                      className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50 shadow-md"
                     >
-                      {saving ? "Saving..." : "Save"}
-                    </button>
-                    <button
-                      onClick={handleCancelEdit}
-                      className="px-4 py-2 bg-surface-light dark:bg-surface-dark rounded-lg hover:bg-border-light dark:hover:bg-border-dark transition-colors"
-                    >
-                      Cancel
+                      {saving ? "Saving..." : "Save Changes"}
                     </button>
                   </div>
                 </div>
               ) : (
-                <p className="text-text-primary-light dark:text-text-primary-dark mb-4">
-                  {bio || "No bio yet"}
-                </p>
+                <div className="space-y-4">
+                  {bio && (
+                    <p className="text-text-primary-light dark:text-text-primary-dark whitespace-pre-wrap leading-relaxed">
+                      {bio}
+                    </p>
+                  )}
+
+                  <div className="flex flex-wrap gap-y-2 gap-x-6 text-sm text-text-secondary-light dark:text-text-secondary-dark">
+                    {location && (
+                      <div className="flex items-center gap-2">
+                        <FiMapPin className="text-gray-400" />
+                        <span>{location}</span>
+                      </div>
+                    )}
+
+                    {website && (
+                      <div className="flex items-center gap-2">
+                        <FiGlobe className="text-gray-400" />
+                        <a
+                          href={website}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-500 hover:underline truncate max-w-[200px]"
+                        >
+                          {website.replace(/^https?:\/\//, "")}
+                        </a>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-2">
+                      <FiCalendar className="text-gray-400" />
+                      <span>
+                        Joined{" "}
+                        {profileData?.dateJoined
+                          ? new Date(profileData.dateJoined).toLocaleDateString(
+                              undefined,
+                              { month: "long", year: "numeric" }
+                            )
+                          : "—"}
+                      </span>
+                    </div>
+                  </div>
+
+                  {(socialLinks?.instagram ||
+                    socialLinks?.twitter ||
+                    socialLinks?.portfolio) && (
+                    <div className="flex gap-3 pt-2">
+                      {socialLinks.instagram && (
+                        <a
+                          href={`https://instagram.com/${socialLinks.instagram}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg hover:text-pink-500 transition-colors"
+                          title="Instagram"
+                        >
+                          <FiInstagram size={18} />
+                        </a>
+                      )}
+                      {socialLinks.twitter && (
+                        <a
+                          href={`https://twitter.com/${socialLinks.twitter}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg hover:text-blue-400 transition-colors"
+                          title="Twitter"
+                        >
+                          <FiTwitter size={18} />
+                        </a>
+                      )}
+                      {socialLinks.portfolio && (
+                        <a
+                          href={socialLinks.portfolio}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg hover:text-purple-500 transition-colors"
+                          title="Portfolio"
+                        >
+                          <FiLink size={18} />
+                        </a>
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
-
-              <div className="flex items-center space-x-2 text-text-secondary-light dark:text-text-secondary-dark">
-                <FiCalendar size={16} />
-                <span className="text-sm">
-                  Joined{" "}
-                  {profileData?.dateJoined
-                    ? new Date(profileData.dateJoined).toLocaleDateString()
-                    : "—"}
-                </span>
-              </div>
-
-              <div className="flex items-center space-x-6 mt-4">
-                <div>
-                  <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {totalPosts}
-                  </span>
-                  <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
-                    Posts
-                  </span>
-                </div>
-                <div>
-                  <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {profileData?.followersCount || 0}
-                  </span>
-                  <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
-                    Followers
-                  </span>
-                </div>
-                <div>
-                  <span className="font-bold text-text-primary-light dark:text-text-primary-dark">
-                    {profileData?.followingCount || 0}
-                  </span>
-                  <span className="text-text-secondary-light dark:text-text-secondary-dark ml-1">
-                    Following
-                  </span>
-                </div>
-              </div>
             </div>
           </div>
         </div>
 
         {/* User Posts Grid */}
         <div>
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
-              Artworks
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
+              <FiImage className="text-blue-500" />
+              <span>Artworks</span>
             </h2>
             {isOwnProfile && (
               <button
                 onClick={() => setIsUploadModalOpen(true)}
-                className="flex items-center space-x-2 px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors shadow-md hover:shadow-lg"
-                title="Upload new artwork"
+                className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 font-medium"
               >
                 <FiPlus size={20} />
                 <span>Upload Art</span>
@@ -482,44 +738,72 @@ const Profile = () => {
           </div>
 
           {posts.length === 0 ? (
-            <div className="text-center py-12 bg-background-light dark:bg-background-dark rounded-lg border border-border-light dark:border-border-dark">
+            <div className="flex flex-col items-center justify-center py-20 bg-background-light dark:bg-background-dark rounded-2xl border border-border-light dark:border-border-dark border-dashed">
+              <div className="w-16 h-16 bg-surface-light dark:bg-surface-dark rounded-full flex items-center justify-center mb-4 text-gray-400">
+                <FiImage size={32} />
+              </div>
+              <h3 className="text-lg font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
+                No artworks yet
+              </h3>
               <p className="text-text-secondary-light dark:text-text-secondary-dark">
-                No posts yet
+                {isOwnProfile
+                  ? "Upload your first masterpiece to get started!"
+                  : "This user hasn't posted any artwork yet."}
               </p>
+              {isOwnProfile && (
+                <button
+                  onClick={() => setIsUploadModalOpen(true)}
+                  className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Upload Now
+                </button>
+              )}
             </div>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
               {posts.map((post, index) => (
-                <div key={post._id} className="aspect-square">
+                <div
+                  key={post._id}
+                  className="group relative aspect-square rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-md hover:shadow-xl transition-all duration-300"
+                >
                   <img
                     src={post.imageUrl}
                     alt={post.title || "Post"}
                     loading={index < 6 ? "eager" : "lazy"}
                     decoding="async"
-                    className="w-full h-full object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     onClick={() =>
                       (window.location.href = `/?post=${post._id}`)
                     }
                   />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
+                    <h3 className="text-white font-bold truncate">
+                      {post.title}
+                    </h3>
+                    <div className="flex items-center gap-3 text-white/80 text-sm mt-1">
+                      <span>❤️ {post.likesCount || 0}</span>
+                      <span>💬 {post.commentCount || 0}</span>
+                    </div>
+                  </div>
                 </div>
               ))}
             </div>
           )}
 
           {posts.length > 0 && hasMore && (
-            <div className="flex justify-center mt-6">
+            <div className="flex justify-center mt-10">
               <button
                 onClick={loadMorePosts}
                 disabled={loadingMore}
-                className="px-6 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg hover:bg-border-light dark:hover:bg-border-dark transition-colors disabled:opacity-50 flex items-center space-x-2"
+                className="px-8 py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center space-x-2 font-medium text-text-primary-light dark:text-text-primary-dark shadow-sm"
               >
                 {loadingMore ? (
                   <>
-                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    <span>Loading...</span>
+                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading more art...</span>
                   </>
                 ) : (
-                  <span>Load More</span>
+                  <span>Load More Artworks</span>
                 )}
               </button>
             </div>

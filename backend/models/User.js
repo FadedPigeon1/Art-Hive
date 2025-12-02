@@ -31,10 +31,28 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    coverImage: {
+      type: String,
+      default: "",
+    },
     bio: {
       type: String,
-      maxlength: [200, "Bio cannot exceed 200 characters"],
+      maxlength: [500, "Bio cannot exceed 500 characters"],
       default: "",
+    },
+    location: {
+      type: String,
+      maxlength: [50, "Location cannot exceed 50 characters"],
+      default: "",
+    },
+    website: {
+      type: String,
+      default: "",
+    },
+    socialLinks: {
+      instagram: { type: String, default: "" },
+      twitter: { type: String, default: "" },
+      portfolio: { type: String, default: "" },
     },
     dateJoined: {
       type: Date,

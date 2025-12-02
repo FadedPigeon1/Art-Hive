@@ -269,7 +269,9 @@ export const getUserPosts = async (req, res) => {
 
     const [user, posts, totalPosts] = await Promise.all([
       User.findById(userId)
-        .select("username profilePic bio email dateJoined followers following")
+        .select(
+          "username profilePic coverImage bio location website socialLinks email dateJoined followers following"
+        )
         .lean(),
       Post.find({ userId })
         .sort({ createdAt: -1 })
@@ -313,7 +315,11 @@ export const getUserPosts = async (req, res) => {
       _id: user._id,
       username: user.username,
       profilePic: user.profilePic,
+      coverImage: user.coverImage,
       bio: user.bio,
+      location: user.location,
+      website: user.website,
+      socialLinks: user.socialLinks,
       email: user.email,
       dateJoined: user.dateJoined,
       followersCount: user.followers?.length || 0,
