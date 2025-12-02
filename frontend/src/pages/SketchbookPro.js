@@ -310,46 +310,46 @@ const SketchbookPro = () => {
 
     const settings = {
       PENCIL: {
-        strokeStyle: hexToRgba(brushColor, opacity),
-        lineWidth: brushSize * 0.5,
+        strokeStyle: hexToRgba(brushColor, opacity * 0.8), // Slightly transparent for buildup
+        lineWidth: Math.max(1, brushSize * 0.5), // Thinner than others
         shadowBlur: 0,
-        hardness: 1,
+        lineCap: "round",
       },
       PEN: {
         strokeStyle: hexToRgba(brushColor, opacity),
-        lineWidth: brushSize * 0.7,
+        lineWidth: brushSize * 0.8,
         shadowBlur: 0,
-        hardness: 1,
+        lineCap: "round",
       },
       PAINTBRUSH: {
-        strokeStyle: hexToRgba(brushColor, opacity * 0.8),
+        strokeStyle: hexToRgba(brushColor, opacity * 0.9),
         lineWidth: brushSize,
-        shadowBlur: brushSize * 0.1,
-        hardness: 0.7,
+        shadowBlur: brushSize * 0.2, // Soft edges
+        lineCap: "round",
       },
       MARKER: {
-        strokeStyle: hexToRgba(brushColor, opacity * 0.6),
-        lineWidth: brushSize * 1.5,
+        strokeStyle: hexToRgba(brushColor, opacity * 0.5), // Very transparent for layering
+        lineWidth: brushSize * 2,
         shadowBlur: 0,
-        hardness: 0.5,
+        lineCap: "square", // Chisel tip feel
       },
       AIRBRUSH: {
-        strokeStyle: hexToRgba(brushColor, opacity * 0.1),
+        strokeStyle: hexToRgba(brushColor, opacity * 0.2),
         lineWidth: brushSize * 3,
         shadowBlur: brushSize * 2,
-        hardness: 0.2,
+        lineCap: "round",
       },
       SMUDGE: {
         strokeStyle: brushColor,
         lineWidth: brushSize,
         shadowBlur: 0,
-        hardness: 0.5,
+        lineCap: "round",
       },
       ERASER: {
         strokeStyle: "#FFFFFF",
         lineWidth: brushSize * 2,
         shadowBlur: 0,
-        hardness: 1,
+        lineCap: "round",
       },
     };
 
@@ -446,16 +446,19 @@ const SketchbookPro = () => {
     ctx.save();
     ctx.strokeStyle = settings.strokeStyle;
     ctx.lineWidth = settings.lineWidth;
-    ctx.lineCap = "round";
+    ctx.lineCap = settings.lineCap || "round";
     ctx.lineJoin = "round";
     ctx.shadowBlur = settings.shadowBlur;
     ctx.shadowColor = brushColor;
 
     if (brushType === "AIRBRUSH") {
       // Spray effect
-      for (let i = 0; i < 15; i++) {
-        const offsetX = (Math.random() - 0.5) * brushSize;
-        const offsetY = (Math.random() - 0.5) * brushSize;
+      for (let i = 0; i < brushSize * 2; i++) {
+        const angle = Math.random() * Math.PI * 2;
+        const radius = Math.random() * brushSize;
+        const offsetX = Math.cos(angle) * radius;
+        const offsetY = Math.sin(angle) * radius;
+
         ctx.fillStyle = settings.strokeStyle;
         ctx.fillRect(coords.x + offsetX, coords.y + offsetY, 1, 1);
       }
@@ -473,8 +476,40 @@ const SketchbookPro = () => {
         brushSize * 2
       );
       setLastPoint({ ...coords, imageData: newImageData });
+    } else if (brushType === "MARKER") {
+      // Marker effect - Multiply blending for buildup
+      ctx.globalCompositeOperation = "multiply";
+      ctx.beginPath();
+      if (lastPoint) {
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.lineTo(coords.x, coords.y);
+      } else {
+        ctx.moveTo(coords.x, coords.y);
+        ctx.lineTo(coords.x, coords.y);
+      }
+      ctx.stroke();
+      // Reset composite operation is handled by ctx.restore()
+    } else if (brushType === "PENCIL") {
+      // Pencil effect - slightly rougher
+      ctx.beginPath();
+      if (lastPoint) {
+        ctx.moveTo(lastPoint.x, lastPoint.y);
+        ctx.lineTo(coords.x, coords.y);
+      } else {
+        ctx.moveTo(coords.x, coords.y);
+        ctx.lineTo(coords.x, coords.y);
+      }
+      ctx.stroke();
+
+      // Add noise for texture
+      if (Math.random() > 0.5) {
+        const noiseX = (Math.random() - 0.5) * 2;
+        const noiseY = (Math.random() - 0.5) * 2;
+        ctx.fillStyle = settings.strokeStyle;
+        ctx.fillRect(coords.x + noiseX, coords.y + noiseY, 1, 1);
+      }
     } else {
-      // Standard brush stroke
+      // Standard brush stroke (Pen, Paintbrush, Eraser)
       ctx.beginPath();
       if (lastPoint) {
         ctx.moveTo(lastPoint.x, lastPoint.y);
@@ -839,303 +874,351 @@ const SketchbookPro = () => {
   }, [hsl]);
 
   return (
-    <div className="h-screen bg-gray-900 text-white flex flex-col">
+    <div className="h-screen bg-[#1a1a1a] text-gray-200 flex flex-col overflow-hidden font-sans">
       {/* Top Toolbar */}
-      <div className="bg-gray-800 border-b border-gray-700 px-4 py-2 flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <h1 className="text-xl font-bold">
-            {gameMode ? "Game Drawing Challenge" : "Digital Sketchbook Pro"}
-          </h1>
+      <div className="h-16 bg-[#252525] border-b border-[#333] px-6 flex items-center justify-between shadow-md z-20">
+        <div className="flex items-center space-x-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
+              <FiEdit3 className="text-white" size={18} />
+            </div>
+            <h1 className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-white to-gray-400">
+              {gameMode ? "Game Challenge" : "Sketchbook Pro"}
+            </h1>
+          </div>
 
           {gameMode && gamePrompt && (
-            <div className="px-4 py-2 bg-blue-900/50 border border-blue-700 rounded-lg">
-              <p className="text-xs text-blue-300 mb-1">Draw this prompt:</p>
-              <p className="text-sm font-semibold italic">"{gamePrompt}"</p>
+            <div className="px-4 py-1.5 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center space-x-2">
+              <span className="text-xs text-blue-400 uppercase tracking-wider font-semibold">
+                Prompt:
+              </span>
+              <span className="text-sm font-medium text-blue-100">
+                "{gamePrompt}"
+              </span>
             </div>
           )}
 
-          <div className="flex items-center space-x-2">
+          <div className="h-8 w-px bg-[#333] mx-2"></div>
+
+          <div className="flex items-center space-x-1 bg-[#1a1a1a] rounded-lg p-1 border border-[#333]">
             <button
               onClick={undo}
               disabled={historyStep <= 0}
-              className="p-2 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 rounded-md hover:bg-[#333] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
               title="Undo (Ctrl+Z)"
             >
-              <FiRotateCcw size={18} />
+              <FiRotateCcw size={16} />
             </button>
             <button
               onClick={redo}
               disabled={historyStep >= history.length - 1}
-              className="p-2 rounded hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed"
+              className="p-2 rounded-md hover:bg-[#333] disabled:opacity-30 disabled:cursor-not-allowed transition-colors text-gray-400 hover:text-white"
               title="Redo (Ctrl+Y)"
             >
-              <FiRotateCw size={18} />
+              <FiRotateCw size={16} />
             </button>
           </div>
 
-          <div className="flex items-center space-x-2 border-l border-gray-700 pl-4">
+          <div className="flex items-center space-x-2 bg-[#1a1a1a] rounded-lg p-1 border border-[#333]">
             <button
               onClick={handleZoomOut}
-              className="p-2 rounded hover:bg-gray-700"
+              className="p-2 rounded-md hover:bg-[#333] transition-colors text-gray-400 hover:text-white"
               title="Zoom Out"
             >
-              <FiZoomOut size={18} />
+              <FiZoomOut size={16} />
             </button>
-            <span className="text-sm font-mono">{Math.round(zoom * 100)}%</span>
+            <span className="text-xs font-mono w-12 text-center text-gray-400">
+              {Math.round(zoom * 100)}%
+            </span>
             <button
               onClick={handleZoomIn}
-              className="p-2 rounded hover:bg-gray-700"
+              className="p-2 rounded-md hover:bg-[#333] transition-colors text-gray-400 hover:text-white"
               title="Zoom In"
             >
-              <FiZoomIn size={18} />
+              <FiZoomIn size={16} />
             </button>
             <button
               onClick={resetView}
-              className="px-3 py-1 text-sm rounded hover:bg-gray-700"
+              className="px-3 py-1 text-xs font-medium rounded-md hover:bg-[#333] transition-colors text-gray-400 hover:text-white"
               title="Reset View"
             >
               Reset
             </button>
-            {!remixImageUrl && (
-              <button
-                onClick={() => {
-                  setPendingWidth(canvasWidth);
-                  setPendingHeight(canvasHeight);
-                  setShowCanvasSettings((prev) => !prev);
-                }}
-                className="px-3 py-1 text-sm rounded hover:bg-gray-700"
-                title="Canvas Size"
-              >
-                Canvas
-              </button>
-            )}
           </div>
+
+          {!remixImageUrl && (
+            <button
+              onClick={() => {
+                setPendingWidth(canvasWidth);
+                setPendingHeight(canvasHeight);
+                setShowCanvasSettings((prev) => !prev);
+              }}
+              className="px-3 py-1.5 text-xs font-medium bg-[#1a1a1a] border border-[#333] rounded-lg hover:bg-[#333] transition-colors text-gray-300"
+            >
+              Canvas Size
+            </button>
+          )}
         </div>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-3">
           {gameMode && (
             <button
               onClick={() => navigate(`/game?code=${gameCode}&rejoin=true`)}
-              className="flex items-center space-x-2 px-3 py-2 bg-gray-600 rounded hover:bg-gray-700"
+              className="px-4 py-2 text-sm font-medium text-gray-400 hover:text-white transition-colors"
             >
-              <span className="text-sm">Cancel & Back to Game</span>
+              Cancel
             </button>
           )}
           <button
             onClick={clearCanvas}
-            className="flex items-center space-x-2 px-3 py-2 bg-red-600 rounded hover:bg-red-700"
+            className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+            title="Clear Canvas"
           >
-            <FiTrash2 size={16} />
-            <span className="text-sm">Clear</span>
+            <FiTrash2 size={18} />
           </button>
           <button
             onClick={handleDownload}
-            className="flex items-center space-x-2 px-3 py-2 bg-green-600 rounded hover:bg-green-700"
+            className="p-2 text-gray-400 hover:text-white hover:bg-[#333] rounded-lg transition-colors"
+            title="Download"
           >
-            <FiDownload size={16} />
-            <span className="text-sm">Download</span>
+            <FiDownload size={18} />
           </button>
           {gameMode ? (
             <button
               onClick={handleSubmitToGame}
               disabled={uploading}
-              className="flex items-center space-x-2 px-4 py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 font-semibold"
+              className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white rounded-lg shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
             >
               <FiUpload size={16} />
-              <span className="text-sm">
-                {uploading ? "Submitting..." : "Submit to Game"}
-              </span>
+              <span>{uploading ? "Submitting..." : "Submit Entry"}</span>
             </button>
           ) : (
             <button
               onClick={handlePost}
               disabled={uploading}
-              className="flex items-center space-x-2 px-3 py-2 bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50"
+              className="flex items-center space-x-2 px-5 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg shadow-lg shadow-purple-500/20 transition-all transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed font-medium text-sm"
             >
               <FiUpload size={16} />
-              <span className="text-sm">
-                {uploading ? "Posting..." : "Post"}
-              </span>
+              <span>{uploading ? "Posting..." : "Post Art"}</span>
             </button>
           )}
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Canvas Settings Panel */}
+      {/* Main Workspace */}
+      <div className="flex-1 flex overflow-hidden relative">
+        {/* Canvas Settings Modal */}
         {showCanvasSettings && !remixImageUrl && (
-          <div className="absolute z-20 top-20 left-1/2 -translate-x-1/2 bg-gray-800 border border-gray-700 rounded-lg p-4 shadow-xl flex space-x-4 items-end">
+          <div className="absolute z-50 top-4 left-1/2 -translate-x-1/2 bg-[#252525] border border-[#333] rounded-xl p-4 shadow-2xl flex items-end space-x-4 animate-in fade-in slide-in-from-top-2">
             <div>
-              <label className="block text-xs mb-1">Width (px)</label>
-              <input
-                type="number"
-                min="256"
-                max="4096"
-                value={pendingWidth}
-                onChange={(e) => setPendingWidth(e.target.value)}
-                className="w-24 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
-              />
+              <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1 font-semibold">
+                Width
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="256"
+                  max="4096"
+                  value={pendingWidth}
+                  onChange={(e) => setPendingWidth(e.target.value)}
+                  className="w-24 px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                <span className="absolute right-3 top-2 text-xs text-gray-500">
+                  px
+                </span>
+              </div>
             </div>
             <div>
-              <label className="block text-xs mb-1">Height (px)</label>
-              <input
-                type="number"
-                min="256"
-                max="4096"
-                value={pendingHeight}
-                onChange={(e) => setPendingHeight(e.target.value)}
-                className="w-24 px-2 py-1 bg-gray-900 border border-gray-700 rounded text-xs"
-              />
+              <label className="block text-[10px] uppercase tracking-wider text-gray-500 mb-1 font-semibold">
+                Height
+              </label>
+              <div className="relative">
+                <input
+                  type="number"
+                  min="256"
+                  max="4096"
+                  value={pendingHeight}
+                  onChange={(e) => setPendingHeight(e.target.value)}
+                  className="w-24 px-3 py-2 bg-[#1a1a1a] border border-[#333] rounded-lg text-sm focus:outline-none focus:border-blue-500 transition-colors"
+                />
+                <span className="absolute right-3 top-2 text-xs text-gray-500">
+                  px
+                </span>
+              </div>
             </div>
             <button
               onClick={applyCanvasSize}
-              className="px-3 py-1 bg-blue-600 rounded text-xs hover:bg-blue-700"
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition-colors"
             >
               Apply
             </button>
           </div>
         )}
+
         {/* Left Sidebar - Tools */}
-        <div className="w-64 bg-gray-800 border-r border-gray-700 overflow-y-auto">
-          <div className="p-4 space-y-4">
-            {/* Brush Selection */}
+        <div className="w-72 bg-[#202020] border-r border-[#333] flex flex-col z-10 shadow-xl">
+          <div className="flex-1 overflow-y-auto p-4 space-y-6 custom-scrollbar">
+            {/* Tools Section */}
             <div>
-              <h3 className="text-sm font-semibold mb-2 flex items-center justify-between">
-                Brush Type
+              <h3 className="text-[10px] uppercase tracking-wider text-gray-500 mb-3 font-bold">
+                Tools
+              </h3>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => setActiveTool("brush")}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all ${
+                    activeTool === "brush"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="Brush Tool"
+                >
+                  <FiFeather size={20} />
+                </button>
+                <button
+                  onClick={() => setActiveTool("eyedropper")}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all ${
+                    activeTool === "eyedropper"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="Eyedropper"
+                >
+                  <FiDroplet size={20} />
+                </button>
+                <button
+                  onClick={() => setActiveTool("pan")}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all ${
+                    activeTool === "pan"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="Pan Tool"
+                >
+                  <FiMove size={20} />
+                </button>
+              </div>
+            </div>
+
+            {/* Brushes Section */}
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                  Brushes
+                </h3>
                 <button
                   onClick={() => setShowBrushSettings(!showBrushSettings)}
-                  className="p-1 hover:bg-gray-700 rounded"
+                  className={`p-1.5 rounded-lg transition-colors ${
+                    showBrushSettings
+                      ? "bg-blue-500/20 text-blue-400"
+                      : "hover:bg-[#333] text-gray-500"
+                  }`}
                 >
                   <FiSettings size={14} />
                 </button>
-              </h3>
+              </div>
+
               <div className="grid grid-cols-2 gap-2">
                 {Object.entries(BRUSH_TYPES).map(([key, brush]) => (
                   <button
                     key={key}
                     onClick={() => setBrushType(key)}
-                    className={`p-3 rounded border-2 transition-all ${
+                    className={`p-3 rounded-xl border transition-all flex items-center space-x-3 ${
                       brushType === key
-                        ? "border-blue-500 bg-blue-900/30"
-                        : "border-gray-600 hover:border-gray-500"
+                        ? "border-blue-500 bg-blue-500/10 text-blue-400"
+                        : "border-transparent bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
                     }`}
                   >
-                    <div className="mb-1 flex items-center justify-center">
-                      <brush.icon size={18} />
-                    </div>
-                    <div className="text-xs">{brush.name}</div>
+                    <brush.icon size={18} />
+                    <span className="text-xs font-medium">{brush.name}</span>
                   </button>
                 ))}
               </div>
-            </div>
 
-            {/* Brush Settings */}
-            {showBrushSettings && (
-              <div className="space-y-3 bg-gray-700/50 p-3 rounded">
-                <div>
-                  <label className="text-xs">Size: {brushSize}px</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="100"
-                    value={brushSize}
-                    onChange={(e) => setBrushSize(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs">Opacity: {brushOpacity}%</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="100"
-                    value={brushOpacity}
-                    onChange={(e) => setBrushOpacity(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-                <div>
-                  <label className="text-xs">Flow: {brushFlow}%</label>
-                  <input
-                    type="range"
-                    min="1"
-                    max="100"
-                    value={brushFlow}
-                    onChange={(e) => setBrushFlow(Number(e.target.value))}
-                    className="w-full"
-                  />
-                </div>
-              </div>
-            )}
-
-            {/* Tools */}
-            <div>
-              <h3 className="text-sm font-semibold mb-2">Tools</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  onClick={() => setActiveTool("brush")}
-                  className={`p-2 rounded flex flex-col items-center ${
-                    activeTool === "brush"
-                      ? "bg-blue-600"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
-                >
-                  <FiFeather size={20} className="mb-1" />
-                  <span className="text-xs">Brush</span>
-                </button>
-                <button
-                  onClick={() => setActiveTool("eyedropper")}
-                  className={`p-2 rounded flex flex-col items-center ${
-                    activeTool === "eyedropper"
-                      ? "bg-blue-600"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
-                >
-                  <FiDroplet size={20} className="mb-1" />
-                  <span className="text-xs">Eyedropper</span>
-                </button>
-                <button
-                  onClick={() => setActiveTool("pan")}
-                  className={`p-2 rounded flex flex-col items-center ${
-                    activeTool === "pan"
-                      ? "bg-blue-600"
-                      : "bg-gray-700 hover:bg-gray-600"
-                  }`}
-                >
-                  <FiMove size={20} className="mb-1" />
-                  <span className="text-xs">Pan</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Color Picker */}
-            <div className="flex flex-col max-h-72 overflow-y-auto">
-              <h3 className="text-sm font-semibold mb-2 flex-none">Color</h3>
-              <div className="space-y-3 flex-1">
-                {/* Current Color */}
-                <div className="flex items-center space-x-2">
-                  <div
-                    className="w-16 h-16 rounded border-2 border-gray-600"
-                    style={{ backgroundColor: brushColor }}
-                  />
-                  <div className="flex-1">
+              {/* Brush Settings Expandable */}
+              {showBrushSettings && (
+                <div className="mt-3 p-4 bg-[#1a1a1a] rounded-xl border border-[#333] space-y-4 animate-in fade-in slide-in-from-top-2">
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Size</span>
+                      <span>{brushSize}px</span>
+                    </div>
                     <input
-                      type="color"
-                      value={brushColor}
-                      onChange={(e) => {
-                        setBrushColor(e.target.value);
-                        addSwatch(e.target.value);
-                      }}
-                      className="w-full h-10 rounded cursor-pointer"
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={brushSize}
+                      onChange={(e) => setBrushSize(Number(e.target.value))}
+                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Opacity</span>
+                      <span>{brushOpacity}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={brushOpacity}
+                      onChange={(e) => setBrushOpacity(Number(e.target.value))}
+                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <div className="flex justify-between text-xs text-gray-400">
+                      <span>Flow</span>
+                      <span>{brushFlow}%</span>
+                    </div>
+                    <input
+                      type="range"
+                      min="1"
+                      max="100"
+                      value={brushFlow}
+                      onChange={(e) => setBrushFlow(Number(e.target.value))}
+                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
                     />
                   </div>
                 </div>
+              )}
+            </div>
 
-                {/* HSL Sliders */}
-                <div className="space-y-2">
-                  <div>
-                    <label className="text-xs">Hue: {hsl.h}°</label>
+            {/* Color Picker Section */}
+            <div>
+              <h3 className="text-[10px] uppercase tracking-wider text-gray-500 mb-3 font-bold">
+                Color
+              </h3>
+              <div className="space-y-4">
+                <div className="flex items-center space-x-3">
+                  <div
+                    className="w-12 h-12 rounded-xl border-2 border-[#333] shadow-inner"
+                    style={{ backgroundColor: brushColor }}
+                  />
+                  <div className="flex-1">
+                    <div className="relative">
+                      <input
+                        type="text"
+                        value={brushColor.toUpperCase()}
+                        readOnly
+                        className="w-full bg-[#2a2a2a] border border-[#333] rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300 focus:outline-none"
+                      />
+                      <input
+                        type="color"
+                        value={brushColor}
+                        onChange={(e) => {
+                          setBrushColor(e.target.value);
+                          addSwatch(e.target.value);
+                        }}
+                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-500">Hue</label>
                     <input
                       type="range"
                       min="0"
@@ -1147,7 +1230,7 @@ const SketchbookPro = () => {
                           h: Number(e.target.value),
                         }))
                       }
-                      className="w-full"
+                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
                       style={{
                         background: `linear-gradient(to right, 
                           hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), 
@@ -1156,8 +1239,10 @@ const SketchbookPro = () => {
                       }}
                     />
                   </div>
-                  <div>
-                    <label className="text-xs">Saturation: {hsl.s}%</label>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-500">
+                      Saturation
+                    </label>
                     <input
                       type="range"
                       min="0"
@@ -1169,11 +1254,13 @@ const SketchbookPro = () => {
                           s: Number(e.target.value),
                         }))
                       }
-                      className="w-full"
+                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-gray-400"
                     />
                   </div>
-                  <div>
-                    <label className="text-xs">Lightness: {hsl.l}%</label>
+                  <div className="space-y-1">
+                    <label className="text-[10px] text-gray-500">
+                      Lightness
+                    </label>
                     <input
                       type="range"
                       min="0"
@@ -1185,31 +1272,32 @@ const SketchbookPro = () => {
                           l: Number(e.target.value),
                         }))
                       }
-                      className="w-full"
+                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-gray-400"
                     />
                   </div>
                 </div>
 
-                {/* Swatches */}
                 <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="text-xs font-semibold">Swatches</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                      Swatches
+                    </label>
                     <button
                       onClick={() => addSwatch(brushColor)}
-                      className="text-xs px-2 py-1 bg-gray-700 rounded hover:bg-gray-600"
+                      className="text-[10px] px-2 py-0.5 bg-[#333] hover:bg-[#444] rounded text-gray-300 transition-colors"
                     >
-                      <FiPlus size={12} className="inline" /> Add
+                      + Add
                     </button>
                   </div>
-                  <div className="grid grid-cols-6 gap-1">
+                  <div className="grid grid-cols-6 gap-1.5">
                     {swatches.map((color, idx) => (
                       <button
                         key={idx}
                         onClick={() => setBrushColor(color)}
-                        className={`w-8 h-8 rounded border-2 ${
+                        className={`aspect-square rounded-md border transition-transform hover:scale-110 ${
                           brushColor === color
-                            ? "border-white"
-                            : "border-gray-600"
+                            ? "border-white ring-1 ring-white/50"
+                            : "border-transparent"
                         }`}
                         style={{ backgroundColor: color }}
                         title={color}
@@ -1223,15 +1311,15 @@ const SketchbookPro = () => {
         </div>
 
         {/* Canvas Area */}
-        <div className="flex-1 bg-gray-700 relative overflow-hidden">
+        <div className="flex-1 bg-[#151515] relative overflow-hidden shadow-inner">
           <div
             className="absolute inset-0 flex items-center justify-center"
             style={{
               backgroundImage: `
-                linear-gradient(45deg, #808080 25%, transparent 25%),
-                linear-gradient(-45deg, #808080 25%, transparent 25%),
-                linear-gradient(45deg, transparent 75%, #808080 75%),
-                linear-gradient(-45deg, transparent 75%, #808080 75%)
+                linear-gradient(45deg, #1f1f1f 25%, transparent 25%),
+                linear-gradient(-45deg, #1f1f1f 25%, transparent 25%),
+                linear-gradient(45deg, transparent 75%, #1f1f1f 75%),
+                linear-gradient(-45deg, transparent 75%, #1f1f1f 75%)
               `,
               backgroundSize: "20px 20px",
               backgroundPosition: "0 0, 0 10px, 10px -10px, -10px 0px",
@@ -1243,11 +1331,21 @@ const SketchbookPro = () => {
                 transformOrigin: "center",
                 cursor:
                   activeTool === "pan"
-                    ? "move"
+                    ? "grab"
                     : activeTool === "eyedropper"
                     ? "crosshair"
                     : "crosshair",
               }}
+              onMouseDown={
+                activeTool === "pan"
+                  ? (e) => (e.target.style.cursor = "grabbing")
+                  : null
+              }
+              onMouseUp={
+                activeTool === "pan"
+                  ? (e) => (e.target.style.cursor = "grab")
+                  : null
+              }
             >
               <canvas
                 ref={mainCanvasRef}
@@ -1258,7 +1356,7 @@ const SketchbookPro = () => {
                 onTouchStart={startDrawing}
                 onTouchMove={draw}
                 onTouchEnd={stopDrawing}
-                className="shadow-2xl"
+                className="shadow-2xl bg-white"
                 style={{
                   touchAction: "none",
                   imageRendering: "pixelated",
@@ -1266,18 +1364,27 @@ const SketchbookPro = () => {
               />
             </div>
           </div>
+
+          {/* Floating Zoom Controls */}
+          <div className="absolute bottom-6 left-6 bg-[#252525] border border-[#333] rounded-full px-4 py-2 shadow-lg flex items-center space-x-4 text-sm font-medium text-gray-400">
+            <span>{Math.round(zoom * 100)}%</span>
+            <div className="h-4 w-px bg-[#333]"></div>
+            <span>
+              {canvasWidth} x {canvasHeight}px
+            </span>
+          </div>
         </div>
 
         {/* Right Sidebar - Layers */}
-        <div className="w-64 bg-gray-800 border-l border-gray-700 overflow-y-auto">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-semibold flex items-center">
-                <FiLayers className="mr-2" /> Layers
+        <div className="w-72 bg-[#202020] border-l border-[#333] flex flex-col z-10 shadow-xl">
+          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-[10px] uppercase tracking-wider text-gray-500 font-bold flex items-center">
+                <FiLayers className="mr-2" size={14} /> Layers
               </h3>
               <button
                 onClick={addLayer}
-                className="p-1 bg-blue-600 rounded hover:bg-blue-700"
+                className="p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors shadow-lg shadow-blue-600/20"
                 title="New Layer"
               >
                 <FiPlus size={16} />
@@ -1288,24 +1395,30 @@ const SketchbookPro = () => {
               {[...layers].reverse().map((layer) => (
                 <div
                   key={layer.id}
-                  className={`p-2 rounded border-2 ${
+                  className={`group p-3 rounded-xl border transition-all cursor-pointer ${
                     activeLayerId === layer.id
-                      ? "border-blue-500 bg-blue-900/30"
-                      : "border-gray-600 hover:border-gray-500"
+                      ? "border-blue-500/50 bg-blue-500/10 shadow-md"
+                      : "border-[#333] bg-[#2a2a2a] hover:border-gray-600"
                   }`}
                   onClick={() => setActiveLayerId(layer.id)}
                 >
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-medium truncate">
+                    <span
+                      className={`text-sm font-medium truncate ${
+                        activeLayerId === layer.id
+                          ? "text-blue-400"
+                          : "text-gray-300"
+                      }`}
+                    >
                       {layer.name}
                     </span>
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
                           toggleLayerVisibility(layer.id);
                         }}
-                        className="p-1 hover:bg-gray-700 rounded"
+                        className="p-1 hover:bg-[#333] rounded text-gray-400 hover:text-white"
                       >
                         {layer.visible ? (
                           <FiEye size={14} />
@@ -1318,7 +1431,7 @@ const SketchbookPro = () => {
                           e.stopPropagation();
                           duplicateLayer(layer.id);
                         }}
-                        className="p-1 hover:bg-gray-700 rounded"
+                        className="p-1 hover:bg-[#333] rounded text-gray-400 hover:text-white"
                         title="Duplicate"
                       >
                         <FiCopy size={14} />
@@ -1329,7 +1442,7 @@ const SketchbookPro = () => {
                             e.stopPropagation();
                             deleteLayer(layer.id);
                           }}
-                          className="p-1 hover:bg-red-600 rounded"
+                          className="p-1 hover:bg-red-500/20 rounded text-gray-400 hover:text-red-400"
                           title="Delete"
                         >
                           <FiTrash2 size={14} />
@@ -1338,51 +1451,54 @@ const SketchbookPro = () => {
                     </div>
                   </div>
 
-                  {/* Layer Opacity */}
-                  <div className="mb-2">
-                    <label className="text-xs">Opacity: {layer.opacity}%</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={layer.opacity}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        updateLayerOpacity(layer.id, Number(e.target.value));
-                      }}
-                      className="w-full"
-                      onClick={(e) => e.stopPropagation()}
-                    />
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] text-gray-500 w-8">
+                        Opac
+                      </span>
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={layer.opacity}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          updateLayerOpacity(layer.id, Number(e.target.value));
+                        }}
+                        className="flex-1 h-1 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </div>
+
+                    <div className="flex items-center space-x-2">
+                      <span className="text-[10px] text-gray-500 w-8">
+                        Mode
+                      </span>
+                      <select
+                        value={layer.blendMode}
+                        onChange={(e) => {
+                          e.stopPropagation();
+                          updateLayerBlendMode(layer.id, e.target.value);
+                        }}
+                        onClick={(e) => e.stopPropagation()}
+                        className="flex-1 text-xs bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-blue-500"
+                      >
+                        {BLEND_MODES.map((mode) => (
+                          <option key={mode.value} value={mode.value}>
+                            {mode.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
 
-                  {/* Blend Mode */}
-                  <div>
-                    <label className="text-xs">Blend Mode:</label>
-                    <select
-                      value={layer.blendMode}
-                      onChange={(e) => {
-                        e.stopPropagation();
-                        updateLayerBlendMode(layer.id, e.target.value);
-                      }}
-                      onClick={(e) => e.stopPropagation()}
-                      className="w-full text-xs bg-gray-700 border border-gray-600 rounded px-1 py-1 mt-1"
-                    >
-                      {BLEND_MODES.map((mode) => (
-                        <option key={mode.value} value={mode.value}>
-                          {mode.label}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Merge Down Button */}
                   {layers.indexOf(layer) > 0 && (
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
                         mergeDown(layer.id);
                       }}
-                      className="w-full mt-2 px-2 py-1 text-xs bg-gray-700 hover:bg-gray-600 rounded"
+                      className="w-full mt-2 py-1 text-[10px] uppercase tracking-wider font-medium text-gray-500 hover:text-gray-300 hover:bg-[#333] rounded transition-colors"
                     >
                       Merge Down
                     </button>
@@ -1391,43 +1507,39 @@ const SketchbookPro = () => {
               ))}
             </div>
           </div>
+
+          {/* Post Section (Bottom of Right Sidebar) */}
+          {!gameMode && (
+            <div className="p-4 border-t border-[#333] bg-[#1a1a1a]">
+              <h3 className="text-[10px] uppercase tracking-wider text-gray-500 mb-3 font-bold">
+                Publish
+              </h3>
+              <div className="space-y-3">
+                <div>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    maxLength={100}
+                    placeholder="Artwork Title *"
+                    className="w-full px-3 py-2 bg-[#2a2a2a] border border-[#333] rounded-lg text-sm text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  />
+                </div>
+                <div>
+                  <textarea
+                    value={caption}
+                    onChange={(e) => setCaption(e.target.value)}
+                    maxLength={500}
+                    placeholder="Add a caption..."
+                    className="w-full px-3 py-2 bg-[#2a2a2a] border border-[#333] rounded-lg text-sm text-white placeholder-gray-500 resize-none focus:outline-none focus:border-blue-500 transition-colors"
+                    rows={2}
+                  />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
-
-      {/* Bottom Bar - Post Section */}
-      {!gameMode && (
-        <div className="bg-gray-800 border-t border-gray-700 px-4 py-3">
-          <div className="max-w-2xl mx-auto flex flex-col space-y-3">
-            <div>
-              <label className="text-xs font-medium mb-1 block">
-                Title <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                maxLength={100}
-                placeholder="Give your artwork a title..."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-            <div>
-              <label className="text-xs font-medium mb-1 block">
-                Caption (optional)
-              </label>
-              <textarea
-                value={caption}
-                onChange={(e) => setCaption(e.target.value)}
-                maxLength={500}
-                placeholder="Describe your artwork..."
-                className="w-full px-3 py-2 bg-gray-700 border border-gray-600 rounded text-sm resize-none focus:outline-none focus:ring-2 focus:ring-blue-500"
-                rows={2}
-              />
-              <p className="text-xs text-gray-400 mt-1">{caption.length}/500</p>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

@@ -99,24 +99,24 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center space-x-2">
-            <NavLink 
-              to="/" 
-              icon={FiHome} 
-              label="Home" 
-              active={location.pathname === "/"} 
+            <NavLink
+              to="/"
+              icon={FiHome}
+              label="Home"
+              active={location.pathname === "/"}
             />
-            <NavLink 
-              to="/game" 
-              icon={FaGamepad} 
-              label="Game" 
-              active={location.pathname === "/game"} 
+            <NavLink
+              to="/game"
+              icon={FaGamepad}
+              label="Game"
+              active={location.pathname === "/game"}
             />
             {isAuthenticated && (
-              <NavLink 
-                to="/sketchbook" 
-                icon={FiPlus} 
-                label="Create" 
-                active={location.pathname === "/sketchbook"} 
+              <NavLink
+                to="/sketchbook"
+                icon={FiPlus}
+                label="Create"
+                active={location.pathname === "/sketchbook"}
               />
             )}
           </div>
@@ -127,20 +127,12 @@ const Navbar = () => {
             <button
               onClick={handleSearchClick}
               className={`p-2.5 rounded-full transition-all duration-200 ${
-                isSearchOpen 
-                  ? "bg-primary-light text-white shadow-lg shadow-primary-light/30" 
+                isSearchOpen
+                  ? "bg-primary-light text-white shadow-lg shadow-primary-light/30"
                   : "hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark"
               }`}
             >
               <FiSearch size={20} />
-            </button>
-
-            {/* Theme Toggle */}
-            <button
-              onClick={toggleTheme}
-              className="p-2.5 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark transition-all duration-200"
-            >
-              {isDark ? <FiSun size={20} /> : <FiMoon size={20} />}
             </button>
 
             {isAuthenticated ? (
@@ -154,24 +146,35 @@ const Navbar = () => {
                     alt={user?.username}
                     className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-light/20"
                   />
-                  <FiSettings className="text-text-secondary-light dark:text-text-secondary-dark" size={16} />
+                  <FiSettings
+                    className="text-text-secondary-light dark:text-text-secondary-dark"
+                    size={16}
+                  />
                 </button>
 
                 {/* Dropdown */}
                 {isSettingsOpen && (
                   <div className="absolute right-0 mt-4 w-64 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-5 duration-200">
                     <div className="px-4 py-3 border-b border-border-light dark:border-border-dark mb-2">
-                      <p className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">Signed in as</p>
-                      <p className="text-sm font-bold text-primary-light truncate">{user?.username}</p>
+                      <p className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">
+                        Signed in as
+                      </p>
+                      <p className="text-sm font-bold text-primary-light truncate">
+                        {user?.username}
+                      </p>
                     </div>
-                    
+
                     <Link
                       to={`/profile/${user?._id}`}
                       onClick={() => setIsSettingsOpen(false)}
                       className="w-full px-4 py-2.5 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light"
                     >
                       <div className="w-8 h-8 rounded-full bg-primary-light/10 flex items-center justify-center">
-                        <img src={getProfilePicture(user?.profilePic)} className="w-full h-full rounded-full object-cover" alt="" />
+                        <img
+                          src={getProfilePicture(user?.profilePic)}
+                          className="w-full h-full rounded-full object-cover"
+                          alt=""
+                        />
                       </div>
                       <span>Your Profile</span>
                     </Link>
@@ -198,6 +201,19 @@ const Navbar = () => {
                       <span>Liked Posts</span>
                     </Link>
 
+                    <button
+                      onClick={() => {
+                        toggleTheme();
+                        setIsSettingsOpen(false);
+                      }}
+                      className="w-full px-4 py-2.5 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
+                      </div>
+                      <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+                    </button>
+
                     <div className="border-t border-border-light dark:border-border-dark my-2"></div>
 
                     <button
@@ -214,6 +230,30 @@ const Navbar = () => {
               </div>
             ) : (
               <div className="flex items-center space-x-3">
+                <div className="relative" ref={settingsRef}>
+                  <button
+                    onClick={() => setIsSettingsOpen(!isSettingsOpen)}
+                    className="p-2.5 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark transition-all duration-200"
+                  >
+                    <FiSettings size={20} />
+                  </button>
+                  {isSettingsOpen && (
+                    <div className="absolute right-0 mt-4 w-48 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-5 duration-200">
+                      <button
+                        onClick={() => {
+                          toggleTheme();
+                          setIsSettingsOpen(false);
+                        }}
+                        className="w-full px-4 py-2.5 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark"
+                      >
+                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                          {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
+                        </div>
+                        <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
                 <Link
                   to="/login"
                   className="hidden sm:block px-5 py-2.5 text-sm font-medium text-text-primary-light dark:text-text-primary-dark hover:bg-surface-light dark:hover:bg-surface-dark rounded-full transition-colors"
@@ -233,7 +273,13 @@ const Navbar = () => {
       </div>
 
       {/* Search Overlay */}
-      <div className={`absolute top-full left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-border-light dark:border-border-dark shadow-lg transition-all duration-300 origin-top ${isSearchOpen ? 'opacity-100 scale-y-100' : 'opacity-0 scale-y-0 pointer-events-none'}`}>
+      <div
+        className={`absolute top-full left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-border-light dark:border-border-dark shadow-lg transition-all duration-300 origin-top ${
+          isSearchOpen
+            ? "opacity-100 scale-y-100"
+            : "opacity-0 scale-y-0 pointer-events-none"
+        }`}
+      >
         <div className="max-w-4xl mx-auto px-4 py-6">
           <div className="relative flex items-center" ref={searchRef}>
             <FiSearch
