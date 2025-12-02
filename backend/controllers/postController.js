@@ -1,6 +1,7 @@
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
+import { supabase } from "../config/supabaseClient.js";
 
 const mapPostSummaries = (posts, currentUserId) => {
   const currentUserStringId = currentUserId ? currentUserId.toString() : null;
@@ -38,12 +39,41 @@ const mapPostSummaries = (posts, currentUserId) => {
 // @route   POST /api/posts
 // @access  Private
 export const createPost = async (req, res) => {
-  const { title, imageUrl, caption, isGameArt, gameSessionId, remixedFrom } =
-    req.body;
+  const { title, caption, isGameArt, gameSessionId, remixedFrom } = req.body;
+  let imageUrl = req.body.imageUrl;
 
   try {
+    // Handle file upload if present
+    if (req.file) {
+      const file = req.file;
+      const fileExt = file.originalname.split(".").pop();
+      const fileName = `${req.user._id}_${Date.now()}.${fileExt}`;
+      const filePath = `${fileName}`;
+
+      // Upload to Supabase Storage
+      // Make sure you have a bucket named 'post-images' in your Supabase project
+      // and it is set to public.
+      const { data, error } = await supabase.storage
+        .from("post-images")
+        .upload(filePath, file.buffer, {
+          contentType: file.mimetype,
+        });
+
+      if (error) {
+        console.error("Supabase upload error:", error);
+        return res.status(500).json({ message: "Error uploading image" });
+      }
+
+      // Get public URL
+      const { data: publicUrlData } = supabase.storage
+        .from("post-images")
+        .getPublicUrl(filePath);
+
+      imageUrl = publicUrlData.publicUrl;
+    }
+
     if (!imageUrl) {
-      return res.status(400).json({ message: "Image URL is required" });
+      return res.status(400).json({ message: "Image is required" });
     }
 
     if (!title) {
@@ -208,16 +238,7 @@ export const getAllPosts = async (req, res) => {
       posts.pop(); // Remove the extra post
     }
 
-    console.log("getAllPosts - User ID:", req.user?._id);
-    console.log("Sample post likes (first post):", posts[0]?.likes);
-
     const lightweightPosts = mapPostSummaries(posts, req.user?._id);
-
-    console.log("Sample mapped post (first post):", {
-      id: lightweightPosts[0]?._id,
-      likesCount: lightweightPosts[0]?.likesCount,
-      likedByCurrentUser: lightweightPosts[0]?.likedByCurrentUser,
-    });
 
     res.json({
       posts: lightweightPosts,
@@ -416,27 +437,16 @@ export const deletePost = async (req, res) => {
 // @access  Private
 export const likePost = async (req, res) => {
   try {
-    console.log(
-      "Like request - Post ID:",
-      req.params.id,
-      "User ID:",
-      req.user._id
-    );
     const post = await Post.findById(req.params.id).select("_id likes");
 
     if (!post) {
-      console.log("Post not found:", req.params.id);
       return res.status(404).json({ message: "Post not found" });
     }
-
-    console.log("Post likes array:", post.likes);
 
     // Check if already liked - convert ObjectIds to strings for comparison
     const alreadyLiked = post.likes.some(
       (id) => id.toString() === req.user._id.toString()
     );
-
-    console.log("Already liked?", alreadyLiked);
 
     if (alreadyLiked) {
       return res.status(400).json({ message: "Post already liked" });
@@ -445,7 +455,6 @@ export const likePost = async (req, res) => {
     post.likes.push(req.user._id);
     await post.save();
 
-    console.log("Post liked successfully, new count:", post.likes.length);
     res.json({ message: "Post liked", likes: post.likes.length });
   } catch (error) {
     console.error("Like error:", error);
@@ -458,27 +467,16 @@ export const likePost = async (req, res) => {
 // @access  Private
 export const unlikePost = async (req, res) => {
   try {
-    console.log(
-      "Unlike request - Post ID:",
-      req.params.id,
-      "User ID:",
-      req.user._id
-    );
     const post = await Post.findById(req.params.id).select("_id likes");
 
     if (!post) {
-      console.log("Post not found:", req.params.id);
       return res.status(404).json({ message: "Post not found" });
     }
-
-    console.log("Post likes array:", post.likes);
 
     // Check if not liked - convert ObjectIds to strings for comparison
     const isLiked = post.likes.some(
       (id) => id.toString() === req.user._id.toString()
     );
-
-    console.log("Is liked?", isLiked);
 
     if (!isLiked) {
       return res.status(400).json({ message: "Post not liked yet" });
@@ -489,7 +487,6 @@ export const unlikePost = async (req, res) => {
     );
     await post.save();
 
-    console.log("Post unliked successfully, new count:", post.likes.length);
     res.json({ message: "Post unliked", likes: post.likes.length });
   } catch (error) {
     console.error("Unlike error:", error);

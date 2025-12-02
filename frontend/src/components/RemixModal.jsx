@@ -84,6 +84,18 @@ const RemixModal = ({ post, onClose, onRemixCreated }) => {
     img.src = post.imageUrl;
   };
 
+  const dataURLtoBlob = (dataURL) => {
+    const arr = dataURL.split(",");
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  };
+
   const handleSubmit = async () => {
     if (!title.trim()) {
       toast.error("Please add a title");
@@ -95,14 +107,17 @@ const RemixModal = ({ post, onClose, onRemixCreated }) => {
     try {
       const canvas = canvasRef.current;
       const imageUrl = canvas.toDataURL("image/png");
+      const blob = dataURLtoBlob(imageUrl);
+      const file = new File([blob], "remix.png", { type: "image/png" });
+
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("caption", caption);
+      formData.append("remixedFrom", post._id);
+      formData.append("image", file);
 
       // Create the remix post
-      await postsAPI.createPost({
-        title,
-        imageUrl,
-        caption,
-        remixedFrom: post._id,
-      });
+      await postsAPI.createPost(formData);
 
       toast.success("Remix posted successfully!");
       if (onRemixCreated) onRemixCreated();

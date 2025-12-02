@@ -212,6 +212,18 @@ const SketchbookPro = ({
     });
   }, []);
 
+  const dataURLtoBlob = (dataURL) => {
+    const arr = dataURL.split(",");
+    const mime = arr[0].match(/:(.*?);/)[1];
+    const bstr = atob(arr[1]);
+    let n = bstr.length;
+    const u8arr = new Uint8Array(n);
+    while (n--) {
+      u8arr[n] = bstr.charCodeAt(n);
+    }
+    return new Blob([u8arr], { type: mime });
+  };
+
   // Initialize canvases (optionally with remix image as background)
   useEffect(() => {
     const canvas = mainCanvasRef.current;
@@ -841,13 +853,16 @@ const SketchbookPro = ({
     try {
       const canvas = mainCanvasRef.current;
       const imageData = canvas.toDataURL("image/png");
+      const blob = dataURLtoBlob(imageData);
+      const file = new File([blob], "artwork.png", { type: "image/png" });
 
-      await postsAPI.createPost({
-        title,
-        imageUrl: imageData,
-        caption,
-        remixedFrom: remixPostId || undefined,
-      });
+      const formData = new FormData();
+      formData.append("title", title);
+      formData.append("caption", caption);
+      formData.append("image", file);
+      if (remixPostId) formData.append("remixedFrom", remixPostId);
+
+      await postsAPI.createPost(formData);
 
       toast.success("Artwork posted successfully!");
       navigate("/");
@@ -869,9 +884,11 @@ const SketchbookPro = ({
     try {
       const canvas = mainCanvasRef.current;
       const imageData = canvas.toDataURL("image/png");
+      const blob = dataURLtoBlob(imageData);
+      const file = new File([blob], "game-entry.png", { type: "image/png" });
 
       if (onGameSubmit) {
-        await onGameSubmit(imageData);
+        await onGameSubmit(file);
         setUploading(false);
         return;
       }
@@ -883,12 +900,14 @@ const SketchbookPro = ({
         gameRound,
       });
 
-      await gameAPI.submitEntry(gameCode, {
-        playerNickname: gameNickname,
-        chainId: gameChainId,
-        type: "drawing",
-        data: imageData,
-      });
+      // For standalone submission, we also need to use FormData if we update the API
+      const formData = new FormData();
+      formData.append("playerNickname", gameNickname);
+      formData.append("chainId", gameChainId);
+      formData.append("type", "drawing");
+      formData.append("image", file);
+
+      await gameAPI.submitEntry(gameCode, formData);
 
       toast.success("Drawing submitted to game!");
       // Navigate back to game

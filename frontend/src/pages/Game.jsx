@@ -431,7 +431,7 @@ const Game = () => {
       console.log("[SUBMIT] Prompt data:", data);
     } else if (taskType === "drawing") {
       if (drawingData) {
-        data = drawingData;
+        data = drawingData; // This is now a File object
       } else {
         // Drawings are submitted from Sketchbook Pro, not here
         toast.error("Please use Sketchbook Pro to submit drawings");
@@ -446,15 +446,20 @@ const Game = () => {
         playerNickname: nickname,
         chainId: currentTask.chainId,
         type: taskType,
-        dataLength: data.length,
       });
 
-      const response = await gameAPI.submitEntry(currentGame.code, {
-        playerNickname: nickname,
-        chainId: currentTask.chainId,
-        type: taskType,
-        data: data,
-      });
+      const formData = new FormData();
+      formData.append("playerNickname", nickname);
+      formData.append("chainId", currentTask.chainId);
+      formData.append("type", taskType);
+
+      if (taskType === "drawing") {
+        formData.append("image", data);
+      } else {
+        formData.append("data", data);
+      }
+
+      const response = await gameAPI.submitEntry(currentGame.code, formData);
 
       console.log("[SUBMIT] API response:", response.data);
 

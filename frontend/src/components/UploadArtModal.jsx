@@ -57,21 +57,12 @@ const UploadArtModal = ({ isOpen, onClose, onUploadSuccess }) => {
       const token = localStorage.getItem("token");
       axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
 
-      // For now, we'll use a base64 string as the image URL
-      // In production, you'd upload to a cloud storage service like AWS S3 or Cloudinary
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("caption", description.trim());
+      formData.append("image", imageFile);
 
-      const postData = {
-        title: title.trim(),
-        caption: description.trim(),
-        imageUrl: imagePreview, // In production, replace with actual uploaded URL
-      };
-
-      console.log("Uploading post with data:", {
-        ...postData,
-        imageUrl: "[base64 data]",
-      });
-
-      const response = await postsAPI.createPost(postData);
+      const response = await postsAPI.createPost(formData);
 
       console.log("Post created successfully:", response.data);
 

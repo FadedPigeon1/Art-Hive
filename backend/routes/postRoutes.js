@@ -15,13 +15,14 @@ import {
   getLikedPosts,
 } from "../controllers/postController.js";
 import { protect, optionalAuth } from "../middleware/authMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
 // @route   POST /api/posts
 // @desc    Create a new post
 // @access  Private
-router.post("/", protect, createPost);
+router.post("/", protect, upload.single("image"), createPost);
 
 // @route   GET /api/posts
 // @desc    Get all posts (feed)

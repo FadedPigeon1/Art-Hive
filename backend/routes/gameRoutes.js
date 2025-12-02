@@ -12,6 +12,7 @@ import {
   getGameResults,
 } from "../controllers/gameController.js";
 import { optionalAuth } from "../middleware/authMiddleware.js";
+import upload from "../middleware/uploadMiddleware.js";
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.get("/:code/task/:nickname", getPlayerTask);
 // @route   POST /api/game/:code/submit-entry
 // @desc    Submit entry for current round
 // @access  Public
-router.post("/:code/submit-entry", submitEntry);
+router.post("/:code/submit-entry", upload.single("image"), submitEntry);
 
 // @route   POST /api/game/:code/submit
 // @desc    Submit a drawing/prompt (legacy)
