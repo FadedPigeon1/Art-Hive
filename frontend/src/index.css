@@ -2,6 +2,18 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  html,
+  body {
+    @apply bg-surface-light text-text-primary-light transition-colors duration-200;
+  }
+
+  html.dark,
+  .dark body {
+    @apply bg-surface-dark text-text-primary-dark;
+  }
+}
+
 * {
   margin: 0;
   padding: 0;

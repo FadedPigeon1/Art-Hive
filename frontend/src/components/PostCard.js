@@ -17,7 +17,7 @@ import EditPostModal from "./EditPostModal";
 import Comments from "./Comments";
 import { getProfilePicture } from "../utils/imageHelpers";
 
-const PostCard = ({ post, onDelete, onLike }) => {
+const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
   const { user, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const deriveInitialLikes = (incomingPost) => {
@@ -180,12 +180,16 @@ const PostCard = ({ post, onDelete, onLike }) => {
     : legacyCaption.description;
 
   return (
-    <div className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg overflow-hidden mb-4">
+    <div
+      className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg overflow-hidden mb-4 cursor-pointer"
+      onClick={() => onPostClick && onPostClick(post)}
+    >
       {/* Post Header */}
       <div className="p-4 flex items-center justify-between">
         <Link
           to={`/profile/${post.userId?._id}`}
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
+          onClick={(e) => e.stopPropagation()}
         >
           <img
             src={getProfilePicture(post.userId?.profilePic)}
@@ -206,14 +210,20 @@ const PostCard = ({ post, onDelete, onLike }) => {
         {user?._id === post.userId?._id && (
           <div className="flex items-center space-x-2">
             <button
-              onClick={() => setShowEditModal(true)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowEditModal(true);
+              }}
               className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-blue-500 transition-colors"
               title="Edit post"
             >
               <FiEdit2 size={18} />
             </button>
             <button
-              onClick={handleDelete}
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDelete();
+              }}
               className="p-2 text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
               title="Delete post"
             >
@@ -247,7 +257,10 @@ const PostCard = ({ post, onDelete, onLike }) => {
       <div className="p-4">
         <div className="flex items-center space-x-4 mb-2">
           <button
-            onClick={handleLike}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleLike();
+            }}
             className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
           >
             {isLiked ? (
@@ -259,7 +272,10 @@ const PostCard = ({ post, onDelete, onLike }) => {
           </button>
 
           <button
-            onClick={() => setShowComments(!showComments)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowComments(!showComments);
+            }}
             className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light transition-colors"
           >
             <FiMessageCircle size={24} />
@@ -271,7 +287,10 @@ const PostCard = ({ post, onDelete, onLike }) => {
           </button>
 
           <button
-            onClick={handleRemix}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleRemix();
+            }}
             className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light transition-colors"
           >
             <FiPlus size={24} />
@@ -279,7 +298,10 @@ const PostCard = ({ post, onDelete, onLike }) => {
           </button>
 
           <button
-            onClick={handleStar}
+            onClick={(e) => {
+              e.stopPropagation();
+              handleStar();
+            }}
             className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-yellow-500 transition-colors"
             title={isStarred ? "Remove from favorites" : "Add to favorites"}
           >
@@ -299,6 +321,7 @@ const PostCard = ({ post, onDelete, onLike }) => {
             <Link
               to={`/profile/${post.remixedFrom.userId?._id}`}
               className="text-primary-light dark:text-primary-dark hover:underline"
+              onClick={(e) => e.stopPropagation()}
             >
               @{post.remixedFrom.userId?.username}
             </Link>
@@ -320,7 +343,10 @@ const PostCard = ({ post, onDelete, onLike }) => {
         {(post.commentCount > 0 ||
           (post.comments && post.comments.length > 0)) && (
           <button
-            onClick={() => setShowComments(!showComments)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setShowComments(!showComments);
+            }}
             className="text-text-secondary-light dark:text-text-secondary-dark text-sm mt-2 hover:underline"
           >
             {showComments ? "Hide" : "View"} comments (
@@ -333,7 +359,11 @@ const PostCard = ({ post, onDelete, onLike }) => {
       </div>
 
       {/* Comments Section */}
-      {showComments && <Comments postId={post._id} />}
+      {showComments && (
+        <div onClick={(e) => e.stopPropagation()}>
+          <Comments postId={post._id} />
+        </div>
+      )}
 
       {/* Edit Post Modal */}
       <EditPostModal

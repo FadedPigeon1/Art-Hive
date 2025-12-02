@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import PostCard from "../components/PostCard";
+import PostDetailModal from "../components/PostDetailModal";
 import SuggestedProfiles from "../components/SuggestedProfiles";
 import TrendingCarousel from "../components/TrendingCarousel";
 import CreativeActions from "../components/CreativeActions";
@@ -16,6 +17,7 @@ const Feed = () => {
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
   const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [selectedPost, setSelectedPost] = useState(null);
   const isFetchingRef = useRef(false);
 
   // Debounce search input from context
@@ -92,6 +94,17 @@ const Feed = () => {
     );
   };
 
+  const handlePostUpdate = (updatedPost) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
+    if (selectedPost && selectedPost._id === updatedPost._id) {
+      setSelectedPost(updatedPost);
+    }
+  };
+
   const handleLoadMore = () => {
     setPage((prev) => prev + 1);
   };
@@ -144,6 +157,7 @@ const Feed = () => {
                     post={post}
                     onDelete={handlePostDeleted}
                     onLike={(stats) => handlePostLiked(post._id, stats)}
+                    onPostClick={setSelectedPost}
                   />
                 ))}
 
@@ -174,6 +188,21 @@ const Feed = () => {
           </div>
         </div>
       </div>
+
+      {/* Post Detail Modal */}
+      <PostDetailModal
+        isOpen={!!selectedPost}
+        onClose={() => setSelectedPost(null)}
+        post={selectedPost}
+        onLike={(stats) =>
+          selectedPost && handlePostLiked(selectedPost._id, stats)
+        }
+        onDelete={(postId) => {
+          handlePostDeleted(postId);
+          setSelectedPost(null);
+        }}
+        onUpdate={handlePostUpdate}
+      />
     </div>
   );
 };
