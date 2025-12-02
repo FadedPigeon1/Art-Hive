@@ -1,5 +1,31 @@
 import React from "react";
-import { FiCopy } from "react-icons/fi";
+import { FiCopy, FiAward } from "react-icons/fi";
+
+// Helper to generate a consistent color from a string
+const stringToColor = (str) => {
+  if (!str) return "bg-gray-400";
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    hash = str.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const colors = [
+    "bg-red-400",
+    "bg-orange-400",
+    "bg-amber-400",
+    "bg-green-400",
+    "bg-emerald-400",
+    "bg-teal-400",
+    "bg-cyan-400",
+    "bg-blue-400",
+    "bg-indigo-400",
+    "bg-violet-400",
+    "bg-purple-400",
+    "bg-fuchsia-400",
+    "bg-pink-400",
+    "bg-rose-400",
+  ];
+  return colors[Math.abs(hash) % colors.length];
+};
 
 const GameLobby = ({
   currentGame,
@@ -11,110 +37,142 @@ const GameLobby = ({
   const isHost = nickname === currentGame?.hostId;
 
   return (
-    <div className="min-h-screen bg-surface-light dark:bg-surface-dark py-6 px-4">
-      <div className="max-w-2xl mx-auto">
-        <div className="bg-background-light dark:bg-background-dark rounded-lg shadow-lg p-8 border border-border-light dark:border-border-dark">
-          <h1 className="text-3xl font-bold text-text-primary-light dark:text-text-primary-dark mb-4 text-center">
-            Game Lobby
-          </h1>
+    <div className="min-h-screen bg-blue-600 flex items-center justify-center p-4 font-sans">
+      {/* Background Pattern */}
+      <div
+        className="fixed inset-0 opacity-10 pointer-events-none"
+        style={{
+          backgroundImage: "radial-gradient(#fff 2px, transparent 2px)",
+          backgroundSize: "30px 30px",
+        }}
+      ></div>
 
-          <div className="flex items-center justify-center space-x-3 mb-6">
-            <span className="text-xl text-text-secondary-light dark:text-text-secondary-dark">
-              Game Code:
-            </span>
-            <span className="text-3xl font-bold text-primary-light">
-              {currentGame?.code}
-            </span>
-            <button
-              onClick={copyGameCode}
-              className="p-2 hover:bg-surface-light dark:hover:bg-surface-dark rounded-lg transition-colors"
-            >
-              <FiCopy size={20} />
-            </button>
+      <div className="max-w-4xl w-full relative z-10">
+        {/* Header / Logo Area */}
+        <div className="text-center mb-8">
+          <h1 className="text-5xl md:text-6xl font-black text-white tracking-wider drop-shadow-[0_4px_0_rgba(0,0,0,0.2)] transform -rotate-2">
+            LOBBY
+          </h1>
+        </div>
+
+        <div className="bg-white rounded-3xl shadow-[0_8px_0_rgba(0,0,0,0.1)] overflow-hidden border-4 border-blue-800">
+          {/* Game Code Section */}
+          <div className="bg-yellow-400 p-6 border-b-4 border-blue-800 flex flex-col md:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="bg-white p-3 rounded-xl border-2 border-blue-800 shadow-[4px_4px_0_rgba(30,64,175,1)]">
+                <span className="block text-xs font-bold text-blue-800 uppercase tracking-widest">
+                  Room Code
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-3xl font-black text-blue-800 tracking-widest">
+                    {currentGame?.code}
+                  </span>
+                </div>
+              </div>
+              <button
+                onClick={copyGameCode}
+                className="p-3 bg-blue-500 hover:bg-blue-400 text-white rounded-xl border-b-4 border-blue-700 active:border-b-0 active:translate-y-1 transition-all"
+                title="Copy Code"
+              >
+                <FiCopy size={24} />
+              </button>
+            </div>
+
+            <div className="flex items-center gap-2 bg-blue-800/10 px-4 py-2 rounded-full">
+              <span className="font-bold text-blue-900">
+                {currentGame?.players?.length} / 12 Players
+              </span>
+            </div>
           </div>
 
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
-              Players ({currentGame?.players?.length || 0})
-            </h2>
-            <div className="space-y-2">
-              {currentGame?.players?.map((player, index) => (
+          <div className="p-8 bg-blue-50">
+            {/* Players Grid */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mb-8">
+              {currentGame?.players?.map((player, index) => {
+                const isMe = player.nickname === nickname;
+                const isPlayerHost = player.nickname === currentGame.hostId;
+                const colorClass = stringToColor(player.nickname);
+
+                return (
+                  <div
+                    key={index}
+                    className={`relative group ${
+                      isMe ? "transform scale-105" : ""
+                    }`}
+                  >
+                    <div
+                      className={`aspect-square rounded-2xl border-4 border-blue-900 shadow-[4px_4px_0_rgba(30,64,175,0.2)] flex flex-col items-center justify-center p-4 bg-white transition-transform hover:-translate-y-1`}
+                    >
+                      <div
+                        className={`w-16 h-16 md:w-20 md:h-20 rounded-full ${colorClass} border-4 border-black flex items-center justify-center mb-3 shadow-inner`}
+                      >
+                        <span className="text-2xl md:text-3xl font-black text-white uppercase">
+                          {player.nickname.substring(0, 2)}
+                        </span>
+                      </div>
+                      <span className="font-bold text-blue-900 truncate w-full text-center">
+                        {player.nickname}
+                      </span>
+
+                      {isPlayerHost && (
+                        <div className="absolute -top-3 -right-3 bg-yellow-400 text-blue-900 p-2 rounded-full border-2 border-blue-900 shadow-sm z-10">
+                          <FiAward size={16} />
+                        </div>
+                      )}
+
+                      {isMe && (
+                        <div className="absolute -bottom-3 bg-blue-600 text-white text-xs font-bold px-3 py-1 rounded-full border-2 border-blue-900">
+                          YOU
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* Empty Slots placeholders */}
+              {Array.from({
+                length: Math.max(0, 4 - (currentGame?.players?.length || 0)),
+              }).map((_, i) => (
                 <div
-                  key={index}
-                  className="px-4 py-3 bg-surface-light dark:bg-surface-dark rounded-lg"
+                  key={`empty-${i}`}
+                  className="aspect-square rounded-2xl border-4 border-dashed border-blue-200 flex items-center justify-center"
                 >
-                  <p className="text-text-primary-light dark:text-text-primary-dark">
-                    {player.nickname}
-                    {player.nickname === currentGame.hostId && (
-                      <span className="ml-2 text-xs bg-primary-light text-white px-2 py-1 rounded">
-                        HOST
-                      </span>
-                    )}
-                    {player.nickname === nickname && (
-                      <span className="ml-2 text-xs bg-green-500 text-white px-2 py-1 rounded">
-                        YOU
-                      </span>
-                    )}
-                  </p>
+                  <span className="text-blue-200 font-bold">Waiting...</span>
                 </div>
               ))}
             </div>
-          </div>
 
-          <div className="mb-4 p-3 bg-surface-light dark:bg-surface-dark rounded-lg">
-            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-              Your nickname: <span className="font-semibold">{nickname}</span>
-            </p>
-            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-              Host: <span className="font-semibold">{currentGame?.hostId}</span>
-            </p>
-            <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark">
-              You are host:{" "}
-              <span className="font-semibold">{isHost ? "YES" : "NO"}</span>
-            </p>
-          </div>
-
-          {isHost ? (
-            <div className="space-y-3">
-              <button
-                onClick={handleStartGame}
-                disabled={currentGame?.players?.length < 2}
-                className="w-full py-3 bg-primary-light text-white rounded-lg font-medium hover:bg-primary-dark transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                title={
-                  currentGame?.players?.length < 2
-                    ? `Need at least 2 players. Current: ${currentGame?.players?.length}`
-                    : "Click to start the game"
-                }
-              >
-                {currentGame?.players?.length < 2
-                  ? `Waiting for players... (${currentGame?.players?.length}/2)`
-                  : "Start Game"}
-              </button>
-              {currentGame?.status && (
-                <p className="text-xs text-center text-text-secondary-light dark:text-text-secondary-dark">
-                  Game status: {currentGame.status}
-                </p>
+            {/* Actions */}
+            <div className="flex flex-col gap-4 max-w-md mx-auto">
+              {isHost ? (
+                <button
+                  onClick={handleStartGame}
+                  disabled={currentGame?.players?.length < 2}
+                  className={`w-full py-4 rounded-2xl font-black text-xl uppercase tracking-wider border-b-8 transition-all transform active:border-b-0 active:translate-y-2 ${
+                    currentGame?.players?.length < 2
+                      ? "bg-gray-300 text-gray-500 border-gray-400 cursor-not-allowed"
+                      : "bg-green-500 text-white border-green-700 hover:bg-green-400 shadow-lg"
+                  }`}
+                >
+                  {currentGame?.players?.length < 2
+                    ? "Waiting for Players..."
+                    : "Start Game!"}
+                </button>
+              ) : (
+                <div className="text-center p-4 bg-blue-100 rounded-xl border-2 border-blue-200 text-blue-800 font-bold animate-pulse">
+                  Waiting for host to start...
+                </div>
               )}
+
               <button
                 onClick={handleLeaveRoom}
-                className="w-full py-2 text-red-500 hover:text-red-600 border border-red-500 hover:border-red-600 rounded-lg font-medium transition-colors"
+                className="w-full py-3 rounded-xl font-bold text-red-500 hover:bg-red-50 transition-colors"
               >
                 Leave Room
               </button>
             </div>
-          ) : (
-            <div className="space-y-3">
-              <p className="text-center text-text-secondary-light dark:text-text-secondary-dark">
-                Waiting for host to start the game...
-              </p>
-              <button
-                onClick={handleLeaveRoom}
-                className="w-full py-2 text-red-500 hover:text-red-600 border border-red-500 hover:border-red-600 rounded-lg font-medium transition-colors"
-              >
-                Leave Room
-              </button>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

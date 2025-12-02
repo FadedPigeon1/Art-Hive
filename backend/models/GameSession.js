@@ -83,6 +83,15 @@ const gameSessionSchema = new mongoose.Schema(
       type: Number,
       default: 3,
     },
+    maxPlayers: {
+      type: Number,
+      default: 12,
+    },
+    gameMode: {
+      type: String,
+      enum: ["classic", "speed", "relaxed"],
+      default: "classic",
+    },
     createdAt: {
       type: Date,
       default: Date.now,

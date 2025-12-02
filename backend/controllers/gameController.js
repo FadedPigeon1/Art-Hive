@@ -4,7 +4,7 @@ import GameSession from "../models/GameSession.js";
 // @route   POST /api/game/create
 // @access  Public
 export const createGameSession = async (req, res) => {
-  const { nickname, totalRounds } = req.body;
+  const { nickname, totalRounds, maxPlayers, gameMode } = req.body;
 
   try {
     // Generate unique code
@@ -21,6 +21,8 @@ export const createGameSession = async (req, res) => {
       code,
       hostId: nickname,
       totalRounds: totalRounds || 3,
+      maxPlayers: maxPlayers || 12,
+      gameMode: gameMode || "classic",
       players: [
         {
           nickname,

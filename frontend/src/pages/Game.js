@@ -23,6 +23,8 @@ const Game = () => {
   const [gameState, setGameState] = useState("menu"); // menu, lobby, task, results
   const [gameCode, setGameCode] = useState("");
   const [nickname, setNickname] = useState(user?.username || "");
+  const [maxPlayers, setMaxPlayers] = useState(12);
+  const [gameMode, setGameMode] = useState("classic");
   const [currentGame, setCurrentGame] = useState(null);
   const [currentRound, setCurrentRound] = useState(0);
   const [promptText, setPromptText] = useState("");
@@ -254,7 +256,12 @@ const Game = () => {
     }
 
     try {
-      const { data } = await gameAPI.createGame(nickname, 3);
+      const { data } = await gameAPI.createGame(
+        nickname,
+        3,
+        maxPlayers,
+        gameMode
+      );
       setCurrentGame(data);
       setGameCode(data.code);
       setGameState("lobby");
@@ -604,6 +611,10 @@ const Game = () => {
         setNickname={setNickname}
         gameCode={gameCode}
         setGameCode={setGameCode}
+        maxPlayers={maxPlayers}
+        setMaxPlayers={setMaxPlayers}
+        gameMode={gameMode}
+        setGameMode={setGameMode}
         handleCreateGame={handleCreateGame}
         handleJoinGame={handleJoinGame}
       />

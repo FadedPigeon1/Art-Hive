@@ -75,8 +75,13 @@ export const commentsAPI = {
 
 // Game API
 export const gameAPI = {
-  createGame: (nickname, totalRounds) =>
-    axios.post("/api/game/create", { nickname, totalRounds }),
+  createGame: (nickname, totalRounds, maxPlayers, gameMode) =>
+    axios.post("/api/game/create", {
+      nickname,
+      totalRounds,
+      maxPlayers,
+      gameMode,
+    }),
   joinGame: (code, nickname, userId) =>
     axios.post("/api/game/join", { code, nickname, userId }),
   getGame: (code) => axios.get(`/api/game/${code}`),

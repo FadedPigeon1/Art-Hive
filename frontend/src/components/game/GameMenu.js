@@ -5,6 +5,8 @@ import {
   FaHashtag,
   FaPlus,
   FaSignInAlt,
+  FaUsers,
+  FaClock,
 } from "react-icons/fa";
 
 const GameMenu = ({
@@ -12,6 +14,10 @@ const GameMenu = ({
   setNickname,
   gameCode,
   setGameCode,
+  maxPlayers,
+  setMaxPlayers,
+  gameMode,
+  setGameMode,
   handleCreateGame,
   handleJoinGame,
 }) => {
@@ -46,6 +52,41 @@ const GameMenu = ({
                 className="w-full pl-10 pr-4 py-3 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-xl border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all"
                 maxLength={20}
               />
+            </div>
+
+            {/* Game Settings */}
+            <div className="grid grid-cols-2 gap-4">
+              {/* Max Players */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaUsers className="text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-primary-light dark:group-focus-within:text-primary-dark transition-colors" />
+                </div>
+                <input
+                  type="number"
+                  value={maxPlayers}
+                  onChange={(e) => setMaxPlayers(Number(e.target.value))}
+                  min={2}
+                  max={20}
+                  className="w-full pl-10 pr-4 py-3 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-xl border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all"
+                  placeholder="Players"
+                />
+              </div>
+
+              {/* Game Mode */}
+              <div className="relative group">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <FaClock className="text-text-secondary-light dark:text-text-secondary-dark group-focus-within:text-primary-light dark:group-focus-within:text-primary-dark transition-colors" />
+                </div>
+                <select
+                  value={gameMode}
+                  onChange={(e) => setGameMode(e.target.value)}
+                  className="w-full pl-10 pr-4 py-3 bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-xl border border-border-light dark:border-border-dark focus:outline-none focus:ring-2 focus:ring-primary-light focus:border-transparent transition-all appearance-none"
+                >
+                  <option value="classic">Classic</option>
+                  <option value="speed">Speed</option>
+                  <option value="relaxed">Relaxed</option>
+                </select>
+              </div>
             </div>
 
             {/* Create Game Button */}
