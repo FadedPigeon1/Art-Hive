@@ -1,5 +1,6 @@
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
+import { createNotification } from "./notificationController.js";
 
 // @desc    Create a comment
 // @route   POST /api/comments
@@ -13,7 +14,7 @@ export const createComment = async (req, res) => {
     }
 
     // Check if post exists
-    const post = await Post.findById(postId);
+    const post = await Post.findById(postId).populate("userId", "username");
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
     }
@@ -34,6 +35,30 @@ export const createComment = async (req, res) => {
       "userId",
       "username profilePic"
     );
+
+    // Create notification for post owner
+    if (post.userId._id.toString() !== req.user._id.toString()) {
+      const notification = await createNotification({
+        recipient: post.userId._id,
+        sender: req.user._id,
+        type: "comment",
+        post: post._id,
+        comment: comment._id,
+        message: `${req.user.username} commented on your post`,
+      });
+
+      // Emit real-time notification
+      if (notification && global.io && global.userSockets) {
+        const recipientSocketId = global.userSockets.get(
+          post.userId._id.toString()
+        );
+        if (recipientSocketId) {
+          global.io
+            .to(recipientSocketId)
+            .emit("new-notification", notification);
+        }
+      }
+    }
 
     res.status(201).json(populatedComment);
   } catch (error) {

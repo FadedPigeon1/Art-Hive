@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { postsAPI } from "../utils/api";
+import { postsAPI, messagesAPI } from "../utils/api";
 import PostCard from "../components/PostCard";
 import UploadArtModal from "../components/UploadArtModal";
 import { toast } from "react-toastify";
@@ -18,11 +18,13 @@ import {
   FiTwitter,
   FiGlobe,
   FiImage,
+  FiMessageCircle,
 } from "react-icons/fi";
 import { getProfilePicture } from "../utils/imageHelpers";
 
 const Profile = () => {
   const { userId } = useParams();
+  const navigate = useNavigate();
   const {
     user: currentUser,
     updateProfile,
@@ -290,6 +292,23 @@ const Profile = () => {
       setFollowLoading(false);
     }
   };
+
+  const handleMessageUser = async () => {
+    if (!currentUser) {
+      toast.error("Please login to send messages");
+      return;
+    }
+
+    try {
+      // Create or get conversation with this user
+      await messagesAPI.getOrCreateConversation(userId);
+      // Open chat (this will be handled by the ChatButton component)
+      toast.info("Opening chat...");
+    } catch (error) {
+      toast.error("Failed to open chat");
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
@@ -441,29 +460,38 @@ const Profile = () => {
                         <span>Edit Profile</span>
                       </button>
                     ) : (
-                      <button
-                        onClick={handleFollowToggle}
-                        disabled={followLoading}
-                        className={`flex items-center space-x-2 px-6 py-2 rounded-lg transition-colors font-medium ${
-                          isFollowing
-                            ? "bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800"
-                            : "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
-                        } disabled:opacity-50`}
-                      >
-                        {followLoading ? (
-                          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                        ) : isFollowing ? (
-                          <>
-                            <FiUserMinus size={18} />
-                            <span>Unfollow</span>
-                          </>
-                        ) : (
-                          <>
-                            <FiUserPlus size={18} />
-                            <span>Follow</span>
-                          </>
-                        )}
-                      </button>
+                      <>
+                        <button
+                          onClick={handleMessageUser}
+                          className="flex items-center space-x-2 px-4 py-2 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-text-primary-light dark:text-text-primary-dark font-medium"
+                        >
+                          <FiMessageCircle size={18} />
+                          <span>Message</span>
+                        </button>
+                        <button
+                          onClick={handleFollowToggle}
+                          disabled={followLoading}
+                          className={`flex items-center space-x-2 px-6 py-2 rounded-lg transition-colors font-medium ${
+                            isFollowing
+                              ? "bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark text-text-primary-light dark:text-text-primary-dark hover:bg-gray-100 dark:hover:bg-gray-800"
+                              : "bg-blue-600 hover:bg-blue-700 text-white shadow-md hover:shadow-lg"
+                          } disabled:opacity-50`}
+                        >
+                          {followLoading ? (
+                            <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                          ) : isFollowing ? (
+                            <>
+                              <FiUserMinus size={18} />
+                              <span>Unfollow</span>
+                            </>
+                          ) : (
+                            <>
+                              <FiUserPlus size={18} />
+                              <span>Follow</span>
+                            </>
+                          )}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>

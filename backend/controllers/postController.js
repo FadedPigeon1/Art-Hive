@@ -2,14 +2,18 @@ import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 import { supabase } from "../config/supabaseClient.js";
+import { createNotification } from "./notificationController.js";
 
 const mapPostSummaries = (posts, currentUserId) => {
   const currentUserStringId = currentUserId ? currentUserId.toString() : null;
 
-  return posts.map((post, index) => {
-    const likes = post.likes || [];
-    const stars = post.stars || [];
-    const comments = post.comments || [];
+  return posts.map((post) => {
+    // Convert Mongoose document to plain object if needed
+    const postObj = post.toObject ? post.toObject() : post;
+
+    const likes = postObj.likes || [];
+    const stars = postObj.stars || [];
+    const comments = postObj.comments || [];
 
     const likedByCurrentUser = currentUserStringId
       ? likes.some((id) => id.toString() === currentUserStringId)
@@ -18,20 +22,24 @@ const mapPostSummaries = (posts, currentUserId) => {
       ? stars.some((id) => id.toString() === currentUserStringId)
       : false;
 
-    const summary = {
-      ...post,
+    return {
+      _id: postObj._id,
+      title: postObj.title,
+      imageUrl: postObj.imageUrl,
+      caption: postObj.caption,
+      userId: postObj.userId,
+      remixedFrom: postObj.remixedFrom,
+      remixCount: postObj.remixCount || 0,
+      isGameArt: postObj.isGameArt || false,
+      gameSessionId: postObj.gameSessionId,
+      createdAt: postObj.createdAt,
+      updatedAt: postObj.updatedAt,
       likesCount: likes.length,
       starsCount: stars.length,
       commentCount: comments.length,
       likedByCurrentUser,
       starredByCurrentUser,
     };
-
-    delete summary.likes;
-    delete summary.stars;
-    delete summary.comments;
-
-    return summary;
   });
 };
 
@@ -197,18 +205,22 @@ export const getAllPosts = async (req, res) => {
           $project: {
             title: 1,
             imageUrl: 1,
+            caption: 1,
             remixCount: 1,
             createdAt: 1,
+            updatedAt: 1,
             likes: 1,
             stars: 1,
             comments: 1,
             isGameArt: 1,
+            gameSessionId: 1,
             "userId.username": 1,
             "userId.profilePic": 1,
             "userId._id": 1,
             "remixedFrom._id": 1,
             "remixedFrom.imageUrl": 1,
             "remixedFrom.title": 1,
+            "remixedFrom.caption": 1,
             "remixedFrom.userId.username": 1,
             "remixedFrom.userId.profilePic": 1,
             "remixedFrom.userId._id": 1,
@@ -221,12 +233,12 @@ export const getAllPosts = async (req, res) => {
         .skip(skip)
         .limit(limit + 1) // Fetch one extra to check if there are more
         .select(
-          "title imageUrl userId remixCount remixedFrom createdAt likes stars comments isGameArt"
+          "title caption imageUrl userId remixCount remixedFrom createdAt updatedAt likes stars comments isGameArt gameSessionId"
         )
         .populate("userId", "username profilePic")
         .populate({
           path: "remixedFrom",
-          select: "imageUrl title userId",
+          select: "imageUrl title caption userId",
           populate: { path: "userId", select: "username profilePic" },
         })
         .lean();
@@ -437,7 +449,9 @@ export const deletePost = async (req, res) => {
 // @access  Private
 export const likePost = async (req, res) => {
   try {
-    const post = await Post.findById(req.params.id).select("_id likes");
+    const post = await Post.findById(req.params.id)
+      .select("_id likes userId title")
+      .populate("userId", "username");
 
     if (!post) {
       return res.status(404).json({ message: "Post not found" });
@@ -454,6 +468,29 @@ export const likePost = async (req, res) => {
 
     post.likes.push(req.user._id);
     await post.save();
+
+    // Create notification for post owner
+    if (post.userId._id.toString() !== req.user._id.toString()) {
+      const notification = await createNotification({
+        recipient: post.userId._id,
+        sender: req.user._id,
+        type: "like",
+        post: post._id,
+        message: `${req.user.username} liked your post`,
+      });
+
+      // Emit real-time notification
+      if (notification && global.io && global.userSockets) {
+        const recipientSocketId = global.userSockets.get(
+          post.userId._id.toString()
+        );
+        if (recipientSocketId) {
+          global.io
+            .to(recipientSocketId)
+            .emit("new-notification", notification);
+        }
+      }
+    }
 
     res.json({ message: "Post liked", likes: post.likes.length });
   } catch (error) {

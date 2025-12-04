@@ -8,6 +8,8 @@ import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoutes.js";
 import commentRoutes from "./routes/commentRoutes.js";
 import gameRoutes from "./routes/gameRoutes.js";
+import notificationRoutes from "./routes/notificationRoutes.js";
+import messageRoutes from "./routes/messageRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import GameSession from "./models/GameSession.js";
 
@@ -51,6 +53,8 @@ app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/comments", commentRoutes);
 app.use("/api/game", gameRoutes);
+app.use("/api/notifications", notificationRoutes);
+app.use("/api/messages", messageRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
@@ -58,9 +62,31 @@ app.use(errorHandler);
 // Track disconnect timeouts globally
 const disconnectTimeouts = new Map(); // key: `${code}:${nickname}`, value: timeoutId
 
-// Socket.IO game logic
+// Store user socket connections for notifications
+const userSockets = new Map(); // key: userId, value: socketId
+
+// Make io and userSockets globally accessible
+global.io = io;
+global.userSockets = userSockets;
+
+// Socket.IO logic
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  // Register user for notifications
+  socket.on("register-user", (userId) => {
+    userSockets.set(userId, socket.id);
+    socket.userId = userId;
+    console.log(`User ${userId} registered for notifications`);
+  });
+
+  // Unregister user on disconnect
+  socket.on("disconnect", () => {
+    if (socket.userId) {
+      userSockets.delete(socket.userId);
+      console.log(`User ${socket.userId} unregistered from notifications`);
+    }
+  });
 
   socket.on("join-game", ({ code, nickname }) => {
     socket.join(code);

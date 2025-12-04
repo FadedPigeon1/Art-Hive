@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import {
   BrowserRouter as Router,
   Routes,
@@ -10,7 +10,9 @@ import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
 import { SearchProvider } from "./context/SearchContext";
+import io from "socket.io-client";
 import Navbar from "./components/Navbar";
+import ChatButton from "./components/ChatButton";
 import Feed from "./pages/Feed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -19,6 +21,8 @@ import Sketchbook from "./pages/SketchbookPro";
 import Game from "./pages/Game";
 import Favorites from "./pages/Favorites";
 import LikedPosts from "./pages/LikedPosts";
+
+const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
 // Protected Route wrapper
 const ProtectedRoute = ({ children }) => {
@@ -38,10 +42,31 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function AppContent() {
+  const { isAuthenticated, user } = useAuth();
+  const [socket, setSocket] = useState(null);
+
+  // Initialize Socket.IO connection
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      const newSocket = io(API_URL, {
+        transports: ["websocket", "polling"],
+      });
+
+      setSocket(newSocket);
+
+      return () => {
+        newSocket.close();
+      };
+    } else if (socket) {
+      socket.close();
+      setSocket(null);
+    }
+  }, [isAuthenticated, user]);
+
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">
       <Router>
-        <Navbar />
+        <Navbar socket={socket} />
         <Routes>
           <Route path="/" element={<Feed />} />
           <Route path="/login" element={<Login />} />
@@ -66,6 +91,7 @@ function AppContent() {
             }
           />
         </Routes>
+        {isAuthenticated && <ChatButton socket={socket} />}
       </Router>
       <ToastContainer
         position="bottom-right"

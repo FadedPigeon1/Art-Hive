@@ -97,9 +97,48 @@ export const gameAPI = {
   getResults: (code) => axios.get(`/api/game/${code}/results`),
 };
 
+// Notifications API
+export const notificationsAPI = {
+  getAll: () => axios.get("/api/notifications").then((res) => res.data),
+  getUnreadCount: () =>
+    axios.get("/api/notifications/unread-count").then((res) => res.data),
+  markAsRead: (id) =>
+    axios.put(`/api/notifications/${id}/read`).then((res) => res.data),
+  markAllAsRead: () =>
+    axios.put("/api/notifications/read-all").then((res) => res.data),
+  delete: (id) =>
+    axios.delete(`/api/notifications/${id}`).then((res) => res.data),
+};
+
+// Messages API
+export const messagesAPI = {
+  getConversations: () =>
+    axios.get("/api/messages/conversations").then((res) => res.data),
+  getOrCreateConversation: (userId) =>
+    axios
+      .post("/api/messages/conversations", { userId })
+      .then((res) => res.data),
+  getMessages: (conversationId, limit = 50, before = null) =>
+    axios
+      .get(`/api/messages/${conversationId}`, { params: { limit, before } })
+      .then((res) => res.data),
+  sendMessage: (conversationId, text) =>
+    axios
+      .post(`/api/messages/${conversationId}`, { text })
+      .then((res) => res.data),
+  deleteConversation: (conversationId) =>
+    axios
+      .delete(`/api/messages/conversations/${conversationId}`)
+      .then((res) => res.data),
+  getUnreadCount: () =>
+    axios.get("/api/messages/unread-count").then((res) => res.data),
+};
+
 export default {
   authAPI,
   postsAPI,
   commentsAPI,
   gameAPI,
+  notificationsAPI,
+  messagesAPI,
 };

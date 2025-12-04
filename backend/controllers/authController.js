@@ -1,6 +1,7 @@
 import { validationResult } from "express-validator";
 import User from "../models/User.js";
 import { generateToken } from "../utils/generateToken.js";
+import { createNotification } from "./notificationController.js";
 
 // @desc    Register a new user
 // @route   POST /api/auth/register
@@ -188,6 +189,24 @@ export const followUser = async (req, res) => {
 
     await currentUser.save();
     await userToFollow.save();
+
+    // Create notification for followed user
+    const notification = await createNotification({
+      recipient: userToFollow._id,
+      sender: req.user._id,
+      type: "follow",
+      message: `${req.user.username} started following you`,
+    });
+
+    // Emit real-time notification
+    if (notification && global.io && global.userSockets) {
+      const recipientSocketId = global.userSockets.get(
+        userToFollow._id.toString()
+      );
+      if (recipientSocketId) {
+        global.io.to(recipientSocketId).emit("new-notification", notification);
+      }
+    }
 
     res.json({ message: "User followed successfully" });
   } catch (error) {

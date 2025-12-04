@@ -18,8 +18,9 @@ import {
 } from "react-icons/fi";
 import { FaPalette, FaGamepad } from "react-icons/fa";
 import { getProfilePicture } from "../utils/imageHelpers";
+import NotificationDropdown from "./NotificationDropdown";
 
-const Navbar = () => {
+const Navbar = ({ socket }) => {
   const { user, logout, isAuthenticated } = useAuth();
   const { isDark, toggleTheme } = useTheme();
   const { searchQuery, setSearchQuery, isSearchOpen, openSearch, closeSearch } =
@@ -134,6 +135,9 @@ const Navbar = () => {
             >
               <FiSearch size={20} />
             </button>
+
+            {/* Notifications - only show when authenticated */}
+            {isAuthenticated && <NotificationDropdown socket={socket} />}
 
             {isAuthenticated ? (
               <div className="relative" ref={settingsRef}>
