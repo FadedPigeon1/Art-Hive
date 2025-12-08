@@ -78,6 +78,41 @@ export const createPost = async (req, res) => {
         .getPublicUrl(filePath);
 
       imageUrl = publicUrlData.publicUrl;
+    } else if (imageUrl && imageUrl.startsWith("data:image")) {
+      // Handle base64 image upload (e.g. from Game mode)
+      try {
+        const matches = imageUrl.match(
+          /^data:image\/([a-zA-Z0-9]+);base64,(.+)$/
+        );
+
+        if (matches && matches.length === 3) {
+          const fileExt = matches[1];
+          const base64Data = matches[2];
+          const buffer = Buffer.from(base64Data, "base64");
+          const fileName = `${req.user._id}_${Date.now()}.${fileExt}`;
+          const filePath = `${fileName}`;
+
+          const { data, error } = await supabase.storage
+            .from("post-images")
+            .upload(filePath, buffer, {
+              contentType: `image/${fileExt}`,
+            });
+
+          if (error) {
+            console.error("Supabase upload error (base64):", error);
+            return res.status(500).json({ message: "Error uploading image" });
+          }
+
+          const { data: publicUrlData } = supabase.storage
+            .from("post-images")
+            .getPublicUrl(filePath);
+
+          imageUrl = publicUrlData.publicUrl;
+        }
+      } catch (error) {
+        console.error("Error processing base64 image:", error);
+        return res.status(500).json({ message: "Error processing image" });
+      }
     }
 
     if (!imageUrl) {
