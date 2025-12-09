@@ -76,6 +76,61 @@ const userSchema = new mongoose.Schema(
         ref: "Post",
       },
     ],
+    // Progression System
+    level: {
+      type: Number,
+      default: 1,
+      min: 1,
+    },
+    xp: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    totalXP: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    // Daily Challenge Tracking
+    dailyChallengeStreak: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    lastChallengeCompletedAt: {
+      type: Date,
+      default: null,
+    },
+    completedChallenges: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "DailyChallenge",
+      },
+    ],
+    // Achievements
+    achievements: [
+      {
+        id: { type: String, required: true },
+        name: { type: String, required: true },
+        description: { type: String, required: true },
+        unlockedAt: { type: Date, default: Date.now },
+        icon: { type: String, default: "" },
+      },
+    ],
+    // Activity Statistics
+    stats: {
+      postsCreated: { type: Number, default: 0 },
+      likesReceived: { type: Number, default: 0 },
+      commentsReceived: { type: Number, default: 0 },
+      commentsGiven: { type: Number, default: 0 },
+      remixesCreated: { type: Number, default: 0 },
+      remixesReceived: { type: Number, default: 0 },
+      gamesPlayed: { type: Number, default: 0 },
+      challengesCompleted: { type: Number, default: 0 },
+      loginStreak: { type: Number, default: 0 },
+      lastLoginDate: { type: Date, default: null },
+    },
   },
   {
     timestamps: true,

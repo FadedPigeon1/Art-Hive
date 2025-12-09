@@ -131,6 +131,7 @@ const SketchbookPro = ({
   // Remix source (optional)
   const [remixImageUrl, setRemixImageUrl] = useState(null);
   const [remixPostId, setRemixPostId] = useState(null);
+  const [challengeId, setChallengeId] = useState(null);
 
   // History
   const [history, setHistory] = useState([]);
@@ -164,6 +165,7 @@ const SketchbookPro = ({
     const params = new URLSearchParams(location.search);
     const remix = params.get("remix");
     const remixId = params.get("remixId");
+    const challenge = params.get("challenge");
     const isGameMode = params.get("gameMode") === "true";
     const code = params.get("gameCode");
     const chainId = params.get("chainId");
@@ -173,6 +175,7 @@ const SketchbookPro = ({
 
     setRemixImageUrl(remix || null);
     setRemixPostId(remixId || null);
+    setChallengeId(challenge || null);
 
     if (isGameMode) {
       setGameMode(true);
@@ -862,7 +865,21 @@ const SketchbookPro = ({
       formData.append("image", file);
       if (remixPostId) formData.append("remixedFrom", remixPostId);
 
-      await postsAPI.createPost(formData);
+      const response = await postsAPI.createPost(formData);
+
+      // If this is for a daily challenge, complete it
+      if (challengeId && response.data._id) {
+        try {
+          const axios = (await import("axios")).default;
+          await axios.post(`/api/challenges/${challengeId}/complete`, {
+            postId: response.data._id,
+          });
+          toast.success("Daily challenge completed! 🎉");
+        } catch (challengeError) {
+          console.error("Challenge completion error:", challengeError);
+          // Don't prevent navigation if challenge completion fails
+        }
+      }
 
       toast.success("Artwork posted successfully!");
       navigate("/");

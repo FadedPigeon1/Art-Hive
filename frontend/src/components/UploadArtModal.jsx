@@ -4,7 +4,12 @@ import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
 import axios from "axios";
 
-const UploadArtModal = ({ isOpen, onClose, onUploadSuccess }) => {
+const UploadArtModal = ({
+  isOpen,
+  onClose,
+  onUploadSuccess,
+  challengeId = null,
+}) => {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
@@ -65,6 +70,19 @@ const UploadArtModal = ({ isOpen, onClose, onUploadSuccess }) => {
       const response = await postsAPI.createPost(formData);
 
       console.log("Post created successfully:", response.data);
+
+      // If this is for a daily challenge, complete it
+      if (challengeId && response.data._id) {
+        try {
+          await axios.post(`/api/challenges/${challengeId}/complete`, {
+            postId: response.data._id,
+          });
+          toast.success("Daily challenge completed! 🎉");
+        } catch (challengeError) {
+          console.error("Challenge completion error:", challengeError);
+          // Don't show error to user, post was still created successfully
+        }
+      }
 
       toast.success("Artwork uploaded successfully!");
 

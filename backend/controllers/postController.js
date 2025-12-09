@@ -3,6 +3,7 @@ import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 import { supabase } from "../config/supabaseClient.js";
 import { createNotification } from "./notificationController.js";
+import { updateStatsAndAwardXP } from "../utils/progressionHelper.js";
 
 const mapPostSummaries = (posts, currentUserId) => {
   const currentUserStringId = currentUserId ? currentUserId.toString() : null;
@@ -136,6 +137,18 @@ export const createPost = async (req, res) => {
     // If this is a remix, increment the original post's remix count
     if (remixedFrom) {
       await Post.findByIdAndUpdate(remixedFrom, { $inc: { remixCount: 1 } });
+
+      // Award XP to the user creating the remix
+      await updateStatsAndAwardXP(req.user._id, "remixesCreated");
+
+      // Award XP to the original post owner for being remixed
+      const originalPost = await Post.findById(remixedFrom);
+      if (originalPost && originalPost.userId) {
+        await updateStatsAndAwardXP(originalPost.userId, "remixesReceived");
+      }
+    } else {
+      // Award XP for creating a post
+      await updateStatsAndAwardXP(req.user._id, "postsCreated");
     }
 
     const populatedPost = await Post.findById(post._id)
@@ -503,6 +516,11 @@ export const likePost = async (req, res) => {
 
     post.likes.push(req.user._id);
     await post.save();
+
+    // Award XP to post owner for receiving a like
+    if (post.userId._id.toString() !== req.user._id.toString()) {
+      await updateStatsAndAwardXP(post.userId._id, "likesReceived");
+    }
 
     // Create notification for post owner
     if (post.userId._id.toString() !== req.user._id.toString()) {

@@ -4,6 +4,8 @@ import { useAuth } from "../context/AuthContext";
 import { postsAPI, messagesAPI } from "../utils/api";
 import PostCard from "../components/PostCard";
 import UploadArtModal from "../components/UploadArtModal";
+import ProgressBar from "../components/ProgressBar";
+import AchievementBadge from "../components/AchievementBadge";
 import { toast } from "react-toastify";
 import {
   FiCalendar,
@@ -523,6 +525,58 @@ const Profile = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* Level & XP Progress */}
+                {profileData && (
+                  <div className="mt-6 pt-6 border-t border-border-light dark:border-border-dark">
+                    <div className="mb-4">
+                      <ProgressBar
+                        currentXP={profileData.xp || 0}
+                        xpForNextLevel={Math.floor(
+                          100 * Math.pow(profileData.level || 1, 1.5)
+                        )}
+                        level={profileData.level || 1}
+                        showLabel={true}
+                      />
+                    </div>
+
+                    {/* Challenge Streak */}
+                    {(profileData.dailyChallengeStreak || 0) > 0 && (
+                      <div className="flex items-center gap-2 mb-4 text-sm">
+                        <span className="text-orange-500 text-xl">🔥</span>
+                        <span className="font-semibold text-gray-700 dark:text-gray-300">
+                          {profileData.dailyChallengeStreak} Day Streak
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Achievements */}
+                    {profileData.achievements &&
+                      profileData.achievements.length > 0 && (
+                        <div>
+                          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">
+                            🏆 Achievements ({profileData.achievements.length})
+                          </h3>
+                          <div className="flex flex-wrap gap-3">
+                            {profileData.achievements
+                              .slice(0, 8)
+                              .map((achievement, index) => (
+                                <AchievementBadge
+                                  key={index}
+                                  achievement={achievement}
+                                  size="md"
+                                />
+                              ))}
+                            {profileData.achievements.length > 8 && (
+                              <div className="w-16 h-16 flex items-center justify-center bg-gray-200 dark:bg-gray-700 rounded-full text-sm font-semibold text-gray-600 dark:text-gray-400">
+                                +{profileData.achievements.length - 8}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                  </div>
+                )}
               </div>
             </div>
 

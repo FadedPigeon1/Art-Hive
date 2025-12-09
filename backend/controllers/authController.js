@@ -42,6 +42,12 @@ export const registerUser = async (req, res) => {
         profilePic: user.profilePic,
         bio: user.bio,
         dateJoined: user.dateJoined,
+        level: user.level,
+        xp: user.xp,
+        totalXP: user.totalXP,
+        achievements: user.achievements,
+        stats: user.stats,
+        dailyChallengeStreak: user.dailyChallengeStreak,
         token: generateToken(user._id),
       });
     } else {
@@ -75,6 +81,12 @@ export const loginUser = async (req, res) => {
         profilePic: user.profilePic,
         bio: user.bio,
         dateJoined: user.dateJoined,
+        level: user.level,
+        xp: user.xp,
+        totalXP: user.totalXP,
+        achievements: user.achievements,
+        stats: user.stats,
+        dailyChallengeStreak: user.dailyChallengeStreak,
         token: generateToken(user._id),
       });
     } else {
@@ -102,6 +114,13 @@ export const getMe = async (req, res) => {
         dateJoined: user.dateJoined,
         followers: user.followers,
         following: user.following,
+        level: user.level,
+        xp: user.xp,
+        totalXP: user.totalXP,
+        achievements: user.achievements,
+        stats: user.stats,
+        dailyChallengeStreak: user.dailyChallengeStreak,
+        lastChallengeCompletedAt: user.lastChallengeCompletedAt,
       });
     } else {
       res.status(404).json({ message: "User not found" });

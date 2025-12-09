@@ -1,6 +1,7 @@
 import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
 import { createNotification } from "./notificationController.js";
+import { updateStatsAndAwardXP } from "../utils/progressionHelper.js";
 
 // @desc    Create a comment
 // @route   POST /api/comments
@@ -35,6 +36,14 @@ export const createComment = async (req, res) => {
       "userId",
       "username profilePic"
     );
+
+    // Award XP for giving a comment
+    await updateStatsAndAwardXP(req.user._id, "commentsGiven");
+
+    // Award XP to post owner for receiving a comment
+    if (post.userId._id.toString() !== req.user._id.toString()) {
+      await updateStatsAndAwardXP(post.userId._id, "commentsReceived");
+    }
 
     // Create notification for post owner
     if (post.userId._id.toString() !== req.user._id.toString()) {
