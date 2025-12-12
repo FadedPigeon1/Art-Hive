@@ -17,6 +17,20 @@ ArtHive is a full-stack MERN (MongoDB, Express.js, React, Node.js) social platfo
 - **Suggested Profiles**: Smart recommendations for artists to follow
 - **Dark/Light Mode**: Toggle between themes with persistent preference
 
+### 🏆 Progression & Gamification (New!)
+
+- **Level System**: Earn XP and level up by engaging with the platform
+- **Daily Challenges**: Complete daily art prompts to earn bonus XP and maintain streaks
+- **Achievements**: Unlock badges for milestones (e.g., "First Post", "Social Butterfly")
+- **XP Rewards**:
+  - Post Artwork: 10 XP
+  - Daily Challenge: 50 XP
+  - Receive Like: 2 XP
+  - Receive Comment: 5 XP
+  - Create Remix: 15 XP
+- **Leaderboards**: Compete with other artists for top spots
+- **Visual Feedback**: Animated progress bars and level-up celebrations
+
 ### Creative Tools
 
 - **Digital Sketchbook**: Advanced lightweight drawing app built in the browser
@@ -46,12 +60,14 @@ ArtHive is a full-stack MERN (MongoDB, Express.js, React, Node.js) social platfo
 Art Hive/
 ├── backend/                    # Node.js + Express backend
 │   ├── config/
-│   │   └── db.js              # MongoDB connection
+│   │   ├── db.js              # MongoDB connection
+│   │   └── supabaseClient.js  # Supabase storage config
 │   ├── controllers/           # Route logic
 │   │   ├── authController.js
 │   │   ├── postController.js
 │   │   ├── commentController.js
-│   │   └── gameController.js
+│   │   ├── gameController.js
+│   │   └── challengeController.js # Daily challenges & XP
 │   ├── middleware/            # Auth & error handling
 │   │   ├── authMiddleware.js
 │   │   └── errorMiddleware.js
@@ -59,14 +75,17 @@ Art Hive/
 │   │   ├── User.js
 │   │   ├── Post.js
 │   │   ├── Comment.js
-│   │   └── GameSession.js
+│   │   ├── GameSession.js
+│   │   └── DailyChallenge.js
 │   ├── routes/                # API endpoints
 │   │   ├── authRoutes.js
 │   │   ├── postRoutes.js
 │   │   ├── commentRoutes.js
-│   │   └── gameRoutes.js
+│   │   ├── gameRoutes.js
+│   │   └── challengeRoutes.js
 │   ├── utils/
-│   │   └── generateToken.js   # JWT token generation
+│   │   ├── generateToken.js   # JWT token generation
+│   │   └── progressionHelper.js # XP & Level logic
 │   ├── .env.example           # Environment variables template
 │   ├── .gitignore
 │   ├── package.json
@@ -77,25 +96,28 @@ Art Hive/
     │   └── index.html
     ├── src/
     │   ├── components/        # Reusable components
-    │   │   ├── Navbar.js
-    │   │   ├── PostCard.js
-    │   │   ├── Comments.js
-    │   │   ├── RemixModal.js
-    │   │   ├── SuggestedProfiles.js
-    │   │   └── UploadArtModal.js
+    │   │   ├── Navbar.jsx
+    │   │   ├── PostCard.jsx
+    │   │   ├── Comments.jsx
+    │   │   ├── RemixModal.jsx
+    │   │   ├── SuggestedProfiles.jsx
+    │   │   ├── UploadArtModal.jsx
+    │   │   ├── ProgressBar.jsx    # XP Progress Bar
+    │   │   ├── LevelUpModal.jsx   # Level Up Celebration
+    │   │   └── AchievementBadge.jsx # Achievement Badges
     │   ├── context/           # Global state
-    │   │   ├── AuthContext.js
-    │   │   └── ThemeContext.js
+    │   │   ├── AuthContext.jsx
+    │   │   └── ThemeContext.jsx
     │   ├── pages/             # Route pages
-    │   │   ├── Feed.js
-    │   │   ├── Login.js
-    │   │   ├── Register.js
-    │   │   ├── Profile.js
-    │   │   ├── SketchbookPro.js
-    │   │   └── Game.js
+    │   │   ├── Feed.jsx
+    │   │   ├── Login.jsx
+    │   │   ├── Register.jsx
+    │   │   ├── Profile.jsx
+    │   │   ├── SketchbookPro.jsx
+    │   │   └── Game.jsx
     │   ├── utils/
     │   │   └── api.js         # Axios API calls
-    │   ├── App.js             # Main app component
+    │   ├── App.jsx            # Main app component
     │   ├── index.js           # Entry point
     │   └── index.css          # Global styles
     ├── .env.example
@@ -111,9 +133,10 @@ Art Hive/
 
 Before running this application, make sure you have the following installed:
 
-- **Node.js** (v14 or higher) - [Download](https://nodejs.org/)
+- **Node.js** (v18 or higher) - [Download](https://nodejs.org/)
 - **MongoDB** (v4.4 or higher) - [Download](https://www.mongodb.com/try/download/community)
   - Or use MongoDB Atlas (cloud database) - [Sign up](https://www.mongodb.com/cloud/atlas)
+- **Supabase Account** (for image storage) - [Sign up](https://supabase.com/)
 - **npm** or **yarn** package manager
 
 ### Installation
@@ -142,10 +165,14 @@ Edit the `.env` file with your configuration:
 ```env
 PORT=5001
 NODE_ENV=development
-MONGODB_URI=mongodb://localhost:27017/arthive
+MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/arthive
 JWT_SECRET=your_super_secret_jwt_key_change_this
 JWT_EXPIRE=7d
 CORS_ORIGIN=http://localhost:3000
+
+# Supabase Configuration (Required for Image Uploads)
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-supabase-anon-key
 ```
 
 **Important**: Change `JWT_SECRET` to a random, secure string in production!
@@ -234,6 +261,13 @@ The React app will open at `http://localhost:3000`
 3. Add an optional caption
 4. Click "Post Artwork"
 
+### Daily Challenges
+
+1. Check the **Daily Challenge** card on the Feed
+2. Click "Start Drawing" to open the sketchbook with the prompt
+3. Submit your artwork to complete the challenge
+4. Earn 50 XP and extend your streak!
+
 ### Interacting with Posts
 
 - **Like**: Click the heart icon
@@ -271,6 +305,14 @@ The React app will open at `http://localhost:3000`
 - `PUT /api/posts/:id/like` - Like post (protected)
 - `PUT /api/posts/:id/unlike` - Unlike post (protected)
 
+### Challenges & Progression
+
+- `GET /api/challenges/today` - Get today's challenge
+- `POST /api/challenges/:id/complete` - Complete challenge (protected)
+- `GET /api/challenges/history` - Get completion history (protected)
+- `GET /api/challenges/leaderboard` - Get top users
+- `GET /api/challenges/progression` - Get user stats & XP (protected)
+
 ### Comments
 
 - `GET /api/comments/:postId` - Get post comments
@@ -293,6 +335,7 @@ The React app will open at `http://localhost:3000`
 - **Express.js** - Web framework
 - **MongoDB** - NoSQL database
 - **Mongoose** - MongoDB ODM
+- **Supabase** - Image storage
 - **JWT** - Authentication tokens
 - **bcryptjs** - Password hashing
 - **Socket.IO** - Real-time communication
@@ -329,7 +372,9 @@ The app uses a Twitter/X-inspired design with support for dark and light modes:
 
 ## 📝 Future Enhancements
 
-- [ ] Cloud storage integration (Cloudinary/AWS S3) for image uploads
+- [x] Cloud storage integration (Supabase)
+- [x] Achievement and badges system
+- [x] Level/XP Progression system
 - [ ] Real-time notifications system
 - [ ] Search functionality (users, hashtags, artwork)
 - [ ] Direct messaging between users
