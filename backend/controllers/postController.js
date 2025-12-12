@@ -60,10 +60,10 @@ export const createPost = async (req, res) => {
       const filePath = `${fileName}`;
 
       // Upload to Supabase Storage
-      // Make sure you have a bucket named 'post-images' in your Supabase project
+      // Make sure you have a bucket named 'Drawings' in your Supabase project
       // and it is set to public.
       const { data, error } = await supabase.storage
-        .from("post-images")
+        .from("Drawings")
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,
         });
@@ -75,7 +75,7 @@ export const createPost = async (req, res) => {
 
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from("post-images")
+        .from("Drawings")
         .getPublicUrl(filePath);
 
       imageUrl = publicUrlData.publicUrl;
@@ -94,7 +94,7 @@ export const createPost = async (req, res) => {
           const filePath = `${fileName}`;
 
           const { data, error } = await supabase.storage
-            .from("post-images")
+            .from("Drawings")
             .upload(filePath, buffer, {
               contentType: `image/${fileExt}`,
             });
@@ -105,7 +105,7 @@ export const createPost = async (req, res) => {
           }
 
           const { data: publicUrlData } = supabase.storage
-            .from("post-images")
+            .from("Drawings")
             .getPublicUrl(filePath);
 
           imageUrl = publicUrlData.publicUrl;

@@ -255,7 +255,7 @@ export const submitEntry = async (req, res) => {
 
       // Upload to Supabase Storage
       const { data: uploadData, error } = await supabase.storage
-        .from("post-images") // Using same bucket
+        .from("Drawings") // Using same bucket
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,
         });
@@ -267,7 +267,7 @@ export const submitEntry = async (req, res) => {
 
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from("post-images")
+        .from("Drawings")
         .getPublicUrl(filePath);
 
       data = publicUrlData.publicUrl;
