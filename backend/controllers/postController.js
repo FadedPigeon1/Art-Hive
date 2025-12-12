@@ -60,22 +60,35 @@ export const createPost = async (req, res) => {
       const filePath = `${fileName}`;
 
       // Upload to Supabase Storage
-      // Make sure you have a bucket named 'Drawings' in your Supabase project
+      // Make sure you have a bucket named 'artworks' in your Supabase project
       // and it is set to public.
       const { data, error } = await supabase.storage
-        .from("Drawings")
+        .from("artworks")
         .upload(filePath, file.buffer, {
           contentType: file.mimetype,
         });
 
       if (error) {
         console.error("Supabase upload error:", error);
-        return res.status(500).json({ message: "Error uploading image" });
+        if (
+          error.statusCode === "403" ||
+          (error.message && error.message.includes("row-level security"))
+        ) {
+          return res
+            .status(500)
+            .json({
+              message:
+                "Supabase RLS Policy Error: Please configure storage policies.",
+            });
+        }
+        return res
+          .status(500)
+          .json({ message: "Error uploading image: " + error.message });
       }
 
       // Get public URL
       const { data: publicUrlData } = supabase.storage
-        .from("Drawings")
+        .from("artworks")
         .getPublicUrl(filePath);
 
       imageUrl = publicUrlData.publicUrl;
@@ -94,7 +107,7 @@ export const createPost = async (req, res) => {
           const filePath = `${fileName}`;
 
           const { data, error } = await supabase.storage
-            .from("Drawings")
+            .from("artworks")
             .upload(filePath, buffer, {
               contentType: `image/${fileExt}`,
             });
@@ -105,7 +118,7 @@ export const createPost = async (req, res) => {
           }
 
           const { data: publicUrlData } = supabase.storage
-            .from("Drawings")
+            .from("artworks")
             .getPublicUrl(filePath);
 
           imageUrl = publicUrlData.publicUrl;
