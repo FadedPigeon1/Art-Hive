@@ -105,9 +105,20 @@ const Feed = () => {
     }
   };
 
-  const handleLoadMore = () => {
-    setPage((prev) => prev + 1);
-  };
+  const observer = useRef();
+  const lastPostElementRef = useCallback(
+    (node) => {
+      if (loading) return;
+      if (observer.current) observer.current.disconnect();
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          setPage((prev) => prev + 1);
+        }
+      });
+      if (node) observer.current.observe(node);
+    },
+    [loading, hasMore]
+  );
 
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
@@ -151,31 +162,35 @@ const Feed = () => {
               </div>
             ) : (
               <>
-                {posts.map((post) => (
-                  <PostCard
-                    key={post._id}
-                    post={post}
-                    onDelete={handlePostDeleted}
-                    onLike={(stats) => handlePostLiked(post._id, stats)}
-                    onPostClick={setSelectedPost}
-                  />
-                ))}
+                {posts.map((post, index) => {
+                  if (posts.length === index + 1) {
+                    return (
+                      <div ref={lastPostElementRef} key={post._id}>
+                        <PostCard
+                          post={post}
+                          onDelete={handlePostDeleted}
+                          onLike={(stats) => handlePostLiked(post._id, stats)}
+                          onPostClick={setSelectedPost}
+                        />
+                      </div>
+                    );
+                  } else {
+                    return (
+                      <PostCard
+                        key={post._id}
+                        post={post}
+                        onDelete={handlePostDeleted}
+                        onLike={(stats) => handlePostLiked(post._id, stats)}
+                        onPostClick={setSelectedPost}
+                      />
+                    );
+                  }
+                })}
 
-                {hasMore && (
-                  <button
-                    onClick={handleLoadMore}
-                    disabled={loading}
-                    className="w-full py-3 mt-4 bg-primary-light text-white rounded-lg hover:bg-primary-dark transition-colors disabled:opacity-50 flex items-center justify-center space-x-2"
-                  >
-                    {loading ? (
-                      <>
-                        <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        <span>Loading...</span>
-                      </>
-                    ) : (
-                      <span>Load More</span>
-                    )}
-                  </button>
+                {loading && (
+                  <div className="w-full py-4 flex justify-center">
+                    <div className="w-8 h-8 border-4 border-primary-light border-t-transparent rounded-full animate-spin"></div>
+                  </div>
                 )}
               </>
             )}
