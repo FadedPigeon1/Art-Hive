@@ -181,11 +181,11 @@ const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
 
   return (
     <div
-      className="bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-lg overflow-hidden mb-4 cursor-pointer"
+      className="bg-background-light dark:bg-background-dark rounded-xl overflow-hidden mb-6 cursor-pointer shadow-md hover:shadow-xl transition-all duration-300 border border-border-light dark:border-border-dark"
       onClick={() => onPostClick && onPostClick(post)}
     >
       {/* Post Header */}
-      <div className="p-4 flex items-center justify-between">
+      <div className="p-4 flex items-center justify-between bg-gradient-to-r from-transparent to-surface-light/30 dark:to-surface-dark/30">
         <Link
           to={`/profile/${post.userId?._id}`}
           className="flex items-center space-x-3 hover:opacity-80 transition-opacity"
@@ -195,7 +195,7 @@ const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
             src={getProfilePicture(post.userId?.profilePic)}
             alt={post.userId?.username}
             loading="lazy"
-            className="w-10 h-10 rounded-full object-cover"
+            className="w-10 h-10 rounded-full object-cover ring-2 ring-primary-light dark:ring-primary-dark p-0.5"
           />
           <div>
             <p className="font-semibold text-text-primary-light dark:text-text-primary-dark">
@@ -255,62 +255,72 @@ const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
 
       {/* Post Actions */}
       <div className="p-4">
-        <div className="flex items-center space-x-4 mb-2">
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleLike();
-            }}
-            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 transition-colors"
-          >
-            {isLiked ? (
-              <FaHeart size={24} className="text-red-500" />
-            ) : (
-              <FiHeart size={24} />
-            )}
-            <span>{likesCount}</span>
-          </button>
+        <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleLike();
+              }}
+              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full transition-all duration-200 ${
+                isLiked
+                  ? "text-red-500 bg-red-50 dark:bg-red-900/20"
+                  : "text-text-secondary-light dark:text-text-secondary-dark hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20"
+              }`}
+            >
+              {isLiked ? (
+                <FaHeart size={20} className="text-red-500" />
+              ) : (
+                <FiHeart size={20} />
+              )}
+              <span className="font-medium">{likesCount}</span>
+            </button>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              setShowComments(!showComments);
-            }}
-            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light transition-colors"
-          >
-            <FiMessageCircle size={24} />
-            <span>
-              {post.commentCount !== undefined
-                ? post.commentCount
-                : post.comments?.length || 0}
-            </span>
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowComments(!showComments);
+              }}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200"
+            >
+              <FiMessageCircle size={20} />
+              <span className="font-medium">
+                {post.commentCount !== undefined
+                  ? post.commentCount
+                  : post.comments?.length || 0}
+              </span>
+            </button>
 
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              handleRemix();
-            }}
-            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light transition-colors"
-          >
-            <FiPlus size={24} />
-            <span>{post.remixCount || 0}</span>
-          </button>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRemix();
+              }}
+              className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:text-green-500 hover:bg-green-50 dark:hover:bg-green-900/20 transition-all duration-200"
+            >
+              <FiPlus size={20} />
+              <span className="font-medium">{post.remixCount || 0}</span>
+            </button>
+          </div>
 
           <button
             onClick={(e) => {
               e.stopPropagation();
               handleStar();
             }}
-            className="flex items-center space-x-1 text-text-secondary-light dark:text-text-secondary-dark hover:text-yellow-500 transition-colors"
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-full transition-all duration-200 ${
+              isStarred
+                ? "text-yellow-500 bg-yellow-50 dark:bg-yellow-900/20"
+                : "text-text-secondary-light dark:text-text-secondary-dark hover:text-yellow-500 hover:bg-yellow-50 dark:hover:bg-yellow-900/20"
+            }`}
             title={isStarred ? "Remove from favorites" : "Add to favorites"}
           >
             {isStarred ? (
-              <FaStar size={24} className="text-yellow-500" />
+              <FaStar size={20} className="text-yellow-500" />
             ) : (
-              <FiStar size={24} />
+              <FiStar size={20} />
             )}
-            <span>{starsCount}</span>
+            <span className="font-medium">{starsCount}</span>
           </button>
         </div>
 
