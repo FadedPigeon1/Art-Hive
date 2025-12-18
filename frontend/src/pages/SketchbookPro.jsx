@@ -9,12 +9,6 @@ import {
   FiRotateCcw,
   FiRotateCw,
   FiDownload,
-  FiLayers,
-  FiEye,
-  FiEyeOff,
-  FiCopy,
-  FiPlus,
-  FiMinus,
   FiZoomIn,
   FiZoomOut,
   FiMove,
@@ -28,6 +22,10 @@ import {
   FiSlash,
   FiXCircle,
 } from "react-icons/fi";
+import LayersPanel from "../components/LayersPanel";
+import BrushSettings from "../components/BrushSettings";
+import ColorPickerPanel from "../components/ColorPickerPanel";
+import { useCanvas } from "../hooks/useCanvas";
 
 const BRUSH_TYPES = {
   PENCIL: { name: "Pencil", icon: FiEdit3 },
@@ -39,15 +37,6 @@ const BRUSH_TYPES = {
   ERASER: { name: "Eraser", icon: FiXCircle },
 };
 
-const BLEND_MODES = [
-  { value: "source-over", label: "Normal" },
-  { value: "multiply", label: "Multiply" },
-  { value: "screen", label: "Screen" },
-  { value: "overlay", label: "Overlay" },
-  { value: "darken", label: "Darken" },
-  { value: "lighten", label: "Lighten" },
-];
-
 const SketchbookPro = ({
   embedded = false,
   gameModeProp = false,
@@ -58,7 +47,6 @@ const SketchbookPro = ({
   gameNicknameProp = null,
   onGameSubmit = null,
 }) => {
-  const mainCanvasRef = useRef(null);
   const compositeCanvasRef = useRef(null);
   const fileInputRef = useRef(null);
   const { isAuthenticated } = useAuth();
@@ -76,11 +64,6 @@ const SketchbookPro = ({
   // Canvas dimensions
   const [canvasWidth, setCanvasWidth] = useState(1200);
   const [canvasHeight, setCanvasHeight] = useState(800);
-  const [zoom, setZoom] = useState(1);
-  const [rotation, setRotation] = useState(0);
-  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const [lastPanPoint, setLastPanPoint] = useState({ x: 0, y: 0 });
 
   // Drawing state
   const [brushColor, setBrushColor] = useState("#000000");
@@ -88,8 +71,6 @@ const SketchbookPro = ({
   const [brushOpacity, setBrushOpacity] = useState(100);
   const [brushFlow, setBrushFlow] = useState(100);
   const [brushType, setBrushType] = useState("PAINTBRUSH");
-  const [isDrawing, setIsDrawing] = useState(false);
-  const [lastPoint, setLastPoint] = useState(null);
 
   // Layer management
   const [layers, setLayers] = useState([
@@ -228,6 +209,36 @@ const SketchbookPro = ({
     return new Blob([u8arr], { type: mime });
   };
 
+  const {
+    mainCanvasRef,
+    zoom,
+    setZoom,
+    rotation,
+    setRotation,
+    panOffset,
+    setPanOffset,
+    isPanning,
+    startDrawing,
+    draw,
+    stopDrawing,
+    handleZoomIn,
+    handleZoomOut,
+    resetView,
+  } = useCanvas({
+    layers,
+    setLayers,
+    activeLayerId,
+    activeTool,
+    setActiveTool,
+    brushColor,
+    setBrushColor,
+    brushSize,
+    brushOpacity,
+    brushFlow,
+    brushType,
+    saveToHistory,
+  });
+
   // Initialize canvases (optionally with remix image as background)
   useEffect(() => {
     const canvas = mainCanvasRef.current;
@@ -346,259 +357,6 @@ const SketchbookPro = ({
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
-
-  // Get brush settings
-  const getBrushSettings = () => {
-    const opacity = (brushOpacity / 100) * (brushFlow / 100);
-
-    const settings = {
-      PENCIL: {
-        strokeStyle: hexToRgba(brushColor, opacity * 0.8), // Slightly transparent for buildup
-        lineWidth: Math.max(1, brushSize * 0.5), // Thinner than others
-        shadowBlur: 0,
-        lineCap: "round",
-      },
-      PEN: {
-        strokeStyle: hexToRgba(brushColor, opacity),
-        lineWidth: brushSize * 0.8,
-        shadowBlur: 0,
-        lineCap: "round",
-      },
-      PAINTBRUSH: {
-        strokeStyle: hexToRgba(brushColor, opacity * 0.9),
-        lineWidth: brushSize,
-        shadowBlur: brushSize * 0.2, // Soft edges
-        lineCap: "round",
-      },
-      MARKER: {
-        strokeStyle: hexToRgba(brushColor, opacity * 0.5), // Very transparent for layering
-        lineWidth: brushSize * 2,
-        shadowBlur: 0,
-        lineCap: "square", // Chisel tip feel
-      },
-      AIRBRUSH: {
-        strokeStyle: hexToRgba(brushColor, opacity * 0.2),
-        lineWidth: brushSize * 3,
-        shadowBlur: brushSize * 2,
-        lineCap: "round",
-      },
-      SMUDGE: {
-        strokeStyle: brushColor,
-        lineWidth: brushSize,
-        shadowBlur: 0,
-        lineCap: "round",
-      },
-      ERASER: {
-        strokeStyle: "#FFFFFF",
-        lineWidth: brushSize * 2,
-        shadowBlur: 0,
-        lineCap: "round",
-      },
-    };
-
-    return settings[brushType] || settings.PAINTBRUSH;
-  };
-
-  // Get coordinates with zoom and pan
-  const getCanvasCoords = (e) => {
-    const canvas = mainCanvasRef.current;
-    if (!canvas) return { x: 0, y: 0 };
-
-    const rect = canvas.getBoundingClientRect();
-    const clientX = e.clientX || (e.touches && e.touches[0]?.clientX) || 0;
-    const clientY = e.clientY || (e.touches && e.touches[0]?.clientY) || 0;
-
-    const x = (clientX - rect.left - panOffset.x) / zoom;
-    const y = (clientY - rect.top - panOffset.y) / zoom;
-
-    return { x, y };
-  };
-
-  // Drawing functions
-  const startDrawing = (e) => {
-    e.preventDefault();
-
-    if (
-      activeTool === "pan" ||
-      e.button === 1 ||
-      (e.button === 0 && e.altKey)
-    ) {
-      setIsPanning(true);
-      const rect = mainCanvasRef.current.getBoundingClientRect();
-      setLastPanPoint({
-        x: (e.clientX || e.touches[0]?.clientX) - rect.left,
-        y: (e.clientY || e.touches[0]?.clientY) - rect.top,
-      });
-      return;
-    }
-
-    if (activeTool === "eyedropper") {
-      pickColor(e);
-      return;
-    }
-
-    const activeLayer = layers.find((l) => l.id === activeLayerId);
-    if (!activeLayer || !activeLayer.visible || activeLayer.locked) {
-      toast.warning("Cannot draw on locked or invisible layer");
-      return;
-    }
-
-    setIsDrawing(true);
-    const coords = getCanvasCoords(e);
-    setLastPoint(coords);
-
-    if (brushType === "SMUDGE") {
-      // Initialize smudge tool
-      const ctx = activeLayer.data.getContext("2d");
-      const imageData = ctx.getImageData(
-        coords.x - brushSize,
-        coords.y - brushSize,
-        brushSize * 2,
-        brushSize * 2
-      );
-      setLastPoint({ ...coords, imageData });
-    }
-  };
-
-  const draw = (e) => {
-    e.preventDefault();
-
-    if (isPanning) {
-      const rect = mainCanvasRef.current.getBoundingClientRect();
-      const currentX = (e.clientX || e.touches[0]?.clientX) - rect.left;
-      const currentY = (e.clientY || e.touches[0]?.clientY) - rect.top;
-
-      setPanOffset((prev) => ({
-        x: prev.x + (currentX - lastPanPoint.x),
-        y: prev.y + (currentY - lastPanPoint.y),
-      }));
-
-      setLastPanPoint({ x: currentX, y: currentY });
-      return;
-    }
-
-    if (!isDrawing) return;
-
-    const activeLayer = layers.find((l) => l.id === activeLayerId);
-    if (!activeLayer || !activeLayer.data) return;
-
-    const ctx = activeLayer.data.getContext("2d");
-    const coords = getCanvasCoords(e);
-    const settings = getBrushSettings();
-
-    ctx.save();
-    ctx.strokeStyle = settings.strokeStyle;
-    ctx.lineWidth = settings.lineWidth;
-    ctx.lineCap = settings.lineCap || "round";
-    ctx.lineJoin = "round";
-    ctx.shadowBlur = settings.shadowBlur;
-    ctx.shadowColor = brushColor;
-
-    if (brushType === "AIRBRUSH") {
-      // Spray effect
-      for (let i = 0; i < brushSize * 2; i++) {
-        const angle = Math.random() * Math.PI * 2;
-        const radius = Math.random() * brushSize;
-        const offsetX = Math.cos(angle) * radius;
-        const offsetY = Math.sin(angle) * radius;
-
-        ctx.fillStyle = settings.strokeStyle;
-        ctx.fillRect(coords.x + offsetX, coords.y + offsetY, 1, 1);
-      }
-    } else if (brushType === "SMUDGE" && lastPoint.imageData) {
-      // Smudge effect
-      ctx.putImageData(
-        lastPoint.imageData,
-        coords.x - brushSize,
-        coords.y - brushSize
-      );
-      const newImageData = ctx.getImageData(
-        coords.x - brushSize,
-        coords.y - brushSize,
-        brushSize * 2,
-        brushSize * 2
-      );
-      setLastPoint({ ...coords, imageData: newImageData });
-    } else if (brushType === "MARKER") {
-      // Marker effect - Multiply blending for buildup
-      ctx.globalCompositeOperation = "multiply";
-      ctx.beginPath();
-      if (lastPoint) {
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(coords.x, coords.y);
-      } else {
-        ctx.moveTo(coords.x, coords.y);
-        ctx.lineTo(coords.x, coords.y);
-      }
-      ctx.stroke();
-      // Reset composite operation is handled by ctx.restore()
-    } else if (brushType === "PENCIL") {
-      // Pencil effect - slightly rougher
-      ctx.beginPath();
-      if (lastPoint) {
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(coords.x, coords.y);
-      } else {
-        ctx.moveTo(coords.x, coords.y);
-        ctx.lineTo(coords.x, coords.y);
-      }
-      ctx.stroke();
-
-      // Add noise for texture
-      if (Math.random() > 0.5) {
-        const noiseX = (Math.random() - 0.5) * 2;
-        const noiseY = (Math.random() - 0.5) * 2;
-        ctx.fillStyle = settings.strokeStyle;
-        ctx.fillRect(coords.x + noiseX, coords.y + noiseY, 1, 1);
-      }
-    } else {
-      // Standard brush stroke (Pen, Paintbrush, Eraser)
-      ctx.beginPath();
-      if (lastPoint) {
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(coords.x, coords.y);
-      } else {
-        ctx.moveTo(coords.x, coords.y);
-        ctx.lineTo(coords.x, coords.y);
-      }
-      ctx.stroke();
-    }
-
-    ctx.restore();
-    setLastPoint(coords);
-
-    // Update composite
-    setLayers((prev) => [...prev]);
-  };
-
-  const stopDrawing = (e) => {
-    if (e) e.preventDefault();
-
-    if (isPanning) {
-      setIsPanning(false);
-      return;
-    }
-
-    if (isDrawing) {
-      setIsDrawing(false);
-      setLastPoint(null);
-      saveToHistory();
-    }
-  };
-
-  // Pick color from canvas
-  const pickColor = (e) => {
-    const coords = getCanvasCoords(e);
-    const canvas = mainCanvasRef.current;
-    const ctx = canvas.getContext("2d");
-    const pixel = ctx.getImageData(coords.x, coords.y, 1, 1).data;
-    const hex = `#${[pixel[0], pixel[1], pixel[2]]
-      .map((x) => x.toString(16).padStart(2, "0"))
-      .join("")}`;
-    setBrushColor(hex);
-    setActiveTool("brush");
-    toast.success(`Color picked: ${hex}`);
   };
 
   // Layer management
@@ -763,13 +521,6 @@ const SketchbookPro = ({
   };
 
   // Canvas operations
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 5));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.25));
-  const resetView = () => {
-    setZoom(1);
-    setRotation(0);
-    setPanOffset({ x: 0, y: 0 });
-  };
 
   const applyCanvasSize = () => {
     const w = Math.max(
@@ -1336,176 +1087,26 @@ const SketchbookPro = ({
 
               {/* Brush Settings Expandable */}
               {showBrushSettings && (
-                <div className="mt-3 p-4 bg-[#1a1a1a] rounded-xl border border-[#333] space-y-4 animate-in fade-in slide-in-from-top-2">
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-gray-400">
-                      <span>Size</span>
-                      <span>{brushSize}px</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      value={brushSize}
-                      onChange={(e) => setBrushSize(Number(e.target.value))}
-                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-gray-400">
-                      <span>Opacity</span>
-                      <span>{brushOpacity}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      value={brushOpacity}
-                      onChange={(e) => setBrushOpacity(Number(e.target.value))}
-                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs text-gray-400">
-                      <span>Flow</span>
-                      <span>{brushFlow}%</span>
-                    </div>
-                    <input
-                      type="range"
-                      min="1"
-                      max="100"
-                      value={brushFlow}
-                      onChange={(e) => setBrushFlow(Number(e.target.value))}
-                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
-                    />
-                  </div>
-                </div>
+                <BrushSettings
+                  brushSize={brushSize}
+                  setBrushSize={setBrushSize}
+                  brushOpacity={brushOpacity}
+                  setBrushOpacity={setBrushOpacity}
+                  brushFlow={brushFlow}
+                  setBrushFlow={setBrushFlow}
+                />
               )}
             </div>
 
             {/* Color Picker Section */}
-            <div>
-              <h3 className="text-[10px] uppercase tracking-wider text-gray-500 mb-3 font-bold">
-                Color
-              </h3>
-              <div className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <div
-                    className="w-12 h-12 rounded-xl border-2 border-[#333] shadow-inner"
-                    style={{ backgroundColor: brushColor }}
-                  />
-                  <div className="flex-1">
-                    <div className="relative">
-                      <input
-                        type="text"
-                        value={brushColor.toUpperCase()}
-                        readOnly
-                        className="w-full bg-[#2a2a2a] border border-[#333] rounded-lg px-3 py-1.5 text-xs font-mono text-gray-300 focus:outline-none"
-                      />
-                      <input
-                        type="color"
-                        value={brushColor}
-                        onChange={(e) => {
-                          setBrushColor(e.target.value);
-                          addSwatch(e.target.value);
-                        }}
-                        className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-gray-500">Hue</label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="360"
-                      value={hsl.h}
-                      onChange={(e) =>
-                        setHsl((prev) => ({
-                          ...prev,
-                          h: Number(e.target.value),
-                        }))
-                      }
-                      className="w-full h-2 rounded-full appearance-none cursor-pointer"
-                      style={{
-                        background: `linear-gradient(to right, 
-                          hsl(0, 100%, 50%), hsl(60, 100%, 50%), hsl(120, 100%, 50%), 
-                          hsl(180, 100%, 50%), hsl(240, 100%, 50%), hsl(300, 100%, 50%), 
-                          hsl(360, 100%, 50%))`,
-                      }}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-gray-500">
-                      Saturation
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={hsl.s}
-                      onChange={(e) =>
-                        setHsl((prev) => ({
-                          ...prev,
-                          s: Number(e.target.value),
-                        }))
-                      }
-                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-gray-400"
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <label className="text-[10px] text-gray-500">
-                      Lightness
-                    </label>
-                    <input
-                      type="range"
-                      min="0"
-                      max="100"
-                      value={hsl.l}
-                      onChange={(e) =>
-                        setHsl((prev) => ({
-                          ...prev,
-                          l: Number(e.target.value),
-                        }))
-                      }
-                      className="w-full h-1.5 bg-[#333] rounded-full appearance-none cursor-pointer accent-gray-400"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <div className="flex items-center justify-between mb-2">
-                    <label className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
-                      Swatches
-                    </label>
-                    <button
-                      onClick={() => addSwatch(brushColor)}
-                      className="text-[10px] px-2 py-0.5 bg-[#333] hover:bg-[#444] rounded text-gray-300 transition-colors"
-                    >
-                      + Add
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-6 gap-1.5">
-                    {swatches.map((color, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => setBrushColor(color)}
-                        className={`aspect-square rounded-md border transition-transform hover:scale-110 ${
-                          brushColor === color
-                            ? "border-white ring-1 ring-white/50"
-                            : "border-transparent"
-                        }`}
-                        style={{ backgroundColor: color }}
-                        title={color}
-                      />
-                    ))}
-                  </div>
-                </div>
-              </div>
-            </div>
+            <ColorPickerPanel
+              brushColor={brushColor}
+              setBrushColor={setBrushColor}
+              hsl={hsl}
+              setHsl={setHsl}
+              swatches={swatches}
+              addSwatch={addSwatch}
+            />
           </div>
         </div>
 
@@ -1576,136 +1177,18 @@ const SketchbookPro = ({
 
         {/* Right Sidebar - Layers */}
         <div className="w-72 bg-[#202020] border-l border-[#333] flex flex-col z-10 shadow-xl">
-          <div className="p-4 flex-1 overflow-y-auto custom-scrollbar">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-[10px] uppercase tracking-wider text-gray-500 font-bold flex items-center">
-                <FiLayers className="mr-2" size={14} /> Layers
-              </h3>
-              <button
-                onClick={addLayer}
-                className="p-1.5 bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition-colors shadow-lg shadow-blue-600/20"
-                title="New Layer"
-              >
-                <FiPlus size={16} />
-              </button>
-            </div>
-
-            <div className="space-y-2">
-              {[...layers].reverse().map((layer) => (
-                <div
-                  key={layer.id}
-                  className={`group p-3 rounded-xl border transition-all cursor-pointer ${
-                    activeLayerId === layer.id
-                      ? "border-blue-500/50 bg-blue-500/10 shadow-md"
-                      : "border-[#333] bg-[#2a2a2a] hover:border-gray-600"
-                  }`}
-                  onClick={() => setActiveLayerId(layer.id)}
-                >
-                  <div className="flex items-center justify-between mb-2">
-                    <span
-                      className={`text-sm font-medium truncate ${
-                        activeLayerId === layer.id
-                          ? "text-blue-400"
-                          : "text-gray-300"
-                      }`}
-                    >
-                      {layer.name}
-                    </span>
-                    <div className="flex items-center space-x-1 opacity-60 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          toggleLayerVisibility(layer.id);
-                        }}
-                        className="p-1 hover:bg-[#333] rounded text-gray-400 hover:text-white"
-                      >
-                        {layer.visible ? (
-                          <FiEye size={14} />
-                        ) : (
-                          <FiEyeOff size={14} />
-                        )}
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateLayer(layer.id);
-                        }}
-                        className="p-1 hover:bg-[#333] rounded text-gray-400 hover:text-white"
-                        title="Duplicate"
-                      >
-                        <FiCopy size={14} />
-                      </button>
-                      {layers.length > 1 && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteLayer(layer.id);
-                          }}
-                          className="p-1 hover:bg-red-500/20 rounded text-gray-400 hover:text-red-400"
-                          title="Delete"
-                        >
-                          <FiTrash2 size={14} />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[10px] text-gray-500 w-8">
-                        Opac
-                      </span>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={layer.opacity}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          updateLayerOpacity(layer.id, Number(e.target.value));
-                        }}
-                        className="flex-1 h-1 bg-[#333] rounded-full appearance-none cursor-pointer accent-blue-500"
-                        onClick={(e) => e.stopPropagation()}
-                      />
-                    </div>
-
-                    <div className="flex items-center space-x-2">
-                      <span className="text-[10px] text-gray-500 w-8">
-                        Mode
-                      </span>
-                      <select
-                        value={layer.blendMode}
-                        onChange={(e) => {
-                          e.stopPropagation();
-                          updateLayerBlendMode(layer.id, e.target.value);
-                        }}
-                        onClick={(e) => e.stopPropagation()}
-                        className="flex-1 text-xs bg-[#1a1a1a] border border-[#333] rounded px-2 py-1 text-gray-300 focus:outline-none focus:border-blue-500"
-                      >
-                        {BLEND_MODES.map((mode) => (
-                          <option key={mode.value} value={mode.value}>
-                            {mode.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-
-                  {layers.indexOf(layer) > 0 && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        mergeDown(layer.id);
-                      }}
-                      className="w-full mt-2 py-1 text-[10px] uppercase tracking-wider font-medium text-gray-500 hover:text-gray-300 hover:bg-[#333] rounded transition-colors"
-                    >
-                      Merge Down
-                    </button>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
+          <LayersPanel
+            layers={layers}
+            activeLayerId={activeLayerId}
+            setActiveLayerId={setActiveLayerId}
+            addLayer={addLayer}
+            toggleLayerVisibility={toggleLayerVisibility}
+            duplicateLayer={duplicateLayer}
+            deleteLayer={deleteLayer}
+            updateLayerOpacity={updateLayerOpacity}
+            updateLayerBlendMode={updateLayerBlendMode}
+            mergeDown={mergeDown}
+          />
 
           {/* Post Section (Bottom of Right Sidebar) */}
           {!gameMode && (
