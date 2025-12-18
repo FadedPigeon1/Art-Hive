@@ -9,6 +9,10 @@ module.exports = {
           light: "#1DA1F2",
           dark: "#1A8CD8",
         },
+        secondary: {
+          light: "#8B5CF6",
+          dark: "#7C3AED",
+        },
         background: {
           light: "#FFFFFF",
           dark: "#000000",
