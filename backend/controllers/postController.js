@@ -74,12 +74,10 @@ export const createPost = async (req, res) => {
           error.statusCode === "403" ||
           (error.message && error.message.includes("row-level security"))
         ) {
-          return res
-            .status(500)
-            .json({
-              message:
-                "Supabase RLS Policy Error: Please configure storage policies.",
-            });
+          return res.status(500).json({
+            message:
+              "Supabase RLS Policy Error: Please configure storage policies.",
+          });
         }
         return res
           .status(500)
@@ -372,7 +370,7 @@ export const getUserPosts = async (req, res) => {
         .skip(skip)
         .limit(limit + 1)
         .select(
-          "title imageUrl createdAt remixedFrom likes stars comments isGameArt"
+          "title imageUrl caption createdAt remixedFrom likes stars comments isGameArt"
         )
         .populate({
           path: "remixedFrom",
@@ -398,11 +396,17 @@ export const getUserPosts = async (req, res) => {
       _id: post._id,
       title: post.title,
       imageUrl: post.imageUrl,
+      caption: post.caption,
       createdAt: post.createdAt,
       likesCount: post.likesCount,
       commentCount: post.commentCount,
       remixedFrom: post.remixedFrom,
       isGameArt: post.isGameArt,
+      userId: {
+        _id: user._id,
+        username: user.username,
+        profilePic: user.profilePic,
+      },
     }));
 
     const sanitizedUser = {

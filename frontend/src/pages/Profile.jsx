@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { postsAPI, messagesAPI } from "../utils/api";
 import PostCard from "../components/PostCard";
+import PostDetailModal from "../components/PostDetailModal";
 import UploadArtModal from "../components/UploadArtModal";
 import ProgressBar from "../components/ProgressBar";
 import AchievementBadge from "../components/AchievementBadge";
@@ -69,6 +70,43 @@ const Profile = () => {
   const [uploadingCover, setUploadingCover] = useState(false);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+
+  const handlePostDeleted = (postId) => {
+    setPosts((prev) => prev.filter((post) => post._id !== postId));
+    setTotalPosts((prev) => Math.max(0, prev - 1));
+  };
+
+  const handlePostLiked = (postId, stats) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === postId
+          ? {
+              ...post,
+              likesCount:
+                typeof stats.likesCount === "number"
+                  ? stats.likesCount
+                  : post.likesCount,
+              likedByCurrentUser:
+                typeof stats.likedByCurrentUser === "boolean"
+                  ? stats.likedByCurrentUser
+                  : post.likedByCurrentUser,
+            }
+          : post
+      )
+    );
+  };
+
+  const handlePostUpdate = (updatedPost) => {
+    setPosts((prevPosts) =>
+      prevPosts.map((post) =>
+        post._id === updatedPost._id ? updatedPost : post
+      )
+    );
+    if (selectedPost && selectedPost._id === updatedPost._id) {
+      setSelectedPost(updatedPost);
+    }
+  };
 
   const POSTS_PER_PAGE = 9;
   const isOwnProfile = currentUser?._id === userId;
@@ -141,11 +179,6 @@ const Profile = () => {
       setIsFollowing(false);
     }
   }, [currentUser, userId, isOwnProfile]);
-
-  const handlePostDeleted = (postId) => {
-    setPosts((prev) => prev.filter((post) => post._id !== postId));
-    setTotalPosts((prev) => Math.max(0, prev - 1));
-  };
 
   const handleEditClick = () => {
     setEditBio(bio);
@@ -854,11 +887,12 @@ const Profile = () => {
                     loading={index < 6 ? "eager" : "lazy"}
                     decoding="async"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    onClick={() =>
-                      (window.location.href = `/?post=${post._id}`)
-                    }
+                    onClick={() => setSelectedPost(post)}
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 pointer-events-none">
+                  <div
+                    className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 cursor-pointer"
+                    onClick={() => setSelectedPost(post)}
+                  >
                     <h3 className="text-white font-bold truncate">
                       {post.title}
                     </h3>
@@ -898,6 +932,21 @@ const Profile = () => {
         isOpen={isUploadModalOpen}
         onClose={() => setIsUploadModalOpen(false)}
         onUploadSuccess={handleUploadSuccess}
+      />
+
+      {/* Post Detail Modal */}
+      <PostDetailModal
+        isOpen={!!selectedPost}
+        onClose={() => setSelectedPost(null)}
+        post={selectedPost}
+        onLike={(stats) =>
+          selectedPost && handlePostLiked(selectedPost._id, stats)
+        }
+        onDelete={(postId) => {
+          handlePostDeleted(postId);
+          setSelectedPost(null);
+        }}
+        onUpdate={handlePostUpdate}
       />
     </div>
   );
