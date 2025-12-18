@@ -60,6 +60,7 @@ const SketchbookPro = ({
 }) => {
   const mainCanvasRef = useRef(null);
   const compositeCanvasRef = useRef(null);
+  const fileInputRef = useRef(null);
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -839,6 +840,108 @@ const SketchbookPro = ({
     toast.success("Artwork downloaded!");
   };
 
+  const handleDownloadSource = async () => {
+    if (!remixImageUrl) return;
+
+    try {
+      const response = await fetch(remixImageUrl);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `remix-source-${Date.now()}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      toast.success("Source image downloaded!");
+    } catch (error) {
+      console.error("Download failed:", error);
+      toast.error("Failed to download source image");
+      // Fallback to opening in new tab
+      window.open(remixImageUrl, "_blank");
+    }
+  };
+
+  const handleUploadClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      toast.error("Please upload an image file");
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = mainCanvasRef.current;
+
+        // Resize canvas to match the new image
+        setCanvasWidth(img.width);
+        setCanvasHeight(img.height);
+        canvas.width = img.width;
+        canvas.height = img.height;
+
+        const ctx = canvas.getContext("2d");
+        // Clear the entire canvas first
+        ctx.clearRect(0, 0, img.width, img.height);
+        // Draw the new image filling the canvas
+        ctx.drawImage(img, 0, 0, img.width, img.height);
+
+        // Update the current layer data to match
+        setLayers((prev) => {
+          const newLayers = [...prev];
+          const activeLayerIndex = newLayers.findIndex(
+            (l) => l.id === activeLayerId
+          );
+
+          if (activeLayerIndex !== -1) {
+            // Create a new canvas for the layer with the new dimensions
+            const newLayerCanvas = document.createElement("canvas");
+            newLayerCanvas.width = img.width;
+            newLayerCanvas.height = img.height;
+            const layerCtx = newLayerCanvas.getContext("2d");
+            layerCtx.drawImage(img, 0, 0);
+
+            // Replace the layer data
+            newLayers[activeLayerIndex] = {
+              ...newLayers[activeLayerIndex],
+              data: newLayerCanvas,
+            };
+          }
+          return newLayers;
+        });
+
+        // Reset zoom to fit the new image
+        const viewportWidth = window.innerWidth - 320 - 320;
+        const viewportHeight = window.innerHeight - 160;
+        const zoomFactor = Math.min(
+          viewportWidth / img.width,
+          viewportHeight / img.height,
+          1
+        );
+        if (zoomFactor > 0) {
+          setZoom(zoomFactor);
+        }
+
+        saveToHistory();
+        toast.success("Canvas replaced with uploaded image!");
+      };
+      img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+
+    // Reset input
+    e.target.value = "";
+  };
+
   const handlePost = async () => {
     if (!isAuthenticated) {
       toast.error("Please login to post your artwork");
@@ -1046,10 +1149,36 @@ const SketchbookPro = ({
           >
             <FiTrash2 size={18} />
           </button>
+
+          {remixImageUrl && (
+            <button
+              onClick={handleDownloadSource}
+              className="p-2 text-blue-400 hover:text-blue-300 hover:bg-[#333] rounded-lg transition-colors"
+              title="Download Source Image"
+            >
+              <FiDownload size={18} />
+            </button>
+          )}
+
+          <button
+            onClick={handleUploadClick}
+            className="p-2 text-green-400 hover:text-green-300 hover:bg-[#333] rounded-lg transition-colors"
+            title="Upload Image to Canvas"
+          >
+            <FiUpload size={18} />
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            className="hidden"
+            accept="image/*"
+          />
+
           <button
             onClick={handleDownload}
             className="p-2 text-gray-400 hover:text-white hover:bg-[#333] rounded-lg transition-colors"
-            title="Download"
+            title="Download Artwork"
           >
             <FiDownload size={18} />
           </button>
