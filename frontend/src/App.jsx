@@ -93,15 +93,28 @@ function AppContent() {
       </Router>
       <ToastContainer
         position="bottom-right"
-        autoClose={3000}
-        hideProgressBar={false}
-        newestOnTop={false}
+        autoClose={4000}
+        hideProgressBar={true}
+        newestOnTop={true}
         closeOnClick
         rtl={false}
         pauseOnFocusLoss={false}
         draggable
         pauseOnHover
-        theme="colored"
+        theme="light"
+        toastClassName={(context) =>
+          `relative flex p-4 min-h-10 rounded-xl justify-between overflow-hidden cursor-pointer shadow-2xl mb-4 
+          bg-surface-light dark:bg-surface-dark 
+          border border-border-light dark:border-border-dark
+          ${context?.type === "success" ? "border-l-4 border-l-green-500" : ""}
+          ${context?.type === "error" ? "border-l-4 border-l-red-500" : ""}
+          ${context?.type === "info" ? "border-l-4 border-l-primary-light" : ""}
+          ${context?.type === "warning" ? "border-l-4 border-l-yellow-500" : ""}
+          `
+        }
+        bodyClassName={() =>
+          "text-sm font-medium text-text-primary-light dark:text-text-primary-dark flex items-center"
+        }
       />
     </div>
   );
