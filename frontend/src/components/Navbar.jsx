@@ -15,10 +15,13 @@ import {
   FiStar,
   FiHeart,
   FiMenu,
+  FiMessageCircle,
 } from "react-icons/fi";
 import { FaPalette, FaGamepad } from "react-icons/fa";
 import { getProfilePicture } from "../utils/imageHelpers";
 import NotificationDropdown from "./NotificationDropdown";
+import { messagesAPI } from "../utils/api";
+import Chat from "./Chat";
 
 const Navbar = ({ socket }) => {
   const { user, logout, isAuthenticated } = useAuth();
@@ -28,9 +31,48 @@ const Navbar = ({ socket }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const settingsRef = useRef(null);
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
+
+  // Fetch unread count
+  useEffect(() => {
+    if (isAuthenticated) {
+      fetchUnreadCount();
+    }
+  }, [isAuthenticated]);
+
+  // Listen for real-time messages
+  useEffect(() => {
+    if (socket && isAuthenticated) {
+      socket.on("new-message", () => {
+        fetchUnreadCount();
+      });
+
+      return () => {
+        socket.off("new-message");
+      };
+    }
+  }, [socket, isAuthenticated]);
+
+  const fetchUnreadCount = async () => {
+    try {
+      const data = await messagesAPI.getUnreadCount();
+      setUnreadCount(data.count);
+    } catch (error) {
+      console.error("Error fetching unread count:", error);
+    }
+  };
+
+  const handleToggleChat = () => {
+    setIsChatOpen(!isChatOpen);
+    if (!isChatOpen) {
+      // Reset unread count when opening
+      setUnreadCount(0);
+    }
+  };
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -135,6 +177,21 @@ const Navbar = ({ socket }) => {
             >
               <FiSearch size={20} />
             </button>
+
+            {/* Messages - only show when authenticated */}
+            {isAuthenticated && (
+              <button
+                onClick={handleToggleChat}
+                className="relative p-2.5 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark transition-all duration-200"
+              >
+                <FiMessageCircle size={20} />
+                {unreadCount > 0 && (
+                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
+              </button>
+            )}
 
             {/* Notifications - only show when authenticated */}
             {isAuthenticated && <NotificationDropdown socket={socket} />}
@@ -307,6 +364,11 @@ const Navbar = ({ socket }) => {
           </div>
         </div>
       </div>
+      <Chat
+        socket={socket}
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+      />
     </nav>
   );
 };

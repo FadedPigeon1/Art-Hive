@@ -12,7 +12,6 @@ import { ThemeProvider } from "./context/ThemeContext";
 import { SearchProvider } from "./context/SearchContext";
 import io from "socket.io-client";
 import Navbar from "./components/Navbar";
-import ChatButton from "./components/ChatButton";
 import Feed from "./pages/Feed";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -91,7 +90,6 @@ function AppContent() {
             }
           />
         </Routes>
-        {isAuthenticated && <ChatButton socket={socket} />}
       </Router>
       <ToastContainer
         position="bottom-right"

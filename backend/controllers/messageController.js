@@ -7,6 +7,10 @@ import User from "../models/User.js";
 // @access  Private
 export const getConversations = async (req, res) => {
   try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+    const skip = (page - 1) * limit;
+
     const conversations = await Conversation.find({
       participants: req.user._id,
     })
@@ -15,7 +19,10 @@ export const getConversations = async (req, res) => {
         path: "lastMessage",
         populate: { path: "sender", select: "username" },
       })
-      .sort({ lastMessageAt: -1 });
+      .sort({ lastMessageAt: -1 })
+      .skip(skip)
+      .limit(limit)
+      .lean();
 
     res.json(conversations);
   } catch (error) {
@@ -100,13 +107,14 @@ export const getMessages = async (req, res) => {
       query.createdAt = { $lt: new Date(before) };
     }
 
-    const messages = await Message.find(query)
+    const messagesPromise = Message.find(query)
       .sort({ createdAt: -1 })
       .limit(parseInt(limit))
-      .populate("sender", "username profilePic");
+      .populate("sender", "username profilePic")
+      .lean();
 
-    // Mark messages as read
-    await Message.updateMany(
+    // Mark messages as read - Fire and forget
+    Message.updateMany(
       {
         conversationId,
         sender: { $ne: req.user._id },
@@ -116,7 +124,9 @@ export const getMessages = async (req, res) => {
         read: true,
         readAt: new Date(),
       }
-    );
+    ).catch((err) => console.error("Error marking messages as read:", err));
+
+    const messages = await messagesPromise;
 
     res.json(messages.reverse());
   } catch (error) {

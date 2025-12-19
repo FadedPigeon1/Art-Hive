@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import { useAuth } from "../context/AuthContext";
 import { messagesAPI } from "../utils/api";
 import { toast } from "react-toastify";
@@ -133,7 +134,7 @@ const Chat = ({ socket, isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  return (
+  return ReactDOM.createPortal(
     <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-background-light dark:bg-background-dark border-2 border-border-light dark:border-border-dark rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary-light to-primary-dark text-white p-4 flex items-center justify-between">
@@ -303,7 +304,8 @@ const Chat = ({ socket, isOpen, onClose }) => {
           </form>
         </>
       )}
-    </div>
+    </div>,
+    document.body
   );
 };
 
