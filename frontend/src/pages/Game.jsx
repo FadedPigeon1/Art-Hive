@@ -23,7 +23,7 @@ const Game = () => {
   const [gameState, setGameState] = useState("menu"); // menu, lobby, task, results
   const [gameCode, setGameCode] = useState("");
   const [nickname, setNickname] = useState(user?.username || "");
-  const [maxPlayers, setMaxPlayers] = useState(12);
+  const [maxPlayers, setMaxPlayers] = useState(10);
   const [gameMode, setGameMode] = useState("classic");
   const [currentGame, setCurrentGame] = useState(null);
   const [currentRound, setCurrentRound] = useState(0);

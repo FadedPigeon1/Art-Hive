@@ -89,7 +89,7 @@ const gameSessionSchema = new mongoose.Schema(
     },
     maxPlayers: {
       type: Number,
-      default: 12,
+      default: 10,
     },
     gameMode: {
       type: String,

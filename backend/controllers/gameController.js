@@ -22,7 +22,7 @@ export const createGameSession = async (req, res) => {
       code,
       hostId: nickname,
       totalRounds: totalRounds || 3,
-      maxPlayers: maxPlayers || 12,
+      maxPlayers: Math.min(maxPlayers || 10, 10),
       gameMode: gameMode || "classic",
       players: [
         {
@@ -54,6 +54,11 @@ export const joinGameSession = async (req, res) => {
       return res
         .status(404)
         .json({ message: "Game not found or already started" });
+    }
+
+    // Check if game is full
+    if (gameSession.players.length >= gameSession.maxPlayers) {
+      return res.status(400).json({ message: "Game is full" });
     }
 
     // Check if nickname already taken in this game
