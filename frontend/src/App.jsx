@@ -20,6 +20,7 @@ import Sketchbook from "./pages/SketchbookPro";
 import Game from "./pages/Game";
 import Favorites from "./pages/Favorites";
 import LikedPosts from "./pages/LikedPosts";
+import ColorPickerPage from "./pages/ColorPickerPage";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
@@ -73,6 +74,7 @@ function AppContent() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/game" element={<Game />} />
           <Route path="/sketchbook" element={<Sketchbook />} />
+          <Route path="/color-picker" element={<ColorPickerPage />} />
           <Route
             path="/favorites"
             element={

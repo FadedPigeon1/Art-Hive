@@ -17,7 +17,7 @@ import {
   FiMenu,
   FiMessageCircle,
 } from "react-icons/fi";
-import { FaPalette, FaGamepad } from "react-icons/fa";
+import { FaPalette, FaGamepad, FaEyeDropper } from "react-icons/fa";
 import { getProfilePicture } from "../utils/imageHelpers";
 import NotificationDropdown from "./NotificationDropdown";
 import { messagesAPI } from "../utils/api";
@@ -153,6 +153,12 @@ const Navbar = ({ socket }) => {
               icon={FaGamepad}
               label="Game"
               active={location.pathname === "/game"}
+            />
+            <NavLink
+              to="/color-picker"
+              icon={FaEyeDropper}
+              label="Color Picker"
+              active={location.pathname === "/color-picker"}
             />
             {isAuthenticated && (
               <NavLink
