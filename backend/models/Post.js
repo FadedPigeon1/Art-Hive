@@ -73,6 +73,10 @@ postSchema.index({ userId: 1, createdAt: -1 }); // Compound index for user posts
 postSchema.index({ caption: "text" });
 postSchema.index({ remixedFrom: 1 }); // Index for remix queries
 
+// Compound indexes for sorting by likes/stars (trending)
+postSchema.index({ likes: 1, createdAt: -1 });
+postSchema.index({ stars: 1, createdAt: -1 });
+
 const Post = mongoose.model("Post", postSchema);
 
 export default Post;

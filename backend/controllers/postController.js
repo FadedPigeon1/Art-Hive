@@ -292,7 +292,7 @@ export const getAllPosts = async (req, res) => {
         .skip(skip)
         .limit(limit + 1) // Fetch one extra to check if there are more
         .select(
-          "title caption imageUrl userId remixCount remixedFrom createdAt updatedAt likes stars comments isGameArt gameSessionId"
+          "title caption imageUrl userId remixCount remixedFrom createdAt updatedAt isGameArt gameSessionId"
         )
         .populate("userId", "username profilePic")
         .populate({
@@ -301,6 +301,39 @@ export const getAllPosts = async (req, res) => {
           populate: { path: "userId", select: "username profilePic" },
         })
         .lean();
+
+      // Efficiently get likes, stars, and comments counts using aggregation
+      const postIds = posts.map((p) => p._id);
+      const counts = await Post.aggregate([
+        { $match: { _id: { $in: postIds } } },
+        {
+          $project: {
+            _id: 1,
+            likesCount: { $size: { $ifNull: ["$likes", []] } },
+            starsCount: { $size: { $ifNull: ["$stars", []] } },
+            commentsCount: { $size: { $ifNull: ["$comments", []] } },
+            likes: 1,
+            stars: 1,
+          },
+        },
+      ]);
+
+      // Create a map for quick lookup
+      const countsMap = new Map(counts.map((c) => [c._id.toString(), c]));
+
+      // Merge counts with posts
+      posts.forEach((post) => {
+        const postCounts = countsMap.get(post._id.toString());
+        if (postCounts) {
+          post.likes = postCounts.likes || [];
+          post.stars = postCounts.stars || [];
+          post.comments = Array(postCounts.commentsCount || 0); // Placeholder array for count
+        } else {
+          post.likes = [];
+          post.stars = [];
+          post.comments = [];
+        }
+      });
     }
 
     // Check if there are more posts
@@ -362,16 +395,14 @@ export const getUserPosts = async (req, res) => {
     const [user, posts, totalPosts] = await Promise.all([
       User.findById(userId)
         .select(
-          "username profilePic coverImage bio location website socialLinks email dateJoined followers following"
+          "username profilePic coverImage bio location website socialLinks email dateJoined"
         )
         .lean(),
       Post.find({ userId })
         .sort({ createdAt: -1 })
         .skip(skip)
         .limit(limit + 1)
-        .select(
-          "title imageUrl caption createdAt remixedFrom likes stars comments isGameArt"
-        )
+        .select("title imageUrl caption createdAt remixedFrom isGameArt")
         .populate({
           path: "remixedFrom",
           select: "imageUrl title userId",
@@ -380,6 +411,54 @@ export const getUserPosts = async (req, res) => {
         .lean(),
       page === 1 ? Post.countDocuments({ userId }) : Promise.resolve(0), // Only count on first page
     ]);
+
+    // Get likes, stars, and comments counts efficiently
+    const postIds = posts.map((p) => p._id);
+    const counts = await Post.aggregate([
+      { $match: { _id: { $in: postIds } } },
+      {
+        $project: {
+          _id: 1,
+          likesCount: { $size: { $ifNull: ["$likes", []] } },
+          starsCount: { $size: { $ifNull: ["$stars", []] } },
+          commentsCount: { $size: { $ifNull: ["$comments", []] } },
+          likes: 1,
+          stars: 1,
+        },
+      },
+    ]);
+
+    const countsMap = new Map(counts.map((c) => [c._id.toString(), c]));
+
+    // Merge counts with posts
+    posts.forEach((post) => {
+      const postCounts = countsMap.get(post._id.toString());
+      if (postCounts) {
+        post.likes = postCounts.likes || [];
+        post.stars = postCounts.stars || [];
+        post.comments = Array(postCounts.commentsCount || 0);
+      } else {
+        post.likes = [];
+        post.stars = [];
+        post.comments = [];
+      }
+    });
+
+    // Get followers/following counts efficiently
+    const userCounts = await User.aggregate([
+      { $match: { _id: user._id } },
+      {
+        $project: {
+          followersCount: { $size: { $ifNull: ["$followers", []] } },
+          followingCount: { $size: { $ifNull: ["$following", []] } },
+        },
+      },
+    ]);
+
+    const userCountsData = userCounts[0] || {
+      followersCount: 0,
+      followingCount: 0,
+    };
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
@@ -420,8 +499,8 @@ export const getUserPosts = async (req, res) => {
       socialLinks: user.socialLinks,
       email: user.email,
       dateJoined: user.dateJoined,
-      followersCount: user.followers?.length || 0,
-      followingCount: user.following?.length || 0,
+      followersCount: userCountsData.followersCount,
+      followingCount: userCountsData.followingCount,
     };
 
     res.json({
