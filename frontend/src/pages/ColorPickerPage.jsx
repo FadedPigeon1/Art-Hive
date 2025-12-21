@@ -1,5 +1,15 @@
 import React, { useState, useRef, useEffect } from "react";
-import { FiUpload, FiCopy, FiTrash2, FiRefreshCw } from "react-icons/fi";
+import {
+  FiUpload,
+  FiCopy,
+  FiTrash2,
+  FiRefreshCw,
+  FiMaximize,
+  FiMinimize,
+  FiZoomIn,
+  FiZoomOut,
+  FiX,
+} from "react-icons/fi";
 import { FaPalette, FaEyeDropper } from "react-icons/fa";
 import { toast } from "react-toastify";
 
@@ -8,8 +18,18 @@ const ColorPickerPage = () => {
   const [recentColors, setRecentColors] = useState([]);
   const [image, setImage] = useState(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  // Full screen & Zoom state
+  const [isFullScreen, setIsFullScreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const lastMousePos = useRef({ x: 0, y: 0 });
+
   const canvasRef = useRef(null);
   const containerRef = useRef(null);
+  const fullScreenContainerRef = useRef(null);
+  const canvasContainerRef = useRef(null);
 
   const handleImageUpload = (file) => {
     if (file) {
@@ -63,7 +83,7 @@ const ColorPickerPage = () => {
 
       ctx.drawImage(image, 0, 0);
     }
-  }, [image]);
+  }, [image, isFullScreen]);
 
   const handleCanvasClick = (e) => {
     if (!canvasRef.current) return;
@@ -72,11 +92,46 @@ const ColorPickerPage = () => {
     const ctx = canvas.getContext("2d");
     const rect = canvas.getBoundingClientRect();
 
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
+    // Calculate the actual rendered size of the image within the canvas element
+    // assuming object-fit: contain
+    const imageAspectRatio = canvas.width / canvas.height;
+    const elementAspectRatio = rect.width / rect.height;
 
-    const x = (e.clientX - rect.left) * scaleX;
-    const y = (e.clientY - rect.top) * scaleY;
+    let renderWidth, renderHeight, offsetX, offsetY;
+
+    if (imageAspectRatio > elementAspectRatio) {
+      // Image is wider than element (relative to aspect ratio)
+      // It will fit width-wise, and have letterboxing top/bottom
+      renderWidth = rect.width;
+      renderHeight = rect.width / imageAspectRatio;
+      offsetX = 0;
+      offsetY = (rect.height - renderHeight) / 2;
+    } else {
+      // Image is taller or same
+      // It will fit height-wise, and have letterboxing left/right
+      renderHeight = rect.height;
+      renderWidth = rect.height * imageAspectRatio;
+      offsetX = (rect.width - renderWidth) / 2;
+      offsetY = 0;
+    }
+
+    // Click coordinates relative to the element
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    // Check if click is within the rendered image
+    if (
+      clickX < offsetX ||
+      clickX > offsetX + renderWidth ||
+      clickY < offsetY ||
+      clickY > offsetY + renderHeight
+    ) {
+      return; // Clicked in letterbox area
+    }
+
+    // Map to internal canvas coordinates
+    const x = (clickX - offsetX) * (canvas.width / renderWidth);
+    const y = (clickY - offsetY) * (canvas.height / renderHeight);
 
     // Ensure coordinates are within bounds
     if (x < 0 || x >= canvas.width || y < 0 || y >= canvas.height) return;
@@ -122,10 +177,246 @@ const ColorPickerPage = () => {
     setImage(null);
     setSelectedColor(null);
     setRecentColors([]);
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
   };
+
+  // Zoom and Pan handlers
+  const handleWheel = (e) => {
+    if (!isFullScreen) return;
+    e.preventDefault();
+
+    const container = canvasContainerRef.current;
+    if (!container) return;
+
+    const rect = container.getBoundingClientRect();
+    // Mouse position relative to the center of the container
+    const mouseX = e.clientX - rect.left - rect.width / 2;
+    const mouseY = e.clientY - rect.top - rect.height / 2;
+
+    // Determine scale factor
+    // Use a smaller factor for smoother zoom if it's a trackpad (often fires many events)
+    const sensitivity = 0.005;
+    const delta = -e.deltaY;
+
+    const scaleFactor = 1 + delta * sensitivity;
+
+    // Clamp scale factor to avoid extreme jumps
+    const clampedScaleFactor = Math.min(Math.max(scaleFactor, 0.8), 1.2);
+
+    let newZoom = zoom * clampedScaleFactor;
+
+    // Hard limits
+    newZoom = Math.min(Math.max(newZoom, 0.1), 10);
+
+    // Calculate new pan to keep mouse over same image point
+    // P_new = M - (M - P_old) * (Z_new / Z_old)
+    const zoomRatio = newZoom / zoom;
+
+    const newPanX = mouseX - (mouseX - pan.x) * zoomRatio;
+    const newPanY = mouseY - (mouseY - pan.y) * zoomRatio;
+
+    setZoom(newZoom);
+    setPan({ x: newPanX, y: newPanY });
+  };
+
+  const handleMouseDown = (e) => {
+    if (!isFullScreen) return;
+    setIsPanning(true);
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseMove = (e) => {
+    if (!isFullScreen || !isPanning) return;
+    e.preventDefault();
+    const deltaX = e.clientX - lastMousePos.current.x;
+    const deltaY = e.clientY - lastMousePos.current.y;
+    setPan((prev) => ({ x: prev.x + deltaX, y: prev.y + deltaY }));
+    lastMousePos.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  const toggleFullScreen = () => {
+    if (!isFullScreen && image) {
+      // Calculate fit zoom to show the whole image initially
+      const sidebarWidth = 320; // w-80
+      const padding = 48; // extra space
+      const availableWidth = window.innerWidth - sidebarWidth - padding;
+      const availableHeight = window.innerHeight - padding;
+
+      const scaleX = availableWidth / image.width;
+      const scaleY = availableHeight / image.height;
+
+      // Fit to screen with some margin
+      const fitZoom = Math.min(scaleX, scaleY) * 0.9;
+
+      setZoom(fitZoom);
+    } else {
+      setZoom(1);
+    }
+
+    setIsFullScreen(!isFullScreen);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // Prevent default wheel behavior when in full screen to avoid page scroll
+  useEffect(() => {
+    const container = fullScreenContainerRef.current;
+    if (isFullScreen && container) {
+      const preventDefault = (e) => e.preventDefault();
+      container.addEventListener("wheel", preventDefault, { passive: false });
+      return () => {
+        container.removeEventListener("wheel", preventDefault);
+      };
+    }
+  }, [isFullScreen]);
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark pt-8 px-4 pb-12 transition-colors duration-300">
+      {/* Full Screen Overlay */}
+      {isFullScreen && image && (
+        <div
+          ref={fullScreenContainerRef}
+          className="fixed inset-0 z-50 bg-black/90 flex overflow-hidden"
+        >
+          {/* Left Sidebar in Full Screen */}
+          <div className="w-80 bg-surface-light dark:bg-surface-dark border-r border-border-light dark:border-border-dark p-6 flex flex-col shadow-2xl z-10 overflow-y-auto">
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-bold text-text-primary-light dark:text-text-primary-dark">
+                Color Picker
+              </h2>
+              <button
+                onClick={toggleFullScreen}
+                className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-full transition-colors"
+              >
+                <FiMinimize className="w-5 h-5 text-text-primary-light dark:text-text-primary-dark" />
+              </button>
+            </div>
+
+            {selectedColor ? (
+              <div className="space-y-6 animate-fade-in">
+                <div
+                  className="w-full h-32 rounded-xl shadow-inner border border-border-light dark:border-border-dark relative group overflow-hidden"
+                  style={{ backgroundColor: selectedColor.hex }}
+                >
+                  <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20 backdrop-blur-sm">
+                    <span className="text-white font-mono font-bold text-lg drop-shadow-md">
+                      {selectedColor.hex}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <ColorValueRow
+                    label="HEX"
+                    value={selectedColor.hex}
+                    onCopy={() => copyToClipboard(selectedColor.hex)}
+                  />
+                  <ColorValueRow
+                    label="RGB"
+                    value={`rgb(${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b})`}
+                    onCopy={() =>
+                      copyToClipboard(
+                        `rgb(${selectedColor.r}, ${selectedColor.g}, ${selectedColor.b})`
+                      )
+                    }
+                  />
+                  <ColorValueRow
+                    label="CSS"
+                    value={`rgb(${selectedColor.r} ${selectedColor.g} ${selectedColor.b})`}
+                    onCopy={() =>
+                      copyToClipboard(
+                        `rgb(${selectedColor.r} ${selectedColor.g} ${selectedColor.b})`
+                      )
+                    }
+                  />
+                </div>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-text-secondary-light dark:text-text-secondary-dark opacity-50">
+                <FaEyeDropper className="w-12 h-12 mb-4" />
+                <p className="text-center">
+                  Click anywhere on the image to pick a color
+                </p>
+              </div>
+            )}
+
+            <div className="mt-auto pt-6 border-t border-border-light dark:border-border-dark">
+              <div className="flex items-center justify-between text-sm text-text-secondary-light dark:text-text-secondary-dark mb-4">
+                <span>Zoom: {Math.round(zoom * 100)}%</span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => setZoom((z) => Math.max(z / 1.2, 0.1))}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    <FiZoomOut />
+                  </button>
+                  <button
+                    onClick={() => setZoom(1)}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    <span className="text-xs font-bold">1:1</span>
+                  </button>
+                  <button
+                    onClick={() => setZoom((z) => Math.min(z * 1.2, 10))}
+                    className="p-2 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg"
+                  >
+                    <FiZoomIn />
+                  </button>
+                </div>
+              </div>
+              <p className="text-xs text-center text-text-secondary-light dark:text-text-secondary-dark">
+                Scroll to zoom • Drag to pan
+              </p>
+            </div>
+          </div>
+
+          {/* Main Canvas Area in Full Screen */}
+          <div
+            ref={canvasContainerRef}
+            className="flex-1 relative overflow-hidden bg-checkered cursor-move"
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseUp={handleMouseUp}
+            onMouseLeave={handleMouseUp}
+            onWheel={handleWheel}
+          >
+            <div
+              className="absolute inset-0 flex items-center justify-center"
+              style={{
+                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                transformOrigin: "center",
+                transition: isPanning ? "none" : "transform 0.1s ease-out",
+              }}
+            >
+              <canvas
+                ref={isFullScreen ? canvasRef : null}
+                onClick={(e) => {
+                  if (!isPanning) handleCanvasClick(e);
+                }}
+                className="shadow-2xl"
+                style={{
+                  maxWidth: "none",
+                  maxHeight: "none",
+                  // We don't use object-fit here, we want actual size to be scaled by transform
+                }}
+              />
+            </div>
+
+            {/* Close Button Overlay */}
+            <button
+              onClick={toggleFullScreen}
+              className="absolute top-4 right-4 p-3 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm transition-colors z-50"
+            >
+              <FiX className="w-6 h-6" />
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="max-w-7xl mx-auto">
         <div className="text-center mb-10">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-primary-light to-purple-600 bg-clip-text text-transparent mb-3">
@@ -297,21 +588,32 @@ const ColorPickerPage = () => {
           <div className="lg:col-span-8">
             <div
               ref={containerRef}
-              className="bg-surface-light dark:bg-surface-dark p-1 rounded-2xl shadow-2xl border border-border-light dark:border-border-dark h-[600px] flex items-center justify-center overflow-hidden relative bg-checkered"
+              className="bg-surface-light dark:bg-surface-dark p-1 rounded-2xl shadow-2xl border border-border-light dark:border-border-dark h-[600px] flex items-center justify-center overflow-hidden relative bg-checkered group"
             >
               {image ? (
-                <div className="relative w-full h-full overflow-auto flex items-center justify-center custom-scrollbar">
-                  <canvas
-                    ref={canvasRef}
-                    onClick={handleCanvasClick}
-                    className="cursor-crosshair max-w-none shadow-lg"
-                    style={{
-                      maxWidth: "100%",
-                      maxHeight: "100%",
-                      objectFit: "contain",
-                    }}
-                  />
-                </div>
+                <>
+                  <div className="relative w-full h-full overflow-auto flex items-center justify-center custom-scrollbar">
+                    <canvas
+                      ref={!isFullScreen ? canvasRef : null}
+                      onClick={handleCanvasClick}
+                      className="cursor-crosshair shadow-lg"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                      }}
+                    />
+                  </div>
+
+                  {/* Maximize Button */}
+                  <button
+                    onClick={toggleFullScreen}
+                    className="absolute top-4 right-4 p-3 bg-black/50 hover:bg-black/70 text-white rounded-full backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-all duration-200 transform hover:scale-110 z-10"
+                    title="Full Screen"
+                  >
+                    <FiMaximize className="w-6 h-6" />
+                  </button>
+                </>
               ) : (
                 <div className="text-center text-text-secondary-light dark:text-text-secondary-dark p-8">
                   <div className="w-24 h-24 bg-surface-light dark:bg-surface-dark rounded-full flex items-center justify-center mx-auto mb-6 shadow-inner">
