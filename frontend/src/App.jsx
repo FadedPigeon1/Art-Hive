@@ -5,7 +5,7 @@ import {
   Route,
   Navigate,
 } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
+import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { AuthProvider, useAuth } from "./context/AuthContext";
 import { ThemeProvider } from "./context/ThemeContext";
@@ -45,7 +45,7 @@ const ProtectedRoute = ({ children }) => {
 };
 
 function AppContent() {
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, updateUserStats } = useAuth();
   const [socket, setSocket] = useState(null);
 
   // Initialize Socket.IO connection
@@ -53,6 +53,41 @@ function AppContent() {
     if (isAuthenticated && user) {
       const newSocket = io(API_URL, {
         transports: ["websocket", "polling"],
+      });
+
+      newSocket.on("connect", () => {
+        console.log("Socket connected");
+        newSocket.emit("register-user", user._id);
+      });
+
+      newSocket.on("xp-update", (data) => {
+        console.log("XP Update:", data);
+
+        // Update user stats in context
+        updateUserStats({
+          level: data.newLevel,
+          xp: data.currentXP,
+          totalXP: data.totalXP, // Assuming backend sends totalXP too, or we can calculate/ignore
+          newAchievements: data.newAchievements,
+        });
+
+        // Show toast
+        if (data.leveledUp) {
+          toast.success(`🎉 Level Up! You are now level ${data.newLevel}!`);
+        } else if (data.xpAwarded > 0) {
+          toast.info(`+${data.xpAwarded} XP: ${data.reason}`, {
+            autoClose: 2000,
+            hideProgressBar: true,
+            position: "bottom-left",
+          });
+        }
+
+        // Show achievement toasts
+        if (data.newAchievements && data.newAchievements.length > 0) {
+          data.newAchievements.forEach((achievement) => {
+            toast.success(`🏆 Achievement Unlocked: ${achievement.name}!`);
+          });
+        }
       });
 
       setSocket(newSocket);
@@ -64,7 +99,7 @@ function AppContent() {
       socket.close();
       setSocket(null);
     }
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user?._id]); // Only re-run if user ID changes
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark">

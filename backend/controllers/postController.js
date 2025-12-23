@@ -396,7 +396,7 @@ export const getUserPosts = async (req, res) => {
     const [user, posts, totalPosts] = await Promise.all([
       User.findById(userId)
         .select(
-          "username profilePic coverImage bio location website socialLinks email dateJoined"
+          "username profilePic coverImage bio location website socialLinks email dateJoined level xp totalXP achievements stats dailyChallengeStreak"
         )
         .lean(),
       Post.find({ userId })
@@ -502,6 +502,12 @@ export const getUserPosts = async (req, res) => {
       dateJoined: user.dateJoined,
       followersCount: userCountsData.followersCount,
       followingCount: userCountsData.followingCount,
+      level: user.level,
+      xp: user.xp,
+      totalXP: user.totalXP,
+      achievements: user.achievements,
+      stats: user.stats,
+      dailyChallengeStreak: user.dailyChallengeStreak,
     };
 
     res.json({

@@ -180,6 +180,23 @@ const Profile = () => {
     }
   }, [currentUser, userId, isOwnProfile]);
 
+  // Sync profile data with currentUser for real-time updates (XP, Level)
+  useEffect(() => {
+    if (isOwnProfile && currentUser) {
+      setProfile((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          level: currentUser.level,
+          xp: currentUser.xp,
+          totalXP: currentUser.totalXP,
+          achievements: currentUser.achievements,
+          stats: currentUser.stats,
+        };
+      });
+    }
+  }, [currentUser, isOwnProfile]);
+
   const handleEditClick = () => {
     setEditBio(bio);
     setEditLocation(location);

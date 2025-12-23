@@ -102,7 +102,24 @@ export const AuthProvider = ({ children }) => {
       };
     }
   };
+  const updateUserStats = (stats) => {
+    setUser((prev) => {
+      if (!prev) return prev;
 
+      const updates = { ...stats };
+
+      // Handle achievements special case
+      if (updates.newAchievements) {
+        updates.achievements = [
+          ...(prev.achievements || []),
+          ...updates.newAchievements,
+        ];
+        delete updates.newAchievements;
+      }
+
+      return { ...prev, ...updates };
+    });
+  };
   const followUser = async (userId) => {
     try {
       await axios.put(`/api/auth/follow/${userId}`);
@@ -139,6 +156,7 @@ export const AuthProvider = ({ children }) => {
     register,
     logout,
     updateProfile,
+    updateUserStats,
     followUser,
     unfollowUser,
     loadUser,

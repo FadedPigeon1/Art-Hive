@@ -161,17 +161,28 @@ export const awardXP = async (userId, xpAmount, reason = "") => {
 
     await user.save();
 
-    return {
+    const result = {
       success: true,
       leveledUp,
       oldLevel,
       newLevel: user.level,
       xpAwarded: xpAmount,
       currentXP: user.xp,
+      totalXP: user.totalXP,
       xpForNextLevel: levelInfo.xpForNextLevel,
       newAchievements,
       reason,
     };
+
+    // Emit real-time update if socket is available
+    if (global.io && global.userSockets) {
+      const socketId = global.userSockets.get(userId.toString());
+      if (socketId) {
+        global.io.to(socketId).emit("xp-update", result);
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error("Error awarding XP:", error);
     return {
