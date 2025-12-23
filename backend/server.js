@@ -11,6 +11,7 @@ import gameRoutes from "./routes/gameRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import challengeRoutes from "./routes/challengeRoutes.js";
+import groupRoutes from "./routes/groupRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import GameSession from "./models/GameSession.js";
 
@@ -57,6 +58,7 @@ app.use("/api/game", gameRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/challenges", challengeRoutes);
+app.use("/api/groups", groupRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);

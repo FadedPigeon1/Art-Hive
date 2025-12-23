@@ -21,6 +21,8 @@ import Game from "./pages/Game";
 import Favorites from "./pages/Favorites";
 import LikedPosts from "./pages/LikedPosts";
 import ColorPickerPage from "./pages/ColorPickerPage";
+import Groups from "./pages/Groups";
+import GroupDetail from "./pages/GroupDetail";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
@@ -88,6 +90,22 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <LikedPosts />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups"
+            element={
+              <ProtectedRoute>
+                <Groups />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/groups/:id"
+            element={
+              <ProtectedRoute>
+                <GroupDetail />
               </ProtectedRoute>
             }
           />

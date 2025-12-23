@@ -7,6 +7,10 @@ const postSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+    },
     title: {
       type: String,
       required: [true, "Please add a title"],

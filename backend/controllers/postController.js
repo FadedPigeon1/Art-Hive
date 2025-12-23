@@ -143,6 +143,7 @@ export const createPost = async (req, res) => {
       isGameArt: isGameArt || false,
       gameSessionId: gameSessionId || null,
       remixedFrom: remixedFrom || null,
+      group: req.body.group || null,
     });
 
     // If this is a remix, increment the original post's remix count

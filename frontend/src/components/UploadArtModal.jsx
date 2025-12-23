@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FiX, FiImage, FiUpload } from "react-icons/fi";
-import { postsAPI } from "../utils/api";
+import { postsAPI, groupsAPI } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
 import axios from "axios";
 
@@ -10,11 +11,33 @@ const UploadArtModal = ({
   onUploadSuccess,
   challengeId = null,
 }) => {
+  const { user } = useAuth();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [userGroups, setUserGroups] = useState([]);
+  const [selectedGroup, setSelectedGroup] = useState("");
+
+  useEffect(() => {
+    if (isOpen && user) {
+      fetchUserGroups();
+    }
+  }, [isOpen, user]);
+
+  const fetchUserGroups = async () => {
+    try {
+      const groups = await groupsAPI.getAll();
+      // Filter groups where user is a member
+      const myGroups = groups.filter((g) => 
+        g.members.some((m) => m === user._id || m._id === user._id)
+      );
+      setUserGroups(myGroups);
+    } catch (error) {
+      console.error("Error fetching groups:", error);
+    }
+  };
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
@@ -66,6 +89,9 @@ const UploadArtModal = ({
       formData.append("title", title.trim());
       formData.append("caption", description.trim());
       formData.append("image", imageFile);
+      if (selectedGroup) {
+        formData.append("group", selectedGroup);
+      }
 
       const response = await postsAPI.createPost(formData);
 
@@ -221,6 +247,28 @@ const UploadArtModal = ({
               {description.length}/500 characters
             </p>
           </div>
+
+          {/* Group Selection */}
+          {userGroups.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Post to Community (Optional)
+              </label>
+              <select
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                disabled={uploading}
+                className="w-full px-4 py-2 bg-gray-50 dark:bg-gray-900 text-gray-800 dark:text-white rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50"
+              >
+                <option value="">Global Feed (No Community)</option>
+                {userGroups.map((group) => (
+                  <option key={group._id} value={group._id}>
+                    {group.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           {/* Submit Button */}
           <div className="flex justify-end space-x-3 pt-4">

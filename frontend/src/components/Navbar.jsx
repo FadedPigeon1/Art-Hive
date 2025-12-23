@@ -17,7 +17,7 @@ import {
   FiMenu,
   FiMessageCircle,
 } from "react-icons/fi";
-import { FaPalette, FaGamepad, FaEyeDropper } from "react-icons/fa";
+import { FaPalette, FaGamepad, FaEyeDropper, FaUsers } from "react-icons/fa";
 import { getProfilePicture } from "../utils/imageHelpers";
 import NotificationDropdown from "./NotificationDropdown";
 import { messagesAPI } from "../utils/api";
@@ -160,6 +160,12 @@ const Navbar = ({ socket }) => {
               label="Color Picker"
               active={location.pathname === "/color-picker"}
             />
+            <NavLink
+              to="/groups"
+              icon={FaUsers}
+              label="Communities"
+              active={location.pathname.startsWith("/groups")}
+            />
             {isAuthenticated && (
               <NavLink
                 to="/sketchbook"
@@ -244,6 +250,17 @@ const Navbar = ({ socket }) => {
                         />
                       </div>
                       <span>Your Profile</span>
+                    </Link>
+
+                    <Link
+                      to="/groups"
+                      onClick={() => setIsSettingsOpen(false)}
+                      className="w-full px-4 py-2.5 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-primary-light"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-primary-light/10 flex items-center justify-center">
+                        <FaUsers size={16} className="text-primary-light" />
+                      </div>
+                      <span>Communities</span>
                     </Link>
 
                     <Link

@@ -134,6 +134,16 @@ export const messagesAPI = {
     axios.get("/api/messages/unread-count").then((res) => res.data),
 };
 
+// Groups API
+export const groupsAPI = {
+  getAll: () => axios.get("/api/groups").then((res) => res.data),
+  create: (data) => axios.post("/api/groups", data).then((res) => res.data),
+  getById: (id) => axios.get(`/api/groups/${id}`).then((res) => res.data),
+  join: (id) => axios.put(`/api/groups/${id}/join`).then((res) => res.data),
+  leave: (id) => axios.put(`/api/groups/${id}/leave`).then((res) => res.data),
+  getPosts: (id) => axios.get(`/api/groups/${id}/posts`).then((res) => res.data),
+};
+
 export default {
   authAPI,
   postsAPI,
@@ -141,4 +151,5 @@ export default {
   gameAPI,
   notificationsAPI,
   messagesAPI,
+  groupsAPI,
 };
