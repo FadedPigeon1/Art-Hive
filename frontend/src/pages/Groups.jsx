@@ -1,18 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { groupsAPI } from '../utils/api';
-import { useAuth } from '../context/AuthContext';
-import { FaUsers, FaPlus, FaSearch } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import { groupsAPI } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
+import { FaUsers, FaPlus, FaSearch } from "react-icons/fa";
 
 const Groups = () => {
   const [groups, setGroups] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [newGroup, setNewGroup] = useState({
-    name: '',
-    description: '',
-    icon: '',
-    banner: '',
+    name: "",
+    description: "",
+    icon: "",
+    banner: "",
     isPrivate: false,
   });
   const { user } = useAuth();
@@ -26,7 +26,7 @@ const Groups = () => {
       const data = await groupsAPI.getAll();
       setGroups(data);
     } catch (error) {
-      console.error('Error fetching groups:', error);
+      console.error("Error fetching groups:", error);
     } finally {
       setLoading(false);
     }
@@ -37,11 +37,17 @@ const Groups = () => {
     try {
       await groupsAPI.create(newGroup);
       setShowCreateModal(false);
-      setNewGroup({ name: '', description: '', icon: '', banner: '', isPrivate: false });
+      setNewGroup({
+        name: "",
+        description: "",
+        icon: "",
+        banner: "",
+        isPrivate: false,
+      });
       fetchGroups();
     } catch (error) {
-      console.error('Error creating group:', error);
-      alert('Failed to create group');
+      console.error("Error creating group:", error);
+      alert("Failed to create group");
     }
   };
 
@@ -74,7 +80,7 @@ const Groups = () => {
                 style={{
                   backgroundImage: group.banner
                     ? `url(${group.banner})`
-                    : 'linear-gradient(to right, #8b5cf6, #ec4899)',
+                    : "linear-gradient(to right, #8b5cf6, #ec4899)",
                 }}
               ></div>
               <div className="p-4">
@@ -127,7 +133,9 @@ const Groups = () => {
                   required
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   value={newGroup.name}
-                  onChange={(e) => setNewGroup({ ...newGroup, name: e.target.value })}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, name: e.target.value })
+                  }
                 />
               </div>
               <div className="mb-4">
@@ -151,7 +159,9 @@ const Groups = () => {
                   type="text"
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   value={newGroup.icon}
-                  onChange={(e) => setNewGroup({ ...newGroup, icon: e.target.value })}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, icon: e.target.value })
+                  }
                 />
               </div>
               <div className="mb-6">
@@ -162,7 +172,9 @@ const Groups = () => {
                   type="text"
                   className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
                   value={newGroup.banner}
-                  onChange={(e) => setNewGroup({ ...newGroup, banner: e.target.value })}
+                  onChange={(e) =>
+                    setNewGroup({ ...newGroup, banner: e.target.value })
+                  }
                 />
               </div>
               <div className="flex justify-end gap-3">

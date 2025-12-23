@@ -23,6 +23,7 @@ import LikedPosts from "./pages/LikedPosts";
 import ColorPickerPage from "./pages/ColorPickerPage";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
+import Settings from "./pages/Settings";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
@@ -106,6 +107,14 @@ function AppContent() {
             element={
               <ProtectedRoute>
                 <GroupDetail />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/settings"
+            element={
+              <ProtectedRoute>
+                <Settings />
               </ProtectedRoute>
             }
           />

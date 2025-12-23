@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
 const groupSchema = mongoose.Schema(
   {
@@ -14,27 +14,27 @@ const groupSchema = mongoose.Schema(
     },
     icon: {
       type: String, // URL to image
-      default: '',
+      default: "",
     },
     banner: {
       type: String, // URL to image
-      default: '',
+      default: "",
     },
     creator: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     admins: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
       },
     ],
     members: [
       {
         type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
+        ref: "User",
       },
     ],
     isPrivate: {
@@ -47,6 +47,6 @@ const groupSchema = mongoose.Schema(
   }
 );
 
-const Group = mongoose.model('Group', groupSchema);
+const Group = mongoose.model("Group", groupSchema);
 
 export default Group;

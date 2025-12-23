@@ -285,6 +285,17 @@ const Navbar = ({ socket }) => {
                       <span>Liked Posts</span>
                     </Link>
 
+                    <Link
+                      to="/settings"
+                      onClick={() => setIsSettingsOpen(false)}
+                      className="w-full px-4 py-2.5 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark hover:text-purple-500"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-purple-500/10 flex items-center justify-center">
+                        <FiSettings size={16} className="text-purple-500" />
+                      </div>
+                      <span>Settings</span>
+                    </Link>
+
                     <button
                       onClick={() => {
                         toggleTheme();

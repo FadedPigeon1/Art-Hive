@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
-import { groupsAPI } from '../utils/api';
-import { useAuth } from '../context/AuthContext';
-import PostCard from '../components/PostCard';
-import { FaUsers, FaDoorOpen, FaDoorClosed } from 'react-icons/fa';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, Link } from "react-router-dom";
+import { groupsAPI } from "../utils/api";
+import { useAuth } from "../context/AuthContext";
+import PostCard from "../components/PostCard";
+import { FaUsers, FaDoorOpen, FaDoorClosed, FaEdit } from "react-icons/fa";
+import { getProfilePicture } from "../utils/imageHelpers";
 
 const GroupDetail = () => {
   const { id } = useParams();
@@ -13,6 +14,13 @@ const GroupDetail = () => {
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isMember, setIsMember] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editForm, setEditForm] = useState({
+    name: "",
+    description: "",
+    icon: "",
+    banner: "",
+  });
 
   useEffect(() => {
     fetchGroupData();
@@ -21,6 +29,12 @@ const GroupDetail = () => {
   useEffect(() => {
     if (group && user) {
       setIsMember(group.members.some((member) => member._id === user._id));
+      setEditForm({
+        name: group.name,
+        description: group.description,
+        icon: group.icon,
+        banner: group.banner,
+      });
     }
   }, [group, user]);
 
@@ -33,7 +47,7 @@ const GroupDetail = () => {
       setGroup(groupData);
       setPosts(postsData);
     } catch (error) {
-      console.error('Error fetching group data:', error);
+      console.error("Error fetching group data:", error);
       // navigate('/groups');
     } finally {
       setLoading(false);
@@ -58,7 +72,19 @@ const GroupDetail = () => {
         }));
       }
     } catch (error) {
-      console.error('Error joining/leaving group:', error);
+      console.error("Error joining/leaving group:", error);
+    }
+  };
+
+  const handleUpdateGroup = async (e) => {
+    e.preventDefault();
+    try {
+      const updatedGroup = await groupsAPI.update(id, editForm);
+      setGroup((prev) => ({ ...prev, ...updatedGroup }));
+      setShowEditModal(false);
+    } catch (error) {
+      console.error("Error updating group:", error);
+      alert("Failed to update group");
     }
   };
 
@@ -74,7 +100,7 @@ const GroupDetail = () => {
           style={{
             backgroundImage: group.banner
               ? `url(${group.banner})`
-              : 'linear-gradient(to right, #8b5cf6, #ec4899)',
+              : "linear-gradient(to right, #8b5cf6, #ec4899)",
           }}
         ></div>
         <div className="absolute -bottom-10 left-4 md:left-10 flex items-end gap-4">
@@ -100,16 +126,24 @@ const GroupDetail = () => {
             </p>
           </div>
         </div>
-        <div className="absolute bottom-4 right-4">
+        <div className="absolute bottom-4 right-4 flex gap-3">
+          {group.admins.some((admin) => admin._id === user?._id) && (
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="px-4 py-2 rounded-full font-bold shadow-lg bg-white text-gray-800 hover:bg-gray-100 transition-all flex items-center gap-2"
+            >
+              <FaEdit /> Edit
+            </button>
+          )}
           <button
             onClick={handleJoinLeave}
             className={`px-6 py-2 rounded-full font-bold shadow-lg transition-all ${
               isMember
-                ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                : 'bg-purple-600 text-white hover:bg-purple-700'
+                ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
+                : "bg-purple-600 text-white hover:bg-purple-700"
             }`}
           >
-            {isMember ? 'Joined' : 'Join Group'}
+            {isMember ? "Joined" : "Join Group"}
           </button>
         </div>
       </div>
@@ -124,7 +158,7 @@ const GroupDetail = () => {
             <p className="text-gray-600 dark:text-gray-300 mb-6">
               {group.description}
             </p>
-            
+
             <h3 className="font-bold mb-3 text-gray-900 dark:text-white">
               Admins
             </h3>
@@ -136,7 +170,7 @@ const GroupDetail = () => {
                   className="flex items-center gap-2 bg-gray-100 dark:bg-gray-700 px-3 py-1 rounded-full"
                 >
                   <img
-                    src={admin.profilePicture || 'https://via.placeholder.com/30'}
+                    src={getProfilePicture(admin.profilePic)}
                     alt={admin.username}
                     className="w-6 h-6 rounded-full"
                   />
@@ -181,6 +215,87 @@ const GroupDetail = () => {
           )}
         </div>
       </div>
+
+      {/* Edit Group Modal */}
+      {showEditModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-md">
+            <h2 className="text-2xl font-bold mb-4 text-gray-900 dark:text-white">
+              Edit Community
+            </h2>
+            <form onSubmit={handleUpdateGroup}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  value={editForm.name}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, name: e.target.value })
+                  }
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Description
+                </label>
+                <textarea
+                  required
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  value={editForm.description}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, description: e.target.value })
+                  }
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Icon URL
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  value={editForm.icon}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, icon: e.target.value })
+                  }
+                />
+              </div>
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                  Banner URL
+                </label>
+                <input
+                  type="text"
+                  className="w-full px-3 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  value={editForm.banner}
+                  onChange={(e) =>
+                    setEditForm({ ...editForm, banner: e.target.value })
+                  }
+                />
+              </div>
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowEditModal(false)}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+                >
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

@@ -180,6 +180,26 @@ export const updateProfile = async (req, res) => {
   }
 };
 
+// @desc    Update user password
+// @route   PUT /api/auth/password
+// @access  Private
+export const updatePassword = async (req, res) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const user = await User.findById(req.user._id);
+
+    if (user && (await user.matchPassword(currentPassword))) {
+      user.password = newPassword;
+      await user.save();
+      res.json({ message: "Password updated successfully" });
+    } else {
+      res.status(401).json({ message: "Invalid current password" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 // @desc    Follow a user
 // @route   PUT /api/auth/follow/:userId
 // @access  Private

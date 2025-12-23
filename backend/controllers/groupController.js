@@ -1,6 +1,6 @@
-import Group from '../models/Group.js';
-import Post from '../models/Post.js';
-import User from '../models/User.js';
+import Group from "../models/Group.js";
+import Post from "../models/Post.js";
+import User from "../models/User.js";
 
 // @desc    Create a new group
 // @route   POST /api/groups
@@ -12,7 +12,7 @@ const createGroup = async (req, res) => {
     const groupExists = await Group.findOne({ name });
 
     if (groupExists) {
-      return res.status(400).json({ message: 'Group already exists' });
+      return res.status(400).json({ message: "Group already exists" });
     }
 
     const group = await Group.create({
@@ -50,13 +50,13 @@ const getGroups = async (req, res) => {
 const getGroupById = async (req, res) => {
   try {
     const group = await Group.findById(req.params.id)
-      .populate('members', 'username profilePicture')
-      .populate('admins', 'username profilePicture');
+      .populate("members", "username profilePic")
+      .populate("admins", "username profilePic");
 
     if (group) {
       res.json(group);
     } else {
-      res.status(404).json({ message: 'Group not found' });
+      res.status(404).json({ message: "Group not found" });
     }
   } catch (error) {
     res.status(500).json({ message: error.message });
@@ -71,11 +71,11 @@ const joinGroup = async (req, res) => {
     const group = await Group.findById(req.params.id);
 
     if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
+      return res.status(404).json({ message: "Group not found" });
     }
 
     if (group.members.includes(req.user._id)) {
-      return res.status(400).json({ message: 'User already in group' });
+      return res.status(400).json({ message: "User already in group" });
     }
 
     group.members.push(req.user._id);
@@ -95,18 +95,18 @@ const leaveGroup = async (req, res) => {
     const group = await Group.findById(req.params.id);
 
     if (!group) {
-      return res.status(404).json({ message: 'Group not found' });
+      return res.status(404).json({ message: "Group not found" });
     }
 
     if (!group.members.includes(req.user._id)) {
-      return res.status(400).json({ message: 'User not in group' });
+      return res.status(400).json({ message: "User not in group" });
     }
 
     // Remove user from members
     group.members = group.members.filter(
       (memberId) => memberId.toString() !== req.user._id.toString()
     );
-    
+
     // Remove user from admins if they are one
     group.admins = group.admins.filter(
       (adminId) => adminId.toString() !== req.user._id.toString()
@@ -114,7 +114,7 @@ const leaveGroup = async (req, res) => {
 
     await group.save();
 
-    res.json({ message: 'Left group successfully' });
+    res.json({ message: "Left group successfully" });
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -126,10 +126,41 @@ const leaveGroup = async (req, res) => {
 const getGroupPosts = async (req, res) => {
   try {
     const posts = await Post.find({ group: req.params.id })
-      .populate('userId', 'username profilePicture')
+      .populate("userId", "username profilePic")
       .sort({ createdAt: -1 });
 
     res.json(posts);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// @desc    Update a group
+// @route   PUT /api/groups/:id
+// @access  Private
+const updateGroup = async (req, res) => {
+  try {
+    const { name, description, icon, banner } = req.body;
+    const group = await Group.findById(req.params.id);
+
+    if (!group) {
+      return res.status(404).json({ message: "Group not found" });
+    }
+
+    // Check if user is admin
+    if (!group.admins.includes(req.user._id)) {
+      return res
+        .status(401)
+        .json({ message: "Not authorized to update this group" });
+    }
+
+    group.name = name || group.name;
+    group.description = description || group.description;
+    group.icon = icon || group.icon;
+    group.banner = banner || group.banner;
+
+    const updatedGroup = await group.save();
+    res.json(updatedGroup);
   } catch (error) {
     res.status(500).json({ message: error.message });
   }
@@ -142,4 +173,5 @@ export {
   joinGroup,
   leaveGroup,
   getGroupPosts,
+  updateGroup,
 };

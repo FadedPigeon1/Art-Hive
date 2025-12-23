@@ -30,7 +30,7 @@ const UploadArtModal = ({
     try {
       const groups = await groupsAPI.getAll();
       // Filter groups where user is a member
-      const myGroups = groups.filter((g) => 
+      const myGroups = groups.filter((g) =>
         g.members.some((m) => m === user._id || m._id === user._id)
       );
       setUserGroups(myGroups);

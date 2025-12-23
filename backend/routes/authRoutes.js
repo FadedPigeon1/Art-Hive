@@ -5,6 +5,7 @@ import {
   loginUser,
   getMe,
   updateProfile,
+  updatePassword,
   followUser,
   unfollowUser,
   getSuggestedUsers,
@@ -44,6 +45,16 @@ router.get("/me", protect, getMe);
 // @desc    Update user profile
 // @access  Private
 router.put("/profile", protect, updateProfile);
+
+// @route   PUT /api/auth/password
+// @desc    Update user password
+// @access  Private
+router.put(
+  "/password",
+  protect,
+  [body("newPassword").isLength({ min: 6 })],
+  updatePassword
+);
 
 // @route   PUT /api/auth/follow/:userId
 // @desc    Follow a user
