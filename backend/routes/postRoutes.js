@@ -6,13 +6,7 @@ import {
   getUserPosts,
   updatePost,
   deletePost,
-  likePost,
-  unlikePost,
-  starPost,
-  unstarPost,
   getPostRemixes,
-  getStarredPosts,
-  getLikedPosts,
 } from "../controllers/postController.js";
 import { protect, optionalAuth } from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
@@ -28,16 +22,6 @@ router.post("/", protect, upload.single("image"), createPost);
 // @desc    Get all posts (feed)
 // @access  Public (optional auth to see if user liked)
 router.get("/", optionalAuth, getAllPosts);
-
-// @route   GET /api/posts/starred
-// @desc    Get starred posts
-// @access  Private
-router.get("/starred", protect, getStarredPosts);
-
-// @route   GET /api/posts/liked
-// @desc    Get liked posts
-// @access  Private
-router.get("/liked", protect, getLikedPosts);
 
 // @route   GET /api/posts/user/:userId
 // @desc    Get posts by user
@@ -63,25 +47,5 @@ router.put("/:id", protect, updatePost);
 // @desc    Delete a post
 // @access  Private
 router.delete("/:id", protect, deletePost);
-
-// @route   PUT /api/posts/:id/like
-// @desc    Like a post
-// @access  Private
-router.put("/:id/like", protect, likePost);
-
-// @route   PUT /api/posts/:id/unlike
-// @desc    Unlike a post
-// @access  Private
-router.put("/:id/unlike", protect, unlikePost);
-
-// @route   PUT /api/posts/:id/star
-// @desc    Star a post
-// @access  Private
-router.put("/:id/star", protect, starPost);
-
-// @route   PUT /api/posts/:id/unstar
-// @desc    Unstar a post
-// @access  Private
-router.put("/:id/unstar", protect, unstarPost);
 
 export default router;

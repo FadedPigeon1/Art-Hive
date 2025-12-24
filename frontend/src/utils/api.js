@@ -36,9 +36,13 @@ export const authAPI = {
   getMe: () => axios.get("/api/auth/me"),
   updateProfile: (data) => axios.put("/api/auth/profile", data),
   updatePassword: (data) => axios.put("/api/auth/password", data),
-  followUser: (userId) => axios.put(`/api/auth/follow/${userId}`),
-  unfollowUser: (userId) => axios.put(`/api/auth/unfollow/${userId}`),
-  getSuggestedUsers: () => axios.get("/api/auth/suggested"),
+};
+
+// Social API
+export const socialAPI = {
+  followUser: (userId) => axios.put(`/api/social/follow/${userId}`),
+  unfollowUser: (userId) => axios.put(`/api/social/unfollow/${userId}`),
+  getSuggestedUsers: () => axios.get("/api/social/suggested"),
 };
 
 // Posts API
@@ -49,21 +53,25 @@ export const postsAPI = {
         q && q.length ? `&q=${encodeURIComponent(q)}` : ""
       }${sort ? `&sort=${sort}` : ""}`
     ),
-  getStarredPosts: (page = 1, limit = 20) =>
-    axios.get(`/api/posts/starred?page=${page}&limit=${limit}`),
-  getLikedPosts: (page = 1, limit = 20) =>
-    axios.get(`/api/posts/liked?page=${page}&limit=${limit}`),
   getPostById: (id) => axios.get(`/api/posts/${id}`),
   getUserPosts: (userId, page = 1, limit = 9) =>
     axios.get(`/api/posts/user/${userId}?page=${page}&limit=${limit}`),
   createPost: (postData) => axios.post("/api/posts", postData),
   updatePost: (id, postData) => axios.put(`/api/posts/${id}`, postData),
   deletePost: (id) => axios.delete(`/api/posts/${id}`),
-  likePost: (id) => axios.put(`/api/posts/${id}/like`),
-  unlikePost: (id) => axios.put(`/api/posts/${id}/unlike`),
-  starPost: (id) => axios.put(`/api/posts/${id}/star`),
-  unstarPost: (id) => axios.put(`/api/posts/${id}/unstar`),
   getPostRemixes: (id) => axios.get(`/api/posts/${id}/remixes`),
+};
+
+// Reactions API
+export const reactionsAPI = {
+  likePost: (id) => axios.put(`/api/reactions/posts/${id}/like`),
+  unlikePost: (id) => axios.put(`/api/reactions/posts/${id}/unlike`),
+  starPost: (id) => axios.put(`/api/reactions/posts/${id}/star`),
+  unstarPost: (id) => axios.put(`/api/reactions/posts/${id}/unstar`),
+  getStarredPosts: (page = 1, limit = 20) =>
+    axios.get(`/api/reactions/posts/starred?page=${page}&limit=${limit}`),
+  getLikedPosts: (page = 1, limit = 20) =>
+    axios.get(`/api/reactions/posts/liked?page=${page}&limit=${limit}`),
 };
 
 // Comments API
@@ -156,4 +164,6 @@ export default {
   notificationsAPI,
   messagesAPI,
   groupsAPI,
+  socialAPI,
+  reactionsAPI,
 };
