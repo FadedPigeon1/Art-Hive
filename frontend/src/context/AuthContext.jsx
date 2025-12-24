@@ -38,7 +38,10 @@ export const AuthProvider = ({ children }) => {
       setUser(data);
     } catch (error) {
       console.error("Failed to load user:", error);
-      logout();
+      // Don't immediately logout on error - might be temporary network issue
+      if (error.response?.status === 401 || error.response?.status === 403) {
+        logout();
+      }
     } finally {
       setLoading(false);
     }

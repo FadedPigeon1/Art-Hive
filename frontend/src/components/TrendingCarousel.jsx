@@ -19,7 +19,18 @@ const TrendingCarousel = () => {
       }
     };
 
-    fetchTrending();
+    // Use requestIdleCallback for non-critical content (fallback to setTimeout)
+    const scheduleLoad =
+      window.requestIdleCallback || ((cb) => setTimeout(cb, 500));
+    const handle = scheduleLoad(() => fetchTrending());
+
+    return () => {
+      if (window.requestIdleCallback) {
+        window.cancelIdleCallback(handle);
+      } else {
+        clearTimeout(handle);
+      }
+    };
   }, []);
 
   if (loading)

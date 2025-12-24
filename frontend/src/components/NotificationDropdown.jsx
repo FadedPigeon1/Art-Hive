@@ -36,19 +36,16 @@ const NotificationDropdown = ({ socket }) => {
     };
   }, []);
 
-  // Fetch notifications and unread count
+  // Fetch unread count only (lightweight)
   useEffect(() => {
     if (user) {
-      fetchNotifications();
       fetchUnreadCount();
     }
   }, [user]);
 
-  // Register for real-time notifications
+  // Register for real-time notifications (no duplicate socket registration)
   useEffect(() => {
     if (socket && user) {
-      socket.emit("register-user", user._id);
-
       socket.on("new-notification", (notification) => {
         setNotifications((prev) => [notification, ...prev]);
         setUnreadCount((prev) => prev + 1);
@@ -88,10 +85,19 @@ const NotificationDropdown = ({ socket }) => {
   };
 
   const handleToggle = () => {
-    setIsOpen(!isOpen);
-    if (!isOpen && unreadCount > 0) {
+    const willOpen = !isOpen;
+    setIsOpen(willOpen);
+
+    if (willOpen) {
+      // Fetch notifications only when opening dropdown (lazy load)
+      if (notifications.length === 0) {
+        fetchNotifications();
+      }
+
       // Mark all as read when opening
-      markAllAsRead();
+      if (unreadCount > 0) {
+        markAllAsRead();
+      }
     }
   };
 

@@ -37,10 +37,13 @@ const Navbar = ({ socket }) => {
   const searchRef = useRef(null);
   const searchInputRef = useRef(null);
 
-  // Fetch unread count
+  // Fetch unread count with delay to avoid blocking initial load
   useEffect(() => {
     if (isAuthenticated) {
-      fetchUnreadCount();
+      const timer = setTimeout(() => {
+        fetchUnreadCount();
+      }, 500);
+      return () => clearTimeout(timer);
     }
   }, [isAuthenticated]);
 

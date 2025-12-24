@@ -77,8 +77,17 @@ global.userSockets = userSockets;
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Register user for notifications
+  // Register user for notifications (prevent duplicates)
   socket.on("register-user", (userId) => {
+    // Remove old socket connection for this user if exists
+    const oldSocketId = userSockets.get(userId);
+    if (oldSocketId && oldSocketId !== socket.id) {
+      const oldSocket = io.sockets.sockets.get(oldSocketId);
+      if (oldSocket && oldSocket.userId === userId) {
+        oldSocket.userId = null; // Clear old socket's userId
+      }
+    }
+
     userSockets.set(userId, socket.id);
     socket.userId = userId;
     console.log(`User ${userId} registered for notifications`);
@@ -87,9 +96,13 @@ io.on("connection", (socket) => {
   // Unregister user on disconnect
   socket.on("disconnect", () => {
     if (socket.userId) {
-      userSockets.delete(socket.userId);
-      console.log(`User ${socket.userId} unregistered from notifications`);
+      // Only delete if this socket is still the active one for the user
+      if (userSockets.get(socket.userId) === socket.id) {
+        userSockets.delete(socket.userId);
+        console.log(`User ${socket.userId} unregistered from notifications`);
+      }
     }
+    console.log("User disconnected:", socket.id);
   });
 
   socket.on("join-game", ({ code, nickname }) => {
