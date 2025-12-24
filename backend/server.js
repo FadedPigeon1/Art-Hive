@@ -12,6 +12,7 @@ import notificationRoutes from "./routes/notificationRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import challengeRoutes from "./routes/challengeRoutes.js";
 import groupRoutes from "./routes/groupRoutes.js";
+import searchRoutes from "./routes/searchRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { initializeSocket } from "./socket/socketHandler.js";
 import { startCleanupTask } from "./utils/scheduler.js";
@@ -60,6 +61,7 @@ app.use("/api/notifications", notificationRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/challenges", challengeRoutes);
 app.use("/api/groups", groupRoutes);
+app.use("/api/search", searchRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
