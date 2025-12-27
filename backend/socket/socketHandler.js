@@ -135,7 +135,7 @@ export const initializeSocket = (io) => {
           `[SOCKET] Scheduling disconnect timeout for ${nickname} in ${code}`
         );
 
-        // Set a timeout to remove the player (e.g., 10 seconds for testing/quick reconnects)
+        // Set a timeout to remove the player (e.g., 60 seconds for testing/quick reconnects)
         const timeoutId = setTimeout(async () => {
           try {
             console.log(
@@ -188,7 +188,7 @@ export const initializeSocket = (io) => {
           } catch (err) {
             console.error("Error handling disconnect timeout:", err);
           }
-        }, 10000); // 10 seconds timeout
+        }, 60000); // 60 seconds timeout
 
         disconnectTimeouts.set(key, timeoutId);
       }

@@ -1,6 +1,7 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import SketchbookPro from "../../pages/SketchbookPro";
+import { FiClock } from "react-icons/fi";
 
 const GameTask = ({
   currentTask,
@@ -17,6 +18,24 @@ const GameTask = ({
   const navigate = useNavigate();
   const isPromptTask = currentTask?.taskType === "prompt";
   const isDrawingTask = currentTask?.taskType === "drawing";
+  const [timeLeft, setTimeLeft] = useState(30);
+
+  useEffect(() => {
+    if (hasSubmitted) return;
+
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          clearInterval(timer);
+          handleSubmitTask(); // Auto-submit when time is up
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [hasSubmitted, handleSubmitTask]);
 
   if (isDrawingTask) {
     if (hasSubmitted) {
@@ -92,8 +111,13 @@ const GameTask = ({
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-wider drop-shadow-[0_4px_0_rgba(0,0,0,0.2)] transform -rotate-1">
             ROUND {currentRound}
           </h1>
-          <div className="inline-block bg-yellow-400 text-blue-900 font-bold px-4 py-1 rounded-full border-2 border-blue-900 shadow-sm mt-2 transform rotate-1">
-            {currentRound} / {currentGame?.totalRounds}
+          <div className="flex justify-center gap-4 mt-2">
+            <div className="inline-block bg-yellow-400 text-blue-900 font-bold px-4 py-1 rounded-full border-2 border-blue-900 shadow-sm transform rotate-1">
+              {currentRound} / {currentGame?.totalRounds}
+            </div>
+            <div className="inline-flex items-center gap-2 bg-red-500 text-white font-bold px-4 py-1 rounded-full border-2 border-red-700 shadow-sm transform -rotate-1">
+              <FiClock /> {timeLeft}s
+            </div>
           </div>
         </div>
 

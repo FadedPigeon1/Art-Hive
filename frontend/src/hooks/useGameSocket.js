@@ -46,7 +46,13 @@ export const useGameSocket = ({
     });
 
     newSocket.on("player-left", async (data) => {
-      toast.info(`${data.nickname} left the game`);
+      // Only show toast if it's a real leave, not a refresh
+      // We can't easily distinguish here without more backend logic,
+      // but we can suppress the toast if the game is in progress to avoid panic
+      if (currentGameRef.current?.status === "waiting") {
+        toast.info(`${data.nickname} left the game`);
+      }
+
       if (currentGameRef.current) {
         try {
           const { data: updatedGame } = await gameAPI.getGame(
@@ -113,6 +119,12 @@ export const useGameSocket = ({
 
     newSocket.on("next-round", async (data) => {
       try {
+        // Force refresh game state to ensure player list is accurate
+        const { data: updatedGame } = await gameAPI.getGame(
+          currentGameRef.current?.code
+        );
+        setCurrentGame(updatedGame);
+
         setCurrentRound(data.round);
         setHasSubmitted(false);
         setPromptText("");

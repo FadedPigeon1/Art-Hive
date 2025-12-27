@@ -461,6 +461,10 @@ export const useGameManager = () => {
       if (response.data.gameSession.status === "finished") {
         setGameState("results");
         setCurrentGame(response.data.gameSession);
+        // Fetch results immediately
+        gameAPI.getResults(currentGame.code).then(({ data: results }) => {
+          setChains(results.chains);
+        });
       } else if (response.data.allSubmitted) {
         // All players submitted, move to next round
         setCurrentRound(response.data.gameSession.currentRound);
