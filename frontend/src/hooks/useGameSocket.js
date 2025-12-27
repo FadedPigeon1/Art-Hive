@@ -143,6 +143,13 @@ export const useGameSocket = ({
     });
 
     newSocket.on("game-ended", async (data) => {
+      if (data.reason === "not_enough_players") {
+        toast.error("Game ended: Not enough players remaining.");
+        setGameState("menu");
+        setCurrentGame(null);
+        return;
+      }
+
       try {
         const { data: results } = await gameAPI.getResults(
           currentGameRef.current?.code

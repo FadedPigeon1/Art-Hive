@@ -512,6 +512,26 @@ export const leaveGameSession = async (req, res) => {
       const player = gameSession.players.find((p) => p.nickname === nickname);
       if (player) {
         player.isLeft = true;
+
+        // Check active players count
+        const activePlayers = gameSession.players.filter(
+          (p) => !p.isLeft
+        ).length;
+
+        if (activePlayers < 2) {
+          gameSession.status = "finished";
+          gameSession.endedAt = Date.now();
+
+          // Emit game ended event
+          const io = req.app.get("io");
+          if (io) {
+            io.to(gameSession.code).emit("game-ended", {
+              code: gameSession.code,
+              reason: "not_enough_players",
+            });
+          }
+        }
+
         await gameSession.save();
       }
       return res.json({

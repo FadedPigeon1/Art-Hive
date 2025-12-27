@@ -176,6 +176,24 @@ export const initializeSocket = (io) => {
               );
               if (player && !player.isLeft) {
                 player.isLeft = true;
+
+                // Check active players count
+                const activePlayers = gameSession.players.filter(
+                  (p) => !p.isLeft
+                ).length;
+
+                if (activePlayers < 2) {
+                  gameSession.status = "finished";
+                  gameSession.endedAt = Date.now();
+                  io.to(code).emit("game-ended", {
+                    code,
+                    reason: "not_enough_players",
+                  });
+                  console.log(
+                    `[SOCKET] Game ${code} ended (not enough players)`
+                  );
+                }
+
                 await gameSession.save();
                 io.to(code).emit("player-left", { nickname });
                 console.log(
