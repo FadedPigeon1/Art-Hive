@@ -107,6 +107,7 @@ const GameMenu = ({
                     <option value="classic">Classic</option>
                     <option value="speed">Speed</option>
                     <option value="relaxed">Relaxed</option>
+                    <option value="art-jam">Art Jam (Live)</option>
                   </select>
                 </div>
               </div>

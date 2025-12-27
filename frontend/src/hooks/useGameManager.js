@@ -276,6 +276,11 @@ export const useGameManager = () => {
       return;
     }
 
+    if (gameMode === "art-jam") {
+      navigate("/jam");
+      return;
+    }
+
     try {
       const { data } = await gameAPI.createGame(
         nickname,

@@ -14,6 +14,7 @@ export const useCanvas = ({
   brushFlow,
   brushType,
   saveToHistory,
+  onDraw,
 }) => {
   const mainCanvasRef = useRef(null);
 
@@ -187,6 +188,19 @@ export const useCanvas = ({
     const ctx = activeLayer.data.getContext("2d");
     const coords = getCanvasCoords(e);
     const settings = getBrushSettings();
+
+    if (onDraw) {
+      onDraw({
+        x: coords.x,
+        y: coords.y,
+        lastX: lastPoint ? lastPoint.x : coords.x,
+        lastY: lastPoint ? lastPoint.y : coords.y,
+        settings,
+        brushType,
+        brushSize,
+        brushColor,
+      });
+    }
 
     ctx.save();
     ctx.strokeStyle = settings.strokeStyle;

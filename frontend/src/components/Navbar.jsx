@@ -158,6 +158,12 @@ const Navbar = ({ socket }) => {
               active={location.pathname === "/game"}
             />
             <NavLink
+              to="/jam"
+              icon={FaPalette}
+              label="Art Jam"
+              active={location.pathname === "/jam"}
+            />
+            <NavLink
               to="/color-picker"
               icon={FaEyeDropper}
               label="Color Picker"
