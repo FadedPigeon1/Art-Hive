@@ -324,7 +324,10 @@ export const submitEntry = async (req, res) => {
     const expectedChainIndex =
       (playerIndex + gameSession.currentRound - 1) % gameSession.players.length;
 
-    if (chainId !== expectedChainIndex) {
+    // Ensure chainId is a number for comparison
+    const chainIdNum = parseInt(chainId, 10);
+
+    if (chainIdNum !== expectedChainIndex) {
       return res.status(400).json({
         message: "Invalid chain for this round",
         expected: expectedChainIndex,

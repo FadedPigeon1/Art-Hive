@@ -8,6 +8,7 @@ const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
 export const useGameSocket = ({
   setSocket,
   currentGameRef,
+  nicknameRef,
   setCurrentGame,
   setGameState,
   setCurrentRound,
@@ -20,7 +21,6 @@ export const useGameSocket = ({
   setCurrentRevealChain,
   setCurrentRevealStep,
   setIsRevealing,
-  nickname,
 }) => {
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
@@ -74,7 +74,7 @@ export const useGameSocket = ({
       try {
         const { data: task } = await gameAPI.getPlayerTask(
           currentGameRef.current.code,
-          nickname
+          nicknameRef.current
         );
         setCurrentTask(task);
         setHasSubmitted(task.alreadySubmitted || false);
@@ -97,7 +97,7 @@ export const useGameSocket = ({
     newSocket.on(
       "player-submitted",
       async ({ nickname: submittedNickname, round }) => {
-        if (submittedNickname !== nickname) {
+        if (submittedNickname !== nicknameRef.current) {
           toast.info(`${submittedNickname} submitted!`);
           try {
             const { data: gameData } = await gameAPI.getGame(
@@ -131,7 +131,7 @@ export const useGameSocket = ({
         setSubmittedCount(0);
         const { data: task } = await gameAPI.getPlayerTask(
           currentGameRef.current?.code,
-          nickname
+          nicknameRef.current
         );
         setCurrentTask(task);
         setHasSubmitted(task.alreadySubmitted || false);

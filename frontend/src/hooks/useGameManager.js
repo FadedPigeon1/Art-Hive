@@ -37,19 +37,25 @@ export const useGameManager = () => {
 
   // Refs
   const currentGameRef = useRef(null);
+  const nicknameRef = useRef(nickname);
   const hasJoinedRoom = useRef(false);
   const shouldSaveToStorage = useRef(true);
   const hasLeftGame = useRef(false);
 
-  // Keep currentGameRef in sync
+  // Keep refs in sync
   useEffect(() => {
     currentGameRef.current = currentGame;
   }, [currentGame]);
+
+  useEffect(() => {
+    nicknameRef.current = nickname;
+  }, [nickname]);
 
   // Initialize Socket
   useGameSocket({
     setSocket,
     currentGameRef,
+    nicknameRef,
     setCurrentGame,
     setGameState,
     setCurrentRound,
@@ -62,7 +68,6 @@ export const useGameManager = () => {
     setCurrentRevealChain,
     setCurrentRevealStep,
     setIsRevealing,
-    nickname,
   });
 
   // Load game state from localStorage on mount OR rejoin from URL
