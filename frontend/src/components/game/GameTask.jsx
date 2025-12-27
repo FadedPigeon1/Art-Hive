@@ -19,7 +19,23 @@ const GameTask = ({
   const navigate = useNavigate();
   const isPromptTask = currentTask?.taskType === "prompt";
   const isDrawingTask = currentTask?.taskType === "drawing";
-  const [timeLeft, setTimeLeft] = useState(30);
+
+  // Initialize timer based on task type (180s for drawing, 30s for prompt)
+  const [timeLeft, setTimeLeft] = useState(isDrawingTask ? 180 : 30);
+
+  // Reset timer when round or task type changes
+  useEffect(() => {
+    setTimeLeft(isDrawingTask ? 180 : 30);
+  }, [currentRound, isDrawingTask]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${secs}s`;
+  };
 
   useEffect(() => {
     if (hasSubmitted) return;
@@ -92,6 +108,7 @@ const GameTask = ({
         gameNicknameProp={nickname}
         onGameSubmit={(data) => handleSubmitTask(data)}
         onLeave={handleLeaveGame}
+        timeLeft={timeLeft}
       />
     );
   }
@@ -124,7 +141,7 @@ const GameTask = ({
               {currentRound} / {currentGame?.totalRounds}
             </div>
             <div className="inline-flex items-center gap-2 bg-red-500 text-white font-bold px-4 py-1 rounded-full border-2 border-red-700 shadow-sm transform -rotate-1">
-              <FiClock /> {timeLeft}s
+              <FiClock /> {formatTime(timeLeft)}
             </div>
           </div>
         </div>

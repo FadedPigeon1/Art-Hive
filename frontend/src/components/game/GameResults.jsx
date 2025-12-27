@@ -119,7 +119,7 @@ const GameResults = ({
               <div className="mb-8 flex justify-center">
                 <div className="bg-white px-6 py-2 rounded-full border-2 border-blue-200 shadow-sm">
                   <p className="font-bold text-blue-800">
-                    Chain {currentRevealChain + 1} of {chains.length} • Step{" "}
+                    Story {currentRevealChain + 1} of {chains.length} • Step{" "}
                     {currentRevealStep + 1} of{" "}
                     {(chains[currentRevealChain]?.entries?.length || 0) + 1}
                   </p>
@@ -127,27 +127,141 @@ const GameResults = ({
               </div>
             )}
 
-            {/* Display chains with reveal logic */}
-            {chains.map((chain, chainIndex) => {
-              const isChainVisible = isRevealing
-                ? chainIndex <= currentRevealChain
-                : true;
-              const showAllSteps =
-                !isRevealing || chainIndex < currentRevealChain;
-
-              if (!isChainVisible) return null;
-
-              return (
-                <div
-                  key={chain.chainId}
-                  className={`mb-12 bg-white rounded-3xl border-4 overflow-hidden transition-all duration-500 ${
-                    isRevealing && chainIndex === currentRevealChain
-                      ? "border-blue-600 shadow-xl scale-100 ring-4 ring-blue-200"
-                      : "border-blue-200 opacity-60 scale-95"
-                  }`}
-                >
+            {/* REVEAL STAGE (Gartic Phone Style) */}
+            {isRevealing && chains[currentRevealChain] && (
+              <div className="max-w-2xl mx-auto">
+                <div className="bg-white rounded-3xl border-4 border-blue-800 shadow-2xl overflow-hidden">
                   {/* Chain Header */}
-                  {(showAllSteps || currentRevealStep >= 0) && (
+                  <div className="bg-blue-600 p-4 text-center border-b-4 border-blue-800">
+                    <h2 className="text-2xl font-black text-white uppercase tracking-wider">
+                      Story by {chains[currentRevealChain].originalPlayer}
+                    </h2>
+                  </div>
+
+                  <div className="p-8 min-h-[400px] flex flex-col items-center justify-center bg-slate-100 relative">
+                    {/* Step 0: Original Prompt */}
+                    {currentRevealStep === 0 && (
+                      <div className="animate-in zoom-in duration-500 flex flex-col items-center w-full">
+                        <div className="bg-yellow-400 text-blue-900 p-8 rounded-3xl rounded-bl-none border-4 border-blue-900 shadow-[8px_8px_0_rgba(30,58,138,1)] max-w-lg w-full text-center relative mb-8">
+                          <p className="text-3xl font-black uppercase leading-tight">
+                            "{chains[currentRevealChain].originalPrompt}"
+                          </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-full bg-blue-900 flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
+                            {chains[currentRevealChain].originalPlayer
+                              .substring(0, 2)
+                              .toUpperCase()}
+                          </div>
+                          <span className="font-bold text-blue-900 text-lg">
+                            {chains[currentRevealChain].originalPlayer} wrote
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Steps > 0: Show Context + Result */}
+                    {currentRevealStep > 0 && (
+                      <div className="w-full flex flex-col items-center gap-8">
+                        {/* CONTEXT (Previous Step) - Smaller/Faded */}
+                        <div className="opacity-60 scale-75 origin-bottom transition-all duration-500 blur-[1px] hover:blur-0 hover:opacity-100 hover:scale-90 cursor-pointer">
+                          {currentRevealStep === 1 ? (
+                            // Context was Original Prompt
+                            <div className="bg-yellow-200 text-blue-900 p-4 rounded-2xl border-2 border-blue-900 text-center max-w-md">
+                              <p className="font-bold">
+                                "{chains[currentRevealChain].originalPrompt}"
+                              </p>
+                            </div>
+                          ) : (
+                            // Context was previous entry
+                            (() => {
+                              const prevEntry =
+                                chains[currentRevealChain].entries[
+                                  currentRevealStep - 2
+                                ];
+                              return prevEntry.type === "prompt" ? (
+                                <div className="bg-yellow-200 text-blue-900 p-4 rounded-2xl border-2 border-blue-900 text-center max-w-md">
+                                  <p className="font-bold">
+                                    "{prevEntry.data}"
+                                  </p>
+                                </div>
+                              ) : (
+                                <img
+                                  src={prevEntry.data}
+                                  alt="Previous"
+                                  className="w-48 h-auto rounded-lg border-2 border-blue-900 bg-white"
+                                />
+                              );
+                            })()
+                          )}
+                        </div>
+
+                        {/* ARROW */}
+                        <div className="text-blue-400 text-4xl animate-bounce">
+                          ⬇
+                        </div>
+
+                        {/* CURRENT RESULT - Big & Animated */}
+                        <div className="animate-in slide-in-from-bottom-10 fade-in duration-500 w-full flex flex-col items-center">
+                          {(() => {
+                            const entry =
+                              chains[currentRevealChain].entries[
+                                currentRevealStep - 1
+                              ];
+                            return (
+                              <>
+                                {entry.type === "prompt" ? (
+                                  // Text Guess Bubble
+                                  <div className="bg-white text-blue-900 p-8 rounded-3xl rounded-tr-none border-4 border-blue-900 shadow-[8px_8px_0_rgba(30,58,138,1)] max-w-lg w-full text-center relative mb-6">
+                                    <p className="text-3xl font-black uppercase leading-tight">
+                                      "{entry.data}"
+                                    </p>
+                                  </div>
+                                ) : (
+                                  // Drawing Frame
+                                  <div className="bg-white p-3 rounded-xl border-4 border-blue-900 shadow-[8px_8px_0_rgba(30,58,138,1)] rotate-1 hover:rotate-0 transition-transform duration-300 mb-6">
+                                    <img
+                                      src={entry.data}
+                                      alt="Drawing"
+                                      className="max-w-full max-h-[400px] rounded-lg bg-white"
+                                    />
+                                  </div>
+                                )}
+
+                                {/* Player Info */}
+                                <div className="flex items-center gap-3">
+                                  <div className="w-12 h-12 rounded-full bg-blue-900 flex items-center justify-center text-white font-bold border-2 border-white shadow-lg">
+                                    {entry.playerNickname
+                                      .substring(0, 2)
+                                      .toUpperCase()}
+                                  </div>
+                                  <span className="font-bold text-blue-900 text-lg">
+                                    {entry.playerNickname}{" "}
+                                    {entry.type === "prompt"
+                                      ? "guessed"
+                                      : "drew"}
+                                  </span>
+                                </div>
+                              </>
+                            );
+                          })()}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* FULL SUMMARY LIST (Only when not revealing) */}
+            {!isRevealing &&
+              chains.map((chain, chainIndex) => {
+                return (
+                  <div
+                    key={chain.chainId}
+                    className="mb-12 bg-white rounded-3xl border-4 border-blue-200 overflow-hidden opacity-100"
+                  >
+                    {/* Chain Header */}
                     <div className="bg-blue-100 p-4 border-b-4 border-blue-200 flex items-center justify-between">
                       <h2 className="text-2xl font-black text-blue-900 uppercase">
                         Chain {chainIndex + 1}
@@ -156,11 +270,9 @@ const GameResults = ({
                         Started by {chain.originalPlayer}
                       </span>
                     </div>
-                  )}
 
-                  <div className="p-6 space-y-6">
-                    {/* Original Prompt */}
-                    {(showAllSteps || currentRevealStep >= 0) && (
+                    <div className="p-6 space-y-6">
+                      {/* Original Prompt */}
                       <div className="bg-yellow-50 rounded-2xl border-4 border-yellow-200 p-6 text-center relative">
                         <div className="absolute -top-3 left-1/2 transform -translate-x-1/2 bg-yellow-300 text-yellow-900 text-xs font-black px-3 py-1 rounded-full border border-yellow-500 uppercase tracking-wide">
                           Original Prompt
@@ -169,99 +281,60 @@ const GameResults = ({
                           "{chain.originalPrompt}"
                         </p>
                       </div>
-                    )}
 
-                    {/* Chain Entries */}
-                    {chain.entries.map((entry, entryIndex) => {
-                      const shouldShow =
-                        showAllSteps ||
-                        (chainIndex === currentRevealChain &&
-                          entryIndex < currentRevealStep);
-
-                      if (!shouldShow) return null;
-
-                      const isCurrentReveal =
-                        isRevealing &&
-                        chainIndex === currentRevealChain &&
-                        entryIndex === currentRevealStep - 1;
-
-                      return (
-                        <div
-                          key={entryIndex}
-                          className={`rounded-2xl border-4 overflow-hidden transition-all duration-500 ${
-                            isCurrentReveal
-                              ? "bg-white border-green-400 shadow-lg transform scale-105 z-10"
-                              : "bg-gray-50 border-gray-200"
-                          }`}
-                        >
+                      {/* Chain Entries */}
+                      {chain.entries.map((entry, entryIndex) => {
+                        return (
                           <div
-                            className={`p-3 border-b-2 flex justify-between items-center ${
-                              isCurrentReveal
-                                ? "bg-green-50 border-green-200"
-                                : "bg-gray-100 border-gray-200"
-                            }`}
+                            key={entryIndex}
+                            className="rounded-2xl border-4 border-gray-200 overflow-hidden bg-gray-50"
                           >
-                            <div className="flex items-center gap-2">
-                              <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-white text-xs ${
-                                  isCurrentReveal
-                                    ? "bg-green-500"
-                                    : "bg-gray-400"
-                                }`}
-                              >
-                                {entry.playerNickname
-                                  .substring(0, 2)
-                                  .toUpperCase()}
+                            <div className="p-3 border-b-2 border-gray-200 bg-gray-100 flex justify-between items-center">
+                              <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-full bg-gray-400 flex items-center justify-center font-bold text-white text-xs">
+                                  {entry.playerNickname
+                                    .substring(0, 2)
+                                    .toUpperCase()}
+                                </div>
+                                <span className="font-bold text-gray-600">
+                                  {entry.playerNickname}
+                                </span>
                               </div>
-                              <span
-                                className={`font-bold ${
-                                  isCurrentReveal
-                                    ? "text-green-800"
-                                    : "text-gray-600"
-                                }`}
-                              >
-                                {entry.playerNickname}
+                              <span className="text-xs font-bold px-2 py-1 rounded uppercase bg-gray-200 text-gray-600">
+                                {entry.type === "prompt" ? "Guessed" : "Drew"}
                               </span>
                             </div>
-                            <span
-                              className={`text-xs font-bold px-2 py-1 rounded uppercase ${
-                                isCurrentReveal
-                                  ? "bg-green-200 text-green-800"
-                                  : "bg-gray-200 text-gray-600"
-                              }`}
-                            >
-                              {entry.type === "prompt" ? "Guessed" : "Drew"}
-                            </span>
-                          </div>
 
-                          <div className="p-6 text-center">
-                            {entry.type === "prompt" ? (
-                              <p className="text-2xl font-bold text-blue-900 italic">
-                                "{entry.data}"
-                              </p>
-                            ) : (
-                              <div className="relative group">
-                                <img
-                                  src={entry.data}
-                                  alt={`Drawing by ${entry.playerNickname}`}
-                                  className="max-w-md mx-auto rounded-xl border-2 border-gray-200 shadow-sm"
-                                />
-                                <button
-                                  onClick={() => handleRepostToFeed(entry.data)}
-                                  className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity px-4 py-2 bg-blue-500 text-white rounded-lg font-bold shadow-lg hover:bg-blue-400 flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 duration-200"
-                                >
-                                  <FiUpload /> Post
-                                </button>
-                              </div>
-                            )}
+                            <div className="p-6 text-center">
+                              {entry.type === "prompt" ? (
+                                <p className="text-2xl font-bold text-blue-900 italic">
+                                  "{entry.data}"
+                                </p>
+                              ) : (
+                                <div className="relative group">
+                                  <img
+                                    src={entry.data}
+                                    alt={`Drawing by ${entry.playerNickname}`}
+                                    className="max-w-md mx-auto rounded-xl border-2 border-gray-200 shadow-sm"
+                                  />
+                                  <button
+                                    onClick={() =>
+                                      handleRepostToFeed(entry.data)
+                                    }
+                                    className="absolute bottom-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity px-4 py-2 bg-blue-500 text-white rounded-lg font-bold shadow-lg hover:bg-blue-400 flex items-center gap-2 transform translate-y-2 group-hover:translate-y-0 duration-200"
+                                  >
+                                    <FiUpload /> Post
+                                  </button>
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
 
             <div className="mt-12 pt-8 border-t-4 border-blue-200">
               <button

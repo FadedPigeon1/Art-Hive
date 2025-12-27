@@ -48,6 +48,7 @@ const SketchbookPro = ({
   gameNicknameProp = null,
   onGameSubmit = null,
   onLeave = null,
+  timeLeft = null,
 }) => {
   const compositeCanvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -799,6 +800,16 @@ const SketchbookPro = ({
     setBrushColor(color);
   }, [hsl]);
 
+  const formatTime = (seconds) => {
+    if (seconds === null) return "";
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    if (mins > 0) {
+      return `${mins}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${secs}s`;
+  };
+
   return (
     <div className="h-[calc(100vh-80px)] bg-[#1a1a1a] text-gray-200 flex flex-col overflow-hidden font-sans">
       {/* Top Toolbar */}
@@ -829,6 +840,17 @@ const SketchbookPro = ({
               </span>
               <span className="text-sm font-medium text-blue-100">
                 "{gamePrompt}"
+              </span>
+            </div>
+          )}
+
+          {gameMode && timeLeft !== null && (
+            <div className="px-4 py-1.5 bg-red-500/10 border border-red-500/20 rounded-full flex items-center space-x-2">
+              <span className="text-xs text-red-400 uppercase tracking-wider font-semibold">
+                Time:
+              </span>
+              <span className="text-sm font-medium text-red-100">
+                {formatTime(timeLeft)}
               </span>
             </div>
           )}

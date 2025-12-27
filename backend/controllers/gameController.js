@@ -130,7 +130,16 @@ export const startGameSession = async (req, res) => {
 
     // Initialize chains for Gartic Phone
     // Total rounds = number of players (so everyone sees each chain once)
-    gameSession.totalRounds = gameSession.players.length;
+    // For small groups (2-3 players), we double the rounds to ensure enough gameplay
+    // 2 players -> 6 rounds (Prompt, Draw, Guess, Draw, Guess, Draw)
+    // 3 players -> 6 rounds (2 full cycles)
+    // 4+ players -> players.length rounds (1 full cycle)
+    if (gameSession.players.length < 4) {
+      gameSession.totalRounds = gameSession.players.length * 3;
+    } else {
+      gameSession.totalRounds = gameSession.players.length;
+    }
+
     gameSession.status = "in-progress";
     gameSession.currentRound = 1;
 
