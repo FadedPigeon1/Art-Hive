@@ -395,7 +395,7 @@ export const useGameManager = () => {
     }
   };
 
-  const submitTask = async (drawingData = null) => {
+  const submitTask = async (drawingData = null, isAutoSubmit = false) => {
     if (!currentTask) {
       toast.error("No task available");
       return;
@@ -406,14 +406,30 @@ export const useGameManager = () => {
 
     // Validate and get data
     if (taskType === "prompt") {
-      if (!promptText.trim()) {
+      if (!promptText.trim() && !isAutoSubmit) {
         toast.error("Please enter a prompt or guess");
         return;
       }
-      data = promptText;
+      data = promptText.trim() || "Time's up!";
     } else if (taskType === "drawing") {
       if (drawingData) {
         data = drawingData; // This is now a File object
+      } else if (isAutoSubmit) {
+        // Create a blank canvas blob for auto-submit
+        const canvas = document.createElement("canvas");
+        canvas.width = 800;
+        canvas.height = 600;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#FFFFFF";
+        ctx.fillRect(0, 0, 800, 600);
+        ctx.font = "48px sans-serif";
+        ctx.fillStyle = "#000000";
+        ctx.textAlign = "center";
+        ctx.fillText("Time's up!", 400, 300);
+
+        data = await new Promise((resolve) =>
+          canvas.toBlob(resolve, "image/png")
+        );
       } else {
         // Drawings are submitted from Sketchbook Pro, not here
         toast.error("Please use Sketchbook Pro to submit drawings");

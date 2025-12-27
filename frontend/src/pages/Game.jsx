@@ -71,6 +71,7 @@ const Game = () => {
         handleSubmitTask={game.submitTask}
         submittedCount={game.submittedCount}
         totalPlayers={game.totalPlayers}
+        handleLeaveGame={game.leaveGame}
       />
     );
   }

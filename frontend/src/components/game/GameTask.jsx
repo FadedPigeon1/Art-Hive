@@ -14,6 +14,7 @@ const GameTask = ({
   handleSubmitTask,
   submittedCount,
   totalPlayers,
+  handleLeaveGame,
 }) => {
   const navigate = useNavigate();
   const isPromptTask = currentTask?.taskType === "prompt";
@@ -27,7 +28,7 @@ const GameTask = ({
       setTimeLeft((prev) => {
         if (prev <= 1) {
           clearInterval(timer);
-          handleSubmitTask(); // Auto-submit when time is up
+          handleSubmitTask(null, true); // Auto-submit when time is up
           return 0;
         }
         return prev - 1;
@@ -90,6 +91,7 @@ const GameTask = ({
         gamePromptProp={currentTask?.previousEntry?.data || ""}
         gameNicknameProp={nickname}
         onGameSubmit={(data) => handleSubmitTask(data)}
+        onLeave={handleLeaveGame}
       />
     );
   }
@@ -107,7 +109,13 @@ const GameTask = ({
 
       <div className="max-w-4xl w-full relative z-10">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-8 relative">
+          <button
+            onClick={handleLeaveGame}
+            className="absolute left-0 top-1/2 -translate-y-1/2 bg-red-500 hover:bg-red-600 text-white px-4 py-2 rounded-xl font-bold text-sm shadow-md border-b-4 border-red-700 active:border-b-0 active:translate-y-1 transition-all"
+          >
+            Leave
+          </button>
           <h1 className="text-4xl md:text-5xl font-black text-white tracking-wider drop-shadow-[0_4px_0_rgba(0,0,0,0.2)] transform -rotate-1">
             ROUND {currentRound}
           </h1>

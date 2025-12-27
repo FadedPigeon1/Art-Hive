@@ -21,6 +21,7 @@ import {
   FiWind,
   FiSlash,
   FiXCircle,
+  FiArrowLeft,
 } from "react-icons/fi";
 import LayersPanel from "../components/LayersPanel";
 import BrushSettings from "../components/BrushSettings";
@@ -46,6 +47,7 @@ const SketchbookPro = ({
   gamePromptProp = null,
   gameNicknameProp = null,
   onGameSubmit = null,
+  onLeave = null,
 }) => {
   const compositeCanvasRef = useRef(null);
   const fileInputRef = useRef(null);
@@ -802,6 +804,15 @@ const SketchbookPro = ({
       {/* Top Toolbar */}
       <div className="h-16 bg-[#252525] border-b border-[#333] px-6 flex items-center justify-between shadow-md z-20">
         <div className="flex items-center space-x-6">
+          {onLeave && (
+            <button
+              onClick={onLeave}
+              className="p-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 rounded-lg transition-colors border border-red-500/20"
+              title="Leave Game"
+            >
+              <FiArrowLeft size={18} />
+            </button>
+          )}
           <div className="flex items-center space-x-3">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center shadow-lg">
               <FiEdit3 className="text-white" size={18} />
