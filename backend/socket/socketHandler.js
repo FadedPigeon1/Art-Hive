@@ -1,5 +1,4 @@
 import GameSession from "../models/GameSession.js";
-import JamSession from "../models/JamSession.js";
 
 // Track disconnect timeouts globally
 const disconnectTimeouts = new Map(); // key: `${code}:${nickname}`, value: timeoutId
@@ -120,27 +119,9 @@ export const initializeSocket = (io) => {
     });
 
     // --- Jam Session Handlers ---
-    socket.on("join-jam", ({ code, nickname, userId }) => {
-      socket.join(code);
-      socket.data.jamSession = { code, nickname, userId };
-      io.to(code).emit("jam-player-joined", {
-        nickname,
-        userId,
-        socketId: socket.id,
-      });
-      console.log(`${nickname} joined jam ${code}`);
-    });
-
     socket.on("jam-draw-stroke", ({ code, stroke }) => {
       // Broadcast to everyone else in the room
       socket.to(code).emit("jam-draw-stroke", { stroke, socketId: socket.id });
-    });
-
-    socket.on("leave-jam", ({ code, nickname }) => {
-      socket.leave(code);
-      socket.data.jamSession = null;
-      io.to(code).emit("jam-player-left", { nickname, socketId: socket.id });
-      console.log(`${nickname} left jam ${code}`);
     });
 
     socket.on("disconnect", () => {

@@ -5,7 +5,7 @@ import { supabase } from "../config/supabaseClient.js";
 // @route   POST /api/game/create
 // @access  Public
 export const createGameSession = async (req, res) => {
-  const { nickname, totalRounds, maxPlayers, gameMode } = req.body;
+  const { nickname, totalRounds, maxPlayers, gameMode, timeLimit } = req.body;
 
   try {
     // Generate unique code
@@ -24,6 +24,7 @@ export const createGameSession = async (req, res) => {
       totalRounds: totalRounds || 3,
       maxPlayers: Math.min(maxPlayers || 10, 10),
       gameMode: gameMode || "classic",
+      timeLimit: timeLimit || 30,
       players: [
         {
           nickname,

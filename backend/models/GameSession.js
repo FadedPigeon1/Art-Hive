@@ -93,8 +93,12 @@ const gameSessionSchema = new mongoose.Schema(
     },
     gameMode: {
       type: String,
-      enum: ["classic", "speed", "relaxed"],
+      enum: ["classic", "speed", "relaxed", "art-jam"],
       default: "classic",
+    },
+    timeLimit: {
+      type: Number, // in minutes
+      default: 30,
     },
     createdAt: {
       type: Date,

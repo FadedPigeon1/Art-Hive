@@ -18,6 +18,8 @@ const GameMenu = ({
   setMaxPlayers,
   gameMode,
   setGameMode,
+  timeLimit,
+  setTimeLimit,
   handleCreateGame,
   handleJoinGame,
 }) => {
@@ -85,7 +87,7 @@ const GameMenu = ({
                     value={maxPlayers}
                     onChange={(e) => setMaxPlayers(Number(e.target.value))}
                     min={2}
-                    max={10}
+                    max={gameMode === "art-jam" ? 7 : 10}
                     className="w-full pl-7 pr-2 py-2 bg-white text-blue-900 rounded-lg border-2 border-yellow-300 focus:outline-none focus:border-yellow-500 font-bold"
                   />
                 </div>
@@ -112,6 +114,29 @@ const GameMenu = ({
                 </div>
               </div>
             </div>
+
+            {gameMode === "art-jam" && (
+              <div className="mb-4">
+                <label className="block text-yellow-800 font-bold text-xs uppercase mb-1">
+                  Time Limit (Minutes)
+                </label>
+                <div className="flex gap-2">
+                  {[30, 40, 50, 60].map((time) => (
+                    <button
+                      key={time}
+                      onClick={() => setTimeLimit(time)}
+                      className={`flex-1 py-2 rounded-lg font-bold border-2 transition-all ${
+                        timeLimit === time
+                          ? "bg-yellow-500 border-yellow-600 text-white"
+                          : "bg-white border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                      }`}
+                    >
+                      {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <button
               onClick={handleCreateGame}

@@ -24,7 +24,6 @@ import ColorPickerPage from "./pages/ColorPickerPage";
 import Groups from "./pages/Groups";
 import GroupDetail from "./pages/GroupDetail";
 import Settings from "./pages/Settings";
-import ArtJam from "./pages/ArtJam";
 
 const API_URL = process.env.REACT_APP_API_URL || "http://localhost:5001";
 
@@ -147,7 +146,6 @@ function AppContent() {
           <Route path="/profile/:userId" element={<Profile />} />
           <Route path="/game" element={<Game />} />
           <Route path="/sketchbook" element={<Sketchbook />} />
-          <Route path="/jam" element={<ArtJam />} />
           <Route path="/color-picker" element={<ColorPickerPage />} />
           <Route
             path="/favorites"

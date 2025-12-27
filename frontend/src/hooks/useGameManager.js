@@ -17,6 +17,7 @@ export const useGameManager = () => {
   const [nickname, setNickname] = useState(user?.username || "");
   const [maxPlayers, setMaxPlayers] = useState(10);
   const [gameMode, setGameMode] = useState("classic");
+  const [timeLimit, setTimeLimit] = useState(30); // Default 30 mins for Art Jam
   const [currentGame, setCurrentGame] = useState(null);
   const [currentRound, setCurrentRound] = useState(0);
   const [promptText, setPromptText] = useState("");
@@ -276,17 +277,13 @@ export const useGameManager = () => {
       return;
     }
 
-    if (gameMode === "art-jam") {
-      navigate("/jam");
-      return;
-    }
-
     try {
       const { data } = await gameAPI.createGame(
         nickname,
         3,
         maxPlayers,
-        gameMode
+        gameMode,
+        timeLimit
       );
       setCurrentGame(data);
       setGameCode(data.code);
@@ -583,6 +580,8 @@ export const useGameManager = () => {
     setMaxPlayers,
     gameMode,
     setGameMode,
+    timeLimit,
+    setTimeLimit,
     currentGame,
     setCurrentGame,
     currentRound,
@@ -608,6 +607,7 @@ export const useGameManager = () => {
     isRevealing,
     setIsRevealing,
     socket,
+    user,
 
     // Actions
     createGame,

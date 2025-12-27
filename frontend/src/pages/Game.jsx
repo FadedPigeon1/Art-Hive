@@ -4,6 +4,7 @@ import GameMenu from "../components/game/GameMenu";
 import GameLobby from "../components/game/GameLobby";
 import GameTask from "../components/game/GameTask";
 import GameResults from "../components/game/GameResults";
+import ArtJamCanvas from "../components/ArtJamCanvas";
 import { useGameManager } from "../hooks/useGameManager";
 
 const Game = () => {
@@ -25,6 +26,8 @@ const Game = () => {
         setMaxPlayers={game.setMaxPlayers}
         gameMode={game.gameMode}
         setGameMode={game.setGameMode}
+        timeLimit={game.timeLimit}
+        setTimeLimit={game.setTimeLimit}
         handleCreateGame={game.createGame}
         handleJoinGame={game.joinGame}
       />
@@ -44,6 +47,18 @@ const Game = () => {
   }
 
   if (game.gameState === "task") {
+    if (game.currentGame?.gameMode === "art-jam") {
+      return (
+        <ArtJamCanvas
+          jamCode={game.currentGame.code}
+          nickname={game.nickname}
+          userId={game.user?._id} // Assuming user is available in game object or context
+          onLeave={game.leaveGame}
+          timeLimit={game.currentGame.timeLimit}
+        />
+      );
+    }
+
     return (
       <GameTask
         currentTask={game.currentTask}

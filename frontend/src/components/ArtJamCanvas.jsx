@@ -1,10 +1,16 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useCanvas } from "../hooks/useCanvas";
-import { useJamSocket } from "../hooks/useJamSocket";
-import { FiArrowLeft } from "react-icons/fi";
+import { FiArrowLeft, FiClock } from "react-icons/fi";
 
-const ArtJamCanvas = ({ jamCode, nickname, userId, onLeave }) => {
-  const [socket, setSocket] = useState(null);
+const ArtJamCanvas = ({
+  jamCode,
+  nickname,
+  userId,
+  onLeave,
+  timeLimit,
+  socket,
+}) => {
+  const [timeLeft, setTimeLeft] = useState(timeLimit * 60); // in seconds
   const [layers, setLayers] = useState([
     {
       id: 1,
@@ -15,6 +21,27 @@ const ArtJamCanvas = ({ jamCode, nickname, userId, onLeave }) => {
       data: null,
     },
   ]);
+
+  // Timer
+  useEffect(() => {
+    if (!timeLimit) return;
+    const timer = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 0) {
+          clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [timeLimit]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
 
   // Drawing State (Local)
   const [brushColor, setBrushColor] = useState("#000000");
@@ -54,13 +81,18 @@ const ArtJamCanvas = ({ jamCode, nickname, userId, onLeave }) => {
     ctx.restore();
   };
 
-  useJamSocket({
-    setSocket,
-    jamCode,
-    nickname,
-    userId,
-    onRemoteStroke: handleRemoteStroke,
-  });
+  // Socket Listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on("jam-draw-stroke", (data) => {
+      handleRemoteStroke(data.stroke);
+    });
+
+    return () => {
+      socket.off("jam-draw-stroke");
+    };
+  }, [socket]);
 
   const handleLocalDraw = (strokeData) => {
     if (socket) {
@@ -137,6 +169,12 @@ const ArtJamCanvas = ({ jamCode, nickname, userId, onLeave }) => {
             <FiArrowLeft size={20} />
           </button>
           <h1 className="font-bold text-lg">Art Jam: {jamCode}</h1>
+          {timeLimit && (
+            <div className="flex items-center gap-2 bg-red-100 text-red-600 px-3 py-1 rounded-full font-mono font-bold">
+              <FiClock />
+              {formatTime(timeLeft)}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <span className="text-sm text-gray-500">
