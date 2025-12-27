@@ -1,25 +1,31 @@
 import { useState, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
+import { useSketchbookStore } from "../store/useSketchbookStore";
 
 export const useCanvas = ({
-  layers,
-  setLayers,
-  activeLayerId,
-  activeTool,
-  setActiveTool,
-  brushColor,
-  setBrushColor,
-  brushSize,
-  brushOpacity,
-  brushFlow,
-  brushType,
   saveToHistory,
   onDraw,
 }) => {
+  const {
+    layers,
+    setLayers,
+    activeLayerId,
+    activeTool,
+    setActiveTool,
+    brushColor,
+    setBrushColor,
+    brushSize,
+    brushOpacity,
+    brushFlow,
+    brushType,
+    zoom,
+    setZoom
+  } = useSketchbookStore();
+
   const mainCanvasRef = useRef(null);
 
   // View State
-  const [zoom, setZoom] = useState(1);
+  // zoom is managed by store
   const [rotation, setRotation] = useState(0);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);

@@ -1,4 +1,5 @@
 import React from "react";
+import { useSketchbookStore } from "../store/useSketchbookStore";
 import {
   FiLayers,
   FiPlus,
@@ -17,18 +18,19 @@ const BLEND_MODES = [
   { value: "lighten", label: "Lighten" },
 ];
 
-const LayersPanel = ({
-  layers,
-  activeLayerId,
-  setActiveLayerId,
-  addLayer,
-  toggleLayerVisibility,
-  duplicateLayer,
-  deleteLayer,
-  updateLayerOpacity,
-  updateLayerBlendMode,
-  mergeDown,
-}) => {
+const LayersPanel = () => {
+  const {
+    layers,
+    activeLayerId,
+    setActiveLayerId,
+    addLayer,
+    toggleLayerVisibility,
+    duplicateLayer,
+    deleteLayer,
+    updateLayerOpacity,
+    updateLayerBlendMode,
+    mergeDown,
+  } = useSketchbookStore();
   return (
     <div className="flex-1 overflow-y-auto custom-scrollbar p-4">
       <div className="flex items-center justify-between mb-4">

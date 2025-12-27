@@ -27,16 +27,7 @@ import LayersPanel from "../components/LayersPanel";
 import BrushSettings from "../components/BrushSettings";
 import ColorPickerPanel from "../components/ColorPickerPanel";
 import { useCanvas } from "../hooks/useCanvas";
-
-const BRUSH_TYPES = {
-  PENCIL: { name: "Pencil", icon: FiEdit3 },
-  PEN: { name: "Pen", icon: FiPenTool },
-  PAINTBRUSH: { name: "Brush", icon: FiFeather },
-  MARKER: { name: "Marker", icon: FiEdit },
-  AIRBRUSH: { name: "Airbrush", icon: FiWind },
-  SMUDGE: { name: "Smudge", icon: FiSlash },
-  ERASER: { name: "Eraser", icon: FiXCircle },
-};
+import { useSketchbookStore, BRUSH_TYPES } from "../store/useSketchbookStore";
 
 const SketchbookPro = ({
   embedded = false,
@@ -64,54 +55,23 @@ const SketchbookPro = ({
   const [gamePrompt, setGamePrompt] = useState(gamePromptProp);
   const [gameNickname, setGameNickname] = useState(gameNicknameProp);
 
-  // Canvas dimensions
-  const [canvasWidth, setCanvasWidth] = useState(1200);
-  const [canvasHeight, setCanvasHeight] = useState(800);
-
-  // Drawing state
-  const [brushColor, setBrushColor] = useState("#000000");
-  const [brushSize, setBrushSize] = useState(5);
-  const [brushOpacity, setBrushOpacity] = useState(100);
-  const [brushFlow, setBrushFlow] = useState(100);
-  const [brushType, setBrushType] = useState("PAINTBRUSH");
-
-  // Layer management
-  const [layers, setLayers] = useState([
-    {
-      id: 1,
-      name: "Background",
-      visible: true,
-      opacity: 100,
-      blendMode: "source-over",
-      data: null,
-      locked: false,
-    },
-  ]);
-  const [activeLayerId, setActiveLayerId] = useState(1);
-  const [nextLayerId, setNextLayerId] = useState(2);
-
-  // Color tools
-  const [swatches, setSwatches] = useState([
-    "#000000",
-    "#FFFFFF",
-    "#FF0000",
-    "#00FF00",
-    "#0000FF",
-    "#FFFF00",
-    "#FF00FF",
-    "#00FFFF",
-    "#FFA500",
-    "#800080",
-    "#FFC0CB",
-    "#8B4513",
-    "#A52A2A",
-    "#DEB887",
-    "#5F9EA0",
-    "#7FFF00",
-    "#D2691E",
-    "#FF7F50",
-  ]);
-  const [hsl, setHsl] = useState({ h: 0, s: 100, l: 50 });
+  // Canvas dimensions & State from Store
+  const {
+    canvasWidth, setCanvasWidth,
+    canvasHeight, setCanvasHeight,
+    brushColor, setBrushColor,
+    brushSize, setBrushSize,
+    brushOpacity, setBrushOpacity,
+    brushFlow, setBrushFlow,
+    brushType, setBrushType,
+    layers, setLayers,
+    activeLayerId, setActiveLayerId,
+    swatches, setSwatches,
+    hsl, setHsl,
+    activeTool, setActiveTool,
+    zoom, setZoom,
+    addLayer, deleteLayer, duplicateLayer, toggleLayerVisibility, updateLayerOpacity, updateLayerBlendMode, mergeDown
+  } = useSketchbookStore();
 
   // Remix source (optional)
   const [remixImageUrl, setRemixImageUrl] = useState(null);
@@ -128,7 +88,6 @@ const SketchbookPro = ({
   const [uploading, setUploading] = useState(false);
   const [showLayersPanel, setShowLayersPanel] = useState(true);
   const [showColorPanel, setShowColorPanel] = useState(true);
-  const [activeTool, setActiveTool] = useState("brush");
   const [showBrushSettings, setShowBrushSettings] = useState(false);
   const [showCanvasSettings, setShowCanvasSettings] = useState(false);
 
@@ -214,8 +173,7 @@ const SketchbookPro = ({
 
   const {
     mainCanvasRef,
-    zoom,
-    setZoom,
+    // zoom and setZoom are now from store directly
     rotation,
     setRotation,
     panOffset,
@@ -228,17 +186,6 @@ const SketchbookPro = ({
     handleZoomOut,
     resetView,
   } = useCanvas({
-    layers,
-    setLayers,
-    activeLayerId,
-    activeTool,
-    setActiveTool,
-    brushColor,
-    setBrushColor,
-    brushSize,
-    brushOpacity,
-    brushFlow,
-    brushType,
     saveToHistory,
   });
 
@@ -362,106 +309,8 @@ const SketchbookPro = ({
     return `rgba(${r}, ${g}, ${b}, ${alpha})`;
   };
 
-  // Layer management
-  const addLayer = () => {
-    const newCanvas = document.createElement("canvas");
-    newCanvas.width = canvasWidth;
-    newCanvas.height = canvasHeight;
+  // Layer management handled by store
 
-    const newLayer = {
-      id: nextLayerId,
-      name: `Layer ${nextLayerId}`,
-      visible: true,
-      opacity: 100,
-      blendMode: "source-over",
-      data: newCanvas,
-      locked: false,
-    };
-
-    setLayers((prev) => [...prev, newLayer]);
-    setActiveLayerId(nextLayerId);
-    setNextLayerId((prev) => prev + 1);
-    toast.success("New layer created");
-  };
-
-  const deleteLayer = (layerId) => {
-    if (layers.length === 1) {
-      toast.error("Cannot delete the last layer");
-      return;
-    }
-
-    setLayers((prev) => prev.filter((l) => l.id !== layerId));
-    if (activeLayerId === layerId) {
-      setActiveLayerId(layers[0].id);
-    }
-    saveToHistory();
-  };
-
-  const duplicateLayer = (layerId) => {
-    const layer = layers.find((l) => l.id === layerId);
-    if (!layer) return;
-
-    const newCanvas = document.createElement("canvas");
-    newCanvas.width = canvasWidth;
-    newCanvas.height = canvasHeight;
-    const newCtx = newCanvas.getContext("2d");
-    if (layer.data) {
-      newCtx.drawImage(layer.data, 0, 0);
-    }
-
-    const newLayer = {
-      ...layer,
-      id: nextLayerId,
-      name: `${layer.name} copy`,
-      data: newCanvas,
-    };
-
-    setLayers((prev) => [...prev, newLayer]);
-    setNextLayerId((prev) => prev + 1);
-    toast.success("Layer duplicated");
-  };
-
-  const toggleLayerVisibility = (layerId) => {
-    setLayers((prev) =>
-      prev.map((l) => (l.id === layerId ? { ...l, visible: !l.visible } : l))
-    );
-  };
-
-  const updateLayerOpacity = (layerId, opacity) => {
-    setLayers((prev) =>
-      prev.map((l) => (l.id === layerId ? { ...l, opacity } : l))
-    );
-  };
-
-  const updateLayerBlendMode = (layerId, blendMode) => {
-    setLayers((prev) =>
-      prev.map((l) => (l.id === layerId ? { ...l, blendMode } : l))
-    );
-  };
-
-  const mergeDown = (layerId) => {
-    const layerIndex = layers.findIndex((l) => l.id === layerId);
-    if (layerIndex === 0) {
-      toast.error("Cannot merge down the bottom layer");
-      return;
-    }
-
-    const currentLayer = layers[layerIndex];
-    const belowLayer = layers[layerIndex - 1];
-
-    if (!currentLayer.data || !belowLayer.data) return;
-
-    const ctx = belowLayer.data.getContext("2d");
-    ctx.save();
-    ctx.globalAlpha = currentLayer.opacity / 100;
-    ctx.globalCompositeOperation = currentLayer.blendMode;
-    ctx.drawImage(currentLayer.data, 0, 0);
-    ctx.restore();
-
-    setLayers((prev) => prev.filter((l) => l.id !== layerId));
-    toast.success("Layers merged");
-    saveToHistory();
-  };
 
   // Undo/Redo functions
   const restoreFromHistory = useCallback(
@@ -575,12 +424,6 @@ const SketchbookPro = ({
     }
   };
 
-  // Add swatch
-  const addSwatch = (color) => {
-    if (!swatches.includes(color)) {
-      setSwatches((prev) => [...prev, color]);
-    }
-  };
 
   // Export
   const handleDownload = () => {
@@ -1120,26 +963,12 @@ const SketchbookPro = ({
 
               {/* Brush Settings Expandable */}
               {showBrushSettings && (
-                <BrushSettings
-                  brushSize={brushSize}
-                  setBrushSize={setBrushSize}
-                  brushOpacity={brushOpacity}
-                  setBrushOpacity={setBrushOpacity}
-                  brushFlow={brushFlow}
-                  setBrushFlow={setBrushFlow}
-                />
+                <BrushSettings />
               )}
             </div>
 
             {/* Color Picker Section */}
-            <ColorPickerPanel
-              brushColor={brushColor}
-              setBrushColor={setBrushColor}
-              hsl={hsl}
-              setHsl={setHsl}
-              swatches={swatches}
-              addSwatch={addSwatch}
-            />
+            <ColorPickerPanel />
           </div>
         </div>
 
@@ -1210,18 +1039,7 @@ const SketchbookPro = ({
 
         {/* Right Sidebar - Layers */}
         <div className="w-72 bg-[#202020] border-l border-[#333] flex flex-col z-10 shadow-xl">
-          <LayersPanel
-            layers={layers}
-            activeLayerId={activeLayerId}
-            setActiveLayerId={setActiveLayerId}
-            addLayer={addLayer}
-            toggleLayerVisibility={toggleLayerVisibility}
-            duplicateLayer={duplicateLayer}
-            deleteLayer={deleteLayer}
-            updateLayerOpacity={updateLayerOpacity}
-            updateLayerBlendMode={updateLayerBlendMode}
-            mergeDown={mergeDown}
-          />
+          <LayersPanel />
 
           {/* Post Section (Bottom of Right Sidebar) */}
           {!gameMode && (

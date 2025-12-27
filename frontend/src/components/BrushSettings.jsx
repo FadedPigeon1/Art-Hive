@@ -1,34 +1,23 @@
 import React from "react";
-import {
-  FiEdit3,
-  FiPenTool,
-  FiFeather,
-  FiEdit,
-  FiWind,
-  FiSlash,
-  FiXCircle,
-} from "react-icons/fi";
+import { useSketchbookStore, BRUSH_TYPES } from "../store/useSketchbookStore";
 
-const BRUSH_TYPES = {
-  PENCIL: { name: "Pencil", icon: FiEdit3 },
-  PEN: { name: "Pen", icon: FiPenTool },
-  PAINTBRUSH: { name: "Brush", icon: FiFeather },
-  MARKER: { name: "Marker", icon: FiEdit },
-  AIRBRUSH: { name: "Airbrush", icon: FiWind },
-  SMUDGE: { name: "Smudge", icon: FiSlash },
-  ERASER: { name: "Eraser", icon: FiXCircle },
-};
+const BrushSettings = () => {
+  const {
+    brushType,
+    brushSize,
+    brushOpacity,
+    brushFlow,
+    setBrushType,
+    setBrushSize,
+    setBrushOpacity,
+    setBrushFlow,
+  } = useSketchbookStore();
 
-const BrushSettings = ({
-  brushType,
-  brushSize,
-  brushOpacity,
-  brushFlow,
-  onBrushTypeChange,
-  onBrushSizeChange,
-  onBrushOpacityChange,
-  onBrushFlowChange,
-}) => {
+  const onBrushTypeChange = setBrushType;
+  const onBrushSizeChange = setBrushSize;
+  const onBrushOpacityChange = setBrushOpacity;
+  const onBrushFlowChange = setBrushFlow;
+
   return (
     <div className="bg-surface-light dark:bg-surface-dark rounded-xl p-4 border border-border-light dark:border-border-dark">
       <h3 className="font-semibold text-text-primary-light dark:text-text-primary-dark mb-3">
