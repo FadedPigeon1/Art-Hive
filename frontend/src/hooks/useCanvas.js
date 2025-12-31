@@ -2,10 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import { useSketchbookStore } from "../store/useSketchbookStore";
 
-export const useCanvas = ({
-  saveToHistory,
-  onDraw,
-}) => {
+export const useCanvas = ({ saveToHistory, onDraw }) => {
   const {
     layers,
     setLayers,
@@ -19,7 +16,7 @@ export const useCanvas = ({
     brushFlow,
     brushType,
     zoom,
-    setZoom
+    setZoom,
   } = useSketchbookStore();
 
   const mainCanvasRef = useRef(null);

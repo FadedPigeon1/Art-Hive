@@ -57,20 +57,39 @@ const SketchbookPro = ({
 
   // Canvas dimensions & State from Store
   const {
-    canvasWidth, setCanvasWidth,
-    canvasHeight, setCanvasHeight,
-    brushColor, setBrushColor,
-    brushSize, setBrushSize,
-    brushOpacity, setBrushOpacity,
-    brushFlow, setBrushFlow,
-    brushType, setBrushType,
-    layers, setLayers,
-    activeLayerId, setActiveLayerId,
-    swatches, setSwatches,
-    hsl, setHsl,
-    activeTool, setActiveTool,
-    zoom, setZoom,
-    addLayer, deleteLayer, duplicateLayer, toggleLayerVisibility, updateLayerOpacity, updateLayerBlendMode, mergeDown
+    canvasWidth,
+    setCanvasWidth,
+    canvasHeight,
+    setCanvasHeight,
+    brushColor,
+    setBrushColor,
+    brushSize,
+    setBrushSize,
+    brushOpacity,
+    setBrushOpacity,
+    brushFlow,
+    setBrushFlow,
+    brushType,
+    setBrushType,
+    layers,
+    setLayers,
+    activeLayerId,
+    setActiveLayerId,
+    swatches,
+    setSwatches,
+    hsl,
+    setHsl,
+    activeTool,
+    setActiveTool,
+    zoom,
+    setZoom,
+    addLayer,
+    deleteLayer,
+    duplicateLayer,
+    toggleLayerVisibility,
+    updateLayerOpacity,
+    updateLayerBlendMode,
+    mergeDown,
   } = useSketchbookStore();
 
   // Remix source (optional)
@@ -311,7 +330,6 @@ const SketchbookPro = ({
 
   // Layer management handled by store
 
-
   // Undo/Redo functions
   const restoreFromHistory = useCallback(
     (step) => {
@@ -423,7 +441,6 @@ const SketchbookPro = ({
       saveToHistory();
     }
   };
-
 
   // Export
   const handleDownload = () => {
@@ -962,9 +979,7 @@ const SketchbookPro = ({
               </div>
 
               {/* Brush Settings Expandable */}
-              {showBrushSettings && (
-                <BrushSettings />
-              )}
+              {showBrushSettings && <BrushSettings />}
             </div>
 
             {/* Color Picker Section */}

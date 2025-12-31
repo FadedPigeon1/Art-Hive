@@ -2,14 +2,8 @@ import React from "react";
 import { useSketchbookStore } from "../store/useSketchbookStore";
 
 const ColorPickerPanel = () => {
-  const {
-    brushColor,
-    setBrushColor,
-    hsl,
-    setHsl,
-    swatches,
-    addSwatch,
-  } = useSketchbookStore();
+  const { brushColor, setBrushColor, hsl, setHsl, swatches, addSwatch } =
+    useSketchbookStore();
   return (
     <div>
       <h3 className="text-[10px] uppercase tracking-wider text-gray-500 mb-3 font-bold">
