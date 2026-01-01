@@ -7,6 +7,7 @@ import {
   FiWind,
   FiSlash,
   FiXCircle,
+  FiCloud,
 } from "react-icons/fi";
 
 export const BRUSH_TYPES = {
@@ -15,6 +16,7 @@ export const BRUSH_TYPES = {
   PAINTBRUSH: { name: "Brush", icon: FiFeather },
   MARKER: { name: "Marker", icon: FiEdit },
   AIRBRUSH: { name: "Airbrush", icon: FiWind },
+  CHARCOAL: { name: "Charcoal", icon: FiCloud },
   SMUDGE: { name: "Smudge", icon: FiSlash },
   ERASER: { name: "Eraser", icon: FiXCircle },
 };

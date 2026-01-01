@@ -24,7 +24,7 @@ export const useBrushEngine = () => {
         return {
           lineCap: "round",
           lineJoin: "round",
-          lineWidth: brushSize * 0.5,
+          lineWidth: Math.max(1, brushSize * 0.5),
           strokeStyle: color,
           globalCompositeOperation: "source-over",
           shadowBlur: 0,
@@ -53,10 +53,10 @@ export const useBrushEngine = () => {
 
       case "MARKER":
         return {
-          lineCap: "round",
+          lineCap: "square",
           lineJoin: "round",
           lineWidth: brushSize * 1.5,
-          strokeStyle: hexToRgba(brushColor, opacity * 0.6),
+          strokeStyle: hexToRgba(brushColor, opacity * 0.5),
           globalCompositeOperation: "multiply",
           shadowBlur: 0,
         };
@@ -66,9 +66,20 @@ export const useBrushEngine = () => {
           lineCap: "round",
           lineJoin: "round",
           lineWidth: brushSize * 2,
-          strokeStyle: hexToRgba(brushColor, opacity * 0.1),
+          strokeStyle: hexToRgba(brushColor, opacity * 0.2),
           globalCompositeOperation: "source-over",
           shadowBlur: brushSize * 0.8,
+          shadowColor: color,
+        };
+
+      case "CHARCOAL":
+        return {
+          lineCap: "butt",
+          lineJoin: "round",
+          lineWidth: brushSize,
+          strokeStyle: hexToRgba(brushColor, opacity * 0.6),
+          globalCompositeOperation: "source-over",
+          shadowBlur: brushSize * 0.5,
           shadowColor: color,
         };
 
@@ -77,7 +88,7 @@ export const useBrushEngine = () => {
           lineCap: "round",
           lineJoin: "round",
           lineWidth: brushSize,
-          strokeStyle: color,
+          strokeStyle: "rgba(0,0,0,0)", // Transparent stroke for smudge
           globalCompositeOperation: "source-over",
           shadowBlur: 0,
         };

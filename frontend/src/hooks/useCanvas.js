@@ -89,6 +89,12 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
         shadowBlur: brushSize * 2,
         lineCap: "round",
       },
+      CHARCOAL: {
+        strokeStyle: hexToRgba(brushColor, opacity * 0.6),
+        lineWidth: brushSize,
+        shadowBlur: brushSize * 0.5,
+        lineCap: "butt",
+      },
       SMUDGE: {
         strokeStyle: brushColor,
         lineWidth: brushSize,
@@ -154,15 +160,8 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
     setLastPoint(coords);
 
     if (brushType === "SMUDGE") {
-      // Initialize smudge tool
-      const ctx = activeLayer.data.getContext("2d");
-      const imageData = ctx.getImageData(
-        coords.x - brushSize,
-        coords.y - brushSize,
-        brushSize * 2,
-        brushSize * 2
-      );
-      setLastPoint({ ...coords, imageData });
+      // Initialize smudge tool - capture initial area
+      // No-op for new smudge logic as it samples continuously
     }
   };
 
@@ -214,30 +213,88 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
     ctx.shadowColor = brushColor;
 
     if (brushType === "AIRBRUSH") {
-      // Spray effect
-      for (let i = 0; i < brushSize * 2; i++) {
+      // Improved Airbrush: Gaussian distribution for smoother spray
+      const density = brushSize * 2; // Adjust density based on size
+      for (let i = 0; i < density; i++) {
+        // Random angle and radius with bias towards center (Gaussian-like)
         const angle = Math.random() * Math.PI * 2;
-        const radius = Math.random() * brushSize;
+        const radius = Math.random() * brushSize * Math.random(); // Bias towards center
         const offsetX = Math.cos(angle) * radius;
         const offsetY = Math.sin(angle) * radius;
 
         ctx.fillStyle = settings.strokeStyle;
-        ctx.fillRect(coords.x + offsetX, coords.y + offsetY, 1, 1);
+        // Vary dot size slightly for natural look
+        const dotSize = Math.random() * 1.5 + 0.5;
+        ctx.globalAlpha = Math.random() * 0.5 + 0.5; // Vary opacity
+        ctx.beginPath();
+        ctx.arc(
+          coords.x + offsetX,
+          coords.y + offsetY,
+          dotSize / 2,
+          0,
+          Math.PI * 2
+        );
+        ctx.fill();
       }
-    } else if (brushType === "SMUDGE" && lastPoint.imageData) {
-      // Smudge effect
-      ctx.putImageData(
-        lastPoint.imageData,
-        coords.x - brushSize,
-        coords.y - brushSize
+    } else if (brushType === "CHARCOAL") {
+      // Improved Charcoal: Textured, rough strokes
+      const steps = Math.ceil(
+        Math.hypot(coords.x - lastPoint.x, coords.y - lastPoint.y)
       );
-      const newImageData = ctx.getImageData(
-        coords.x - brushSize,
-        coords.y - brushSize,
-        brushSize * 2,
-        brushSize * 2
-      );
-      setLastPoint({ ...coords, imageData: newImageData });
+      const stepX = (coords.x - lastPoint.x) / steps;
+      const stepY = (coords.y - lastPoint.y) / steps;
+
+      for (let i = 0; i < steps; i++) {
+        const x = lastPoint.x + stepX * i;
+        const y = lastPoint.y + stepY * i;
+
+        // Draw multiple scratchy lines around the center
+        const scratches = 5;
+        for (let j = 0; j < scratches; j++) {
+          const offsetX = (Math.random() - 0.5) * brushSize;
+          const offsetY = (Math.random() - 0.5) * brushSize;
+          const size = Math.random() * 2 + 1;
+
+          ctx.fillStyle = settings.strokeStyle;
+          ctx.globalAlpha = Math.random() * 0.3 + 0.1; // Low opacity for buildup
+          ctx.fillRect(x + offsetX, y + offsetY, size, size);
+        }
+      }
+    } else if (brushType === "SMUDGE") {
+      // Improved Smudge: Drag colors from previous position
+      // We need to sample the canvas at the previous point and draw it at the current point
+      // with low opacity to simulate dragging wet paint.
+
+      // 1. Sample a larger area from the previous point
+      const sampleSize = brushSize * 2;
+      const sampleX = lastPoint.x - brushSize;
+      const sampleY = lastPoint.y - brushSize;
+
+      // Ensure we are within bounds (basic check, canvas clips anyway)
+      try {
+        const imageData = ctx.getImageData(
+          sampleX,
+          sampleY,
+          sampleSize,
+          sampleSize
+        );
+
+        // 2. Create a temporary canvas to manipulate the sampled data (optional, but good for effects)
+        // For simplicity, we just put it back at the new location with transparency
+
+        // 3. Draw the sampled data at the new location
+        // We use a temporary canvas to apply globalAlpha to the putImageData result
+        const tempCanvas = document.createElement("canvas");
+        tempCanvas.width = sampleSize;
+        tempCanvas.height = sampleSize;
+        const tempCtx = tempCanvas.getContext("2d");
+        tempCtx.putImageData(imageData, 0, 0);
+
+        ctx.globalAlpha = 0.5; // Smudge strength
+        ctx.drawImage(tempCanvas, coords.x - brushSize, coords.y - brushSize);
+      } catch (e) {
+        // Ignore out of bounds errors
+      }
     } else if (brushType === "MARKER") {
       // Marker effect - Multiply blending for buildup
       ctx.globalCompositeOperation = "multiply";
@@ -252,23 +309,28 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
       ctx.stroke();
       // Reset composite operation is handled by ctx.restore()
     } else if (brushType === "PENCIL") {
-      // Pencil effect - slightly rougher
+      // Improved Pencil: Texture and jitter
       ctx.beginPath();
-      if (lastPoint) {
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(coords.x, coords.y);
-      } else {
-        ctx.moveTo(coords.x, coords.y);
-        ctx.lineTo(coords.x, coords.y);
-      }
+      ctx.moveTo(lastPoint.x, lastPoint.y);
+      ctx.lineTo(coords.x, coords.y);
       ctx.stroke();
 
-      // Add noise for texture
-      if (Math.random() > 0.5) {
-        const noiseX = (Math.random() - 0.5) * 2;
-        const noiseY = (Math.random() - 0.5) * 2;
-        ctx.fillStyle = settings.strokeStyle;
-        ctx.fillRect(coords.x + noiseX, coords.y + noiseY, 1, 1);
+      // Add grain
+      const distance = Math.hypot(
+        coords.x - lastPoint.x,
+        coords.y - lastPoint.y
+      );
+      const grains = Math.floor(distance * 0.5);
+
+      ctx.fillStyle = settings.strokeStyle;
+      for (let i = 0; i < grains; i++) {
+        const t = Math.random();
+        const x = lastPoint.x + (coords.x - lastPoint.x) * t;
+        const y = lastPoint.y + (coords.y - lastPoint.y) * t;
+        const offsetX = (Math.random() - 0.5) * brushSize * 0.5;
+        const offsetY = (Math.random() - 0.5) * brushSize * 0.5;
+
+        ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
       }
     } else {
       // Standard brush stroke (Pen, Paintbrush, Eraser)
