@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { FiX, FiImage, FiUpload } from "react-icons/fi";
 import { postsAPI, groupsAPI } from "../utils/api";
+import client from "../utils/api/client";
 import { useAuth } from "../context/AuthContext";
 import { toast } from "react-toastify";
-import axios from "axios";
 
 const UploadArtModal = ({
   isOpen,
@@ -82,9 +82,6 @@ const UploadArtModal = ({
     setUploading(true);
 
     try {
-      const token = localStorage.getItem("token");
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
       const formData = new FormData();
       formData.append("title", title.trim());
       formData.append("caption", description.trim());
@@ -100,7 +97,7 @@ const UploadArtModal = ({
       // If this is for a daily challenge, complete it
       if (challengeId && response.data._id) {
         try {
-          await axios.post(`/api/challenges/${challengeId}/complete`, {
+          await client.post(`/api/challenges/${challengeId}/complete`, {
             postId: response.data._id,
           });
           toast.success("Daily challenge completed! 🎉");

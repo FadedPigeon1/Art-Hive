@@ -1,5 +1,5 @@
 import React, { createContext, useState, useContext, useEffect } from "react";
-import axios from "axios";
+import client from "../utils/api/client";
 
 const AuthContext = createContext();
 
@@ -16,10 +16,9 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState(localStorage.getItem("token"));
 
-  // Set axios default authorization header
+  // Load user when token changes
   useEffect(() => {
     if (token && token !== "null" && token !== "undefined") {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
       loadUser();
     } else {
       // Clear invalid token
@@ -27,14 +26,13 @@ export const AuthProvider = ({ children }) => {
         localStorage.removeItem("token");
         setToken(null);
       }
-      delete axios.defaults.headers.common["Authorization"];
       setLoading(false);
     }
   }, [token]);
 
   const loadUser = async () => {
     try {
-      const { data } = await axios.get("/api/auth/me");
+      const { data } = await client.get("/api/auth/me");
       setUser(data);
     } catch (error) {
       console.error("Failed to load user:", error);
@@ -49,7 +47,10 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (email, password) => {
     try {
-      const { data } = await axios.post("/api/auth/login", { email, password });
+      const { data } = await client.post("/api/auth/login", {
+        email,
+        password,
+      });
       localStorage.setItem("token", data.token);
       setToken(data.token);
       setUser(data);
@@ -64,7 +65,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const { data } = await axios.post("/api/auth/register", {
+      const { data } = await client.post("/api/auth/register", {
         username,
         email,
         password,
@@ -85,12 +86,11 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem("token");
     setToken(null);
     setUser(null);
-    delete axios.defaults.headers.common["Authorization"];
   };
 
   const updateProfile = async (profileData) => {
     try {
-      const { data } = await axios.put("/api/auth/profile", profileData);
+      const { data } = await client.put("/api/auth/profile", profileData);
       // Update token if new one is provided
       if (data.token) {
         localStorage.setItem("token", data.token);
@@ -125,7 +125,7 @@ export const AuthProvider = ({ children }) => {
   };
   const followUser = async (userId) => {
     try {
-      await axios.put(`/api/auth/follow/${userId}`);
+      await client.put(`/api/auth/follow/${userId}`);
       // Reload user data to get updated following list
       await loadUser();
       return { success: true };
@@ -139,7 +139,7 @@ export const AuthProvider = ({ children }) => {
 
   const unfollowUser = async (userId) => {
     try {
-      await axios.put(`/api/auth/unfollow/${userId}`);
+      await client.put(`/api/auth/unfollow/${userId}`);
       // Reload user data to get updated following list
       await loadUser();
       return { success: true };

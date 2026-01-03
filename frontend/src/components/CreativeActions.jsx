@@ -2,7 +2,7 @@ import React, { useMemo, useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { FaPalette, FaGamepad } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
+import client from "../utils/api/client";
 
 const CreativeActions = () => {
   const { user } = useAuth();
@@ -53,7 +53,7 @@ const CreativeActions = () => {
   useEffect(() => {
     const fetchChallengeData = async () => {
       try {
-        const { data } = await axios.get("/api/challenges/today");
+        const { data } = await client.get("/api/challenges/today");
         setChallengeData(data.challenge);
       } catch (error) {
         console.error("Error fetching challenge:", error);

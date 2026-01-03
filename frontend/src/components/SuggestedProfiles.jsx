@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { authAPI } from "../utils/api";
+import { authAPI, socialAPI } from "../utils/api";
 import { useAuth } from "../context/AuthContext";
-import axios from "axios";
 import { toast } from "react-toastify";
 import { getProfilePicture } from "../utils/imageHelpers";
 
@@ -38,9 +37,7 @@ const SuggestedProfiles = () => {
         return;
       }
 
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-
-      const response = await authAPI.getSuggestedUsers();
+      const response = await socialAPI.getSuggestedUsers();
       setSuggestedUsers(response.data);
       setLoading(false);
     } catch (error) {

@@ -3,7 +3,7 @@ import { io } from "socket.io-client";
 import { toast } from "react-toastify";
 import { gameAPI } from "../utils/api";
 
-const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5000";
+const SOCKET_URL = process.env.REACT_APP_SOCKET_URL || "http://localhost:5001";
 
 export const useGameSocket = ({
   setSocket,
