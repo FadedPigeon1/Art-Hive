@@ -37,6 +37,23 @@ const createGroup = async (req, res) => {
 // @access  Public
 const getGroups = async (req, res) => {
   try {
+    const limit = parseInt(req.query.limit) || 0;
+
+    if (limit > 0) {
+      const groups = await Group.aggregate([
+        {
+          $addFields: { membersCount: { $size: "$members" } },
+        },
+        {
+          $sort: { membersCount: -1 },
+        },
+        {
+          $limit: limit,
+        },
+      ]);
+      return res.json(groups);
+    }
+
     const groups = await Group.find({});
     res.json(groups);
   } catch (error) {

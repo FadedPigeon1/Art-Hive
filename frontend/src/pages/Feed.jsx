@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from "react";
 import PostCard from "../components/PostCard";
 import PostDetailModal from "../components/PostDetailModal";
 import SuggestedProfiles from "../components/SuggestedProfiles";
+import FeaturedGroups from "../components/FeaturedGroups";
 import TrendingCarousel from "../components/TrendingCarousel";
 import CreativeActions from "../components/CreativeActions";
 import { postsAPI } from "../utils/api";
@@ -199,6 +200,7 @@ const Feed = () => {
           {/* Sidebar Column */}
           <div className="hidden lg:block space-y-8">
             <CreativeActions />
+            <FeaturedGroups />
             <SuggestedProfiles />
           </div>
         </div>

@@ -1,7 +1,8 @@
 import client from "./client";
 
 export const groupsAPI = {
-  getAll: () => client.get("/api/groups").then((res) => res.data),
+  getAll: (params) =>
+    client.get("/api/groups", { params }).then((res) => res.data),
   create: (data) => client.post("/api/groups", data).then((res) => res.data),
   update: (id, data) =>
     client.put(`/api/groups/${id}`, data).then((res) => res.data),
