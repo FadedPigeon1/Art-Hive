@@ -598,3 +598,19 @@ export const getGameResults = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+// @desc    Get active game sessions
+// @route   GET /api/game/active
+// @access  Public
+export const getActiveGameSessions = async (req, res) => {
+  try {
+    const sessions = await GameSession.find({ status: "waiting" })
+      .sort({ createdAt: -1 })
+      .limit(5)
+      .select("code hostId players maxPlayers gameMode timeLimit createdAt");
+
+    res.json(sessions);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};

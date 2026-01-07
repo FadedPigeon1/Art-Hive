@@ -37,23 +37,6 @@ const createGroup = async (req, res) => {
 // @access  Public
 const getGroups = async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 0;
-
-    if (limit > 0) {
-      const groups = await Group.aggregate([
-        {
-          $addFields: { membersCount: { $size: "$members" } },
-        },
-        {
-          $sort: { membersCount: -1 },
-        },
-        {
-          $limit: limit,
-        },
-      ]);
-      return res.json(groups);
-    }
-
     const groups = await Group.find({});
     res.json(groups);
   } catch (error) {
@@ -183,6 +166,30 @@ const updateGroup = async (req, res) => {
   }
 };
 
+// @desc    Get trending groups (most members)
+// @route   GET /api/groups/trending
+// @access  Public
+const getTrendingGroups = async (req, res) => {
+  try {
+    const groups = await Group.aggregate([
+      {
+        $project: {
+          name: 1,
+          description: 1,
+          icon: 1,
+          membersCount: { $size: "$members" },
+          isPrivate: 1,
+        }
+      },
+      { $sort: { membersCount: -1 } },
+      { $limit: 5 }
+    ]);
+    res.json(groups);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
 export {
   createGroup,
   getGroups,
@@ -191,4 +198,5 @@ export {
   leaveGroup,
   getGroupPosts,
   updateGroup,
+  getTrendingGroups,
 };

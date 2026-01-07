@@ -1,8 +1,7 @@
 import client from "./client";
 
 export const groupsAPI = {
-  getAll: (params) =>
-    client.get("/api/groups", { params }).then((res) => res.data),
+  getAll: () => client.get("/api/groups").then((res) => res.data),
   create: (data) => client.post("/api/groups", data).then((res) => res.data),
   update: (id, data) =>
     client.put(`/api/groups/${id}`, data).then((res) => res.data),
@@ -11,4 +10,5 @@ export const groupsAPI = {
   leave: (id) => client.put(`/api/groups/${id}/leave`).then((res) => res.data),
   getPosts: (id) =>
     client.get(`/api/groups/${id}/posts`).then((res) => res.data),
+  getTrending: () => client.get("/api/groups/trending").then((res) => res.data),
 };

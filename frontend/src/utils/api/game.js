@@ -20,5 +20,6 @@ export const gameAPI = {
   endGame: (code) => client.post(`/api/game/${code}/end`),
   leaveGame: (code, nickname) =>
     client.post(`/api/game/${code}/leave`, { nickname }),
+  getActiveGames: () => client.get("/api/game/active"),
   getResults: (code) => client.get(`/api/game/${code}/results`),
 };

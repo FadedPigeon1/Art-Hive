@@ -10,6 +10,7 @@ import {
   endGameSession,
   leaveGameSession,
   getGameResults,
+  getActiveGameSessions,
 } from "../controllers/gameController.js";
 import { optionalAuth } from "../middleware/authMiddleware.js";
 import upload from "../middleware/uploadMiddleware.js";
@@ -25,6 +26,11 @@ router.post("/create", createGameSession);
 // @desc    Join a game session
 // @access  Public
 router.post("/join", joinGameSession);
+
+// @route   GET /api/game/active
+// @desc    Get active game sessions
+// @access  Public
+router.get("/active", getActiveGameSessions);
 
 // @route   POST /api/game/:code/start
 // @desc    Start game session
