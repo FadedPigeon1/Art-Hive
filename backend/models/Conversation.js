@@ -17,6 +17,21 @@ const conversationSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    isGroup: {
+      type: Boolean,
+      default: false,
+    },
+    group: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Group",
+    },
+    groupName: {
+      type: String,
+    },
+    admin: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   {
     timestamps: true,
@@ -25,10 +40,11 @@ const conversationSchema = new mongoose.Schema(
 
 // Ensure only 2 participants (direct messaging)
 conversationSchema.pre("save", function (next) {
-  if (this.participants.length !== 2) {
-    next(new Error("Conversation must have exactly 2 participants"));
+  if (!this.isGroup && this.participants.length !== 2) {
+    next(new Error("Direct conversations must have exactly 2 participants"));
+  } else {
+    next();
   }
-  next();
 });
 
 // Index for efficient querying

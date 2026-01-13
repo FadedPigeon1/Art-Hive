@@ -1,6 +1,7 @@
 import Group from "../models/Group.js";
 import Post from "../models/Post.js";
 import User from "../models/User.js";
+import Conversation from "../models/Conversation.js";
 
 // @desc    Create a new group
 // @route   POST /api/groups
@@ -24,6 +25,15 @@ const createGroup = async (req, res) => {
       creator: req.user._id,
       admins: [req.user._id],
       members: [req.user._id],
+    });
+
+    // Automatically create a conversation for this group
+    await Conversation.create({
+      participants: [req.user._id],
+      isGroup: true,
+      group: group._id,
+      groupName: group.name,
+      admin: req.user._id
     });
 
     res.status(201).json(group);
@@ -179,10 +189,10 @@ const getTrendingGroups = async (req, res) => {
           icon: 1,
           membersCount: { $size: "$members" },
           isPrivate: 1,
-        }
+        },
       },
       { $sort: { membersCount: -1 } },
-      { $limit: 5 }
+      { $limit: 5 },
     ]);
     res.json(groups);
   } catch (error) {

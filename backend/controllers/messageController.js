@@ -15,6 +15,7 @@ export const getConversations = async (req, res) => {
       participants: req.user._id,
     })
       .populate("participants", "username profilePic")
+      .populate("group", "name icon")
       .populate({
         path: "lastMessage",
         populate: { path: "sender", select: "username" },
@@ -140,10 +141,10 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { conversationId } = req.params;
-    const { text } = req.body;
+    const { text, type, attachments } = req.body;
 
-    if (!text || !text.trim()) {
-      return res.status(400).json({ message: "Message text is required" });
+    if ((!text || !text.trim()) && (!attachments || attachments.length === 0)) {
+      return res.status(400).json({ message: "Message text or attachment is required" });
     }
 
     // Verify user is participant
@@ -160,7 +161,9 @@ export const sendMessage = async (req, res) => {
     const message = await Message.create({
       conversationId,
       sender: req.user._id,
-      text: text.trim(),
+      text: text ? text.trim() : "",
+      type: type || 'text',
+      attachments: attachments || []
     });
 
     // Update conversation
@@ -174,18 +177,14 @@ export const sendMessage = async (req, res) => {
       "username profilePic"
     );
 
-    // Emit real-time message
-    if (global.io && global.userSockets) {
-      const recipient = conversation.participants.find(
-        (p) => p.toString() !== req.user._id.toString()
-      );
-      const recipientSocketId = global.userSockets.get(recipient.toString());
-      if (recipientSocketId) {
-        global.io.to(recipientSocketId).emit("new-message", {
-          conversationId,
-          message: populatedMessage,
-        });
-      }
+    // Emit real-time message to the conversation room
+    if (global.io) {
+        global.io.to(conversationId).emit("new-message", populatedMessage);
+        
+        // Also emit notification to participants if they are online but not in the chat room
+        // (This part depends on how you track "in chat room" vs "online". 
+        // For simplicity, we just emit 'new-message' to the room which handles active chatters.
+        // You might want a separate 'notification' event for others.)
     }
 
     res.status(201).json(populatedMessage);

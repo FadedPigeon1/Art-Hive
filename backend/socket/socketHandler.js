@@ -41,6 +41,30 @@ export const initializeSocket = (io) => {
       console.log("User disconnected:", socket.id);
     });
 
+    // --- Chat Handlers ---
+    
+    // Join a conversation room (room ID = conversation ID)
+    socket.on("join-chat", (conversationId) => {
+      socket.join(conversationId);
+      console.log(`User ${socket.userId} joined chat ${conversationId}`);
+    });
+
+    // Handle sending a message
+    socket.on("send-message", (message) => {
+      const { conversationId } = message;
+      // Emit to everyone in the room
+      io.to(conversationId).emit("new-message", message);
+    });
+
+    // Handle typing indicators
+    socket.on("typing", ({ conversationId, username }) => {
+      socket.to(conversationId).emit("user-typing", { conversationId, username });
+    });
+
+    socket.on("stop-typing", ({ conversationId, username }) => {
+      socket.to(conversationId).emit("user-stop-typing", { conversationId, username });
+    });
+
     socket.on("join-game", ({ code, nickname }) => {
       socket.join(code);
 

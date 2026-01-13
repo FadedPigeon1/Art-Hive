@@ -15,10 +15,27 @@ const messageSchema = new mongoose.Schema(
     },
     text: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
       maxlength: 2000,
     },
+    type: {
+      type: String,
+      enum: ['text', 'image', 'system'],
+      default: 'text'
+    },
+    attachments: [{
+      url: String,
+      fileType: String
+    }],
+    reactions: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      emoji: String
+    }],
+    readBy: [{
+      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+      readAt: { type: Date, default: Date.now }
+    }],
     read: {
       type: Boolean,
       default: false,
