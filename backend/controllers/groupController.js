@@ -33,7 +33,7 @@ const createGroup = async (req, res) => {
       isGroup: true,
       group: group._id,
       groupName: group.name,
-      admin: req.user._id
+      admin: req.user._id,
     });
 
     res.status(201).json(group);

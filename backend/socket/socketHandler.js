@@ -42,7 +42,7 @@ export const initializeSocket = (io) => {
     });
 
     // --- Chat Handlers ---
-    
+
     // Join a conversation room (room ID = conversation ID)
     socket.on("join-chat", (conversationId) => {
       socket.join(conversationId);
@@ -58,11 +58,15 @@ export const initializeSocket = (io) => {
 
     // Handle typing indicators
     socket.on("typing", ({ conversationId, username }) => {
-      socket.to(conversationId).emit("user-typing", { conversationId, username });
+      socket
+        .to(conversationId)
+        .emit("user-typing", { conversationId, username });
     });
 
     socket.on("stop-typing", ({ conversationId, username }) => {
-      socket.to(conversationId).emit("user-stop-typing", { conversationId, username });
+      socket
+        .to(conversationId)
+        .emit("user-stop-typing", { conversationId, username });
     });
 
     socket.on("join-game", ({ code, nickname }) => {

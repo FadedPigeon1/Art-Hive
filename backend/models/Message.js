@@ -21,21 +21,27 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['text', 'image', 'system'],
-      default: 'text'
+      enum: ["text", "image", "system"],
+      default: "text",
     },
-    attachments: [{
-      url: String,
-      fileType: String
-    }],
-    reactions: [{
-      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      emoji: String
-    }],
-    readBy: [{
-      user: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-      readAt: { type: Date, default: Date.now }
-    }],
+    attachments: [
+      {
+        url: String,
+        fileType: String,
+      },
+    ],
+    reactions: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        emoji: String,
+      },
+    ],
+    readBy: [
+      {
+        user: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        readAt: { type: Date, default: Date.now },
+      },
+    ],
     read: {
       type: Boolean,
       default: false,

@@ -144,7 +144,9 @@ export const sendMessage = async (req, res) => {
     const { text, type, attachments } = req.body;
 
     if ((!text || !text.trim()) && (!attachments || attachments.length === 0)) {
-      return res.status(400).json({ message: "Message text or attachment is required" });
+      return res
+        .status(400)
+        .json({ message: "Message text or attachment is required" });
     }
 
     // Verify user is participant
@@ -162,8 +164,8 @@ export const sendMessage = async (req, res) => {
       conversationId,
       sender: req.user._id,
       text: text ? text.trim() : "",
-      type: type || 'text',
-      attachments: attachments || []
+      type: type || "text",
+      attachments: attachments || [],
     });
 
     // Update conversation
@@ -179,12 +181,12 @@ export const sendMessage = async (req, res) => {
 
     // Emit real-time message to the conversation room
     if (global.io) {
-        global.io.to(conversationId).emit("new-message", populatedMessage);
-        
-        // Also emit notification to participants if they are online but not in the chat room
-        // (This part depends on how you track "in chat room" vs "online". 
-        // For simplicity, we just emit 'new-message' to the room which handles active chatters.
-        // You might want a separate 'notification' event for others.)
+      global.io.to(conversationId).emit("new-message", populatedMessage);
+
+      // Also emit notification to participants if they are online but not in the chat room
+      // (This part depends on how you track "in chat room" vs "online".
+      // For simplicity, we just emit 'new-message' to the room which handles active chatters.
+      // You might want a separate 'notification' event for others.)
     }
 
     res.status(201).json(populatedMessage);

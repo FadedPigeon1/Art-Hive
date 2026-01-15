@@ -45,7 +45,7 @@ const Chat = ({ socket, isOpen, onClose }) => {
         fetchConversations();
       });
 
-      // Join chat rooms for all my conversations? 
+      // Join chat rooms for all my conversations?
       // Actually, typically the client emits "join-chat" for the active conversation
       // BUT current backend emits to room. If I don't join the room, I won't get it?
       // Check socketHandler.js: socket.on("join-chat", (id) => socket.join(id));
@@ -57,10 +57,10 @@ const Chat = ({ socket, isOpen, onClose }) => {
     }
   }, [socket, user, selectedConversation]);
 
-   // Join chat room when conversation is selected
-   useEffect(() => {
+  // Join chat room when conversation is selected
+  useEffect(() => {
     if (socket && selectedConversation) {
-        socket.emit("join-chat", selectedConversation._id);
+      socket.emit("join-chat", selectedConversation._id);
     }
   }, [socket, selectedConversation]);
 
@@ -144,17 +144,17 @@ const Chat = ({ socket, isOpen, onClose }) => {
 
   const getConversationDetails = (conversation) => {
     if (conversation.isGroup && conversation.group) {
-        return {
-            name: conversation.group.name || conversation.groupName || "Group Chat",
-            image: conversation.group.icon, // Assuming group has icon, or use default
-            isGroup: true
-        };
+      return {
+        name: conversation.group.name || conversation.groupName || "Group Chat",
+        image: conversation.group.icon, // Assuming group has icon, or use default
+        isGroup: true,
+      };
     }
     const other = getOtherParticipant(conversation);
     return {
-        name: other?.username || "Unknown User",
-        image: getProfilePicture(other?.profilePic),
-        isGroup: false
+      name: other?.username || "Unknown User",
+      image: getProfilePicture(other?.profilePic),
+      isGroup: false,
     };
   };
 
@@ -164,7 +164,9 @@ const Chat = ({ socket, isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const currentDetails = selectedConversation ? getConversationDetails(selectedConversation) : null;
+  const currentDetails = selectedConversation
+    ? getConversationDetails(selectedConversation)
+    : null;
 
   return ReactDOM.createPortal(
     <div className="fixed bottom-4 right-4 w-96 h-[600px] bg-background-light dark:bg-background-dark border-2 border-border-light dark:border-border-dark rounded-2xl shadow-2xl flex flex-col overflow-hidden z-50">
@@ -184,9 +186,7 @@ const Chat = ({ socket, isOpen, onClose }) => {
           )}
           <FiMessageCircle size={20} />
           <h3 className="font-bold truncate max-w-[200px]">
-            {currentDetails
-              ? currentDetails.name
-              : "Messages"}
+            {currentDetails ? currentDetails.name : "Messages"}
           </h3>
         </div>
         <button
@@ -284,14 +284,14 @@ const Chat = ({ socket, isOpen, onClose }) => {
                       isOwn ? "justify-end" : "justify-start"
                     }`}
                   >
-                   {!isOwn && selectedConversation.isGroup && (
-                        <div className="mr-2 flex-shrink-0 self-end mb-1">
-                             <img 
-                                src={getProfilePicture(message.sender.profilePic)} 
-                                className="w-8 h-8 rounded-full"
-                                title={message.sender.username}
-                             />
-                        </div>
+                    {!isOwn && selectedConversation.isGroup && (
+                      <div className="mr-2 flex-shrink-0 self-end mb-1">
+                        <img
+                          src={getProfilePicture(message.sender.profilePic)}
+                          className="w-8 h-8 rounded-full"
+                          title={message.sender.username}
+                        />
+                      </div>
                     )}
                     <div
                       className={`max-w-[70%] px-4 py-2 rounded-2xl ${
@@ -300,19 +300,33 @@ const Chat = ({ socket, isOpen, onClose }) => {
                           : "bg-surface-light dark:bg-surface-dark text-text-primary-light dark:text-text-primary-dark rounded-bl-none"
                       }`}
                     >
-                      {message.attachments && message.attachments.length > 0 && (
+                      {message.attachments &&
+                        message.attachments.length > 0 && (
                           <div className="mb-2">
-                              {message.attachments.map((att, idx) => (
-                                  <img key={idx} src={att.url} alt="attachment" className="rounded-lg max-w-full h-auto" />
-                              ))}
+                            {message.attachments.map((att, idx) => (
+                              <img
+                                key={idx}
+                                src={att.url}
+                                alt="attachment"
+                                className="rounded-lg max-w-full h-auto"
+                              />
+                            ))}
                           </div>
-                      )}
-                      
-                      {message.type === 'image' && !message.attachments?.length && message.text.startsWith('http') && (
-                          <img src={message.text} alt="sent image" className="rounded-lg max-w-full h-auto mb-1" />
-                      )}
+                        )}
 
-                      {message.text && <p className="text-sm break-words">{message.text}</p>}
+                      {message.type === "image" &&
+                        !message.attachments?.length &&
+                        message.text.startsWith("http") && (
+                          <img
+                            src={message.text}
+                            alt="sent image"
+                            className="rounded-lg max-w-full h-auto mb-1"
+                          />
+                        )}
+
+                      {message.text && (
+                        <p className="text-sm break-words">{message.text}</p>
+                      )}
 
                       <p
                         className={`text-xs mt-1 ${
