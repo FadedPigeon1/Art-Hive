@@ -7,6 +7,7 @@ import {
   FiPlus,
   FiEdit2,
   FiStar,
+  FiBookmark,
 } from "react-icons/fi";
 import { FaHeart, FaStar } from "react-icons/fa";
 import { useAuth } from "../context/AuthContext";
@@ -15,6 +16,7 @@ import { toast } from "react-toastify";
 import RemixModal from "./RemixModal";
 import EditPostModal from "./EditPostModal";
 import Comments from "./Comments";
+import SaveToCollectionModal from "./SaveToCollectionModal";
 import { getProfilePicture } from "../utils/imageHelpers";
 
 const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
@@ -43,12 +45,13 @@ const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
   const [isLiked, setIsLiked] = useState(post.likedByCurrentUser || false);
   const [likesCount, setLikesCount] = useState(deriveInitialLikes(post));
   const [isStarred, setIsStarred] = useState(
-    post.starredByCurrentUser || false
+    post.starredByCurrentUser || false,
   );
   const [starsCount, setStarsCount] = useState(deriveInitialStars(post));
   const [showComments, setShowComments] = useState(false);
   const [showRemixModal, setShowRemixModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
   const [currentPost, setCurrentPost] = useState(post);
 
   useEffect(() => {
@@ -91,7 +94,7 @@ const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
         "Current state - isLiked:",
         previousLiked,
         "newLiked:",
-        newLiked
+        newLiked,
       );
       setIsLiked(previousLiked);
       setLikesCount(previousCount);
@@ -301,6 +304,19 @@ const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
               <FiPlus size={20} />
               <span className="font-medium">{post.remixCount || 0}</span>
             </button>
+
+            {isAuthenticated && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowSaveModal(true);
+                }}
+                className="flex items-center space-x-1.5 px-3 py-1.5 rounded-full text-text-secondary-light dark:text-text-secondary-dark hover:text-purple-500 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-all duration-200"
+                title="Save to collection"
+              >
+                <FiBookmark size={20} />
+              </button>
+            )}
           </div>
 
           <button
@@ -382,6 +398,15 @@ const PostCard = ({ post, onDelete, onLike, onPostClick }) => {
         post={currentPost}
         onEditSuccess={handleEditSuccess}
       />
+
+      {/* Save to Collection Modal */}
+      {showSaveModal && (
+        <SaveToCollectionModal
+          isOpen={showSaveModal}
+          onClose={() => setShowSaveModal(false)}
+          post={post}
+        />
+      )}
 
       {/* Remix Modal removed in favor of Sketchbook Pro-based remixing */}
     </div>

@@ -15,6 +15,7 @@ import groupRoutes from "./routes/groupRoutes.js";
 import searchRoutes from "./routes/searchRoutes.js";
 import socialRoutes from "./routes/socialRoutes.js";
 import reactionRoutes from "./routes/reactionRoutes.js";
+import collectionRoutes from "./routes/collectionRoutes.js";
 import { errorHandler } from "./middleware/errorMiddleware.js";
 import { initializeSocket } from "./socket/socketHandler.js";
 import { startCleanupTask } from "./utils/scheduler.js";
@@ -42,7 +43,7 @@ app.use(
   cors({
     origin: process.env.CORS_ORIGIN || "http://localhost:3000",
     credentials: true,
-  })
+  }),
 );
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
@@ -66,6 +67,7 @@ app.use("/api/groups", groupRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/social", socialRoutes);
 app.use("/api/reactions", reactionRoutes);
+app.use("/api/collections", collectionRoutes);
 
 // Error handling middleware (must be last)
 app.use(errorHandler);
@@ -83,6 +85,6 @@ httpServer.listen(PORT, "0.0.0.0", () => {
   console.log(
     `Server running in ${
       process.env.NODE_ENV || "development"
-    } mode on port ${PORT}`
+    } mode on port ${PORT}`,
   );
 });

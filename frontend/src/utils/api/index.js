@@ -7,6 +7,7 @@ import { gameAPI } from "./game";
 import { notificationsAPI } from "./notifications";
 import { messagesAPI } from "./messages";
 import { groupsAPI } from "./groups";
+import { collectionsAPI } from "./collections";
 
 export {
   authAPI,
@@ -18,6 +19,7 @@ export {
   notificationsAPI,
   messagesAPI,
   groupsAPI,
+  collectionsAPI,
 };
 
 export default {
@@ -30,4 +32,5 @@ export default {
   notificationsAPI,
   messagesAPI,
   groupsAPI,
+  collectionsAPI,
 };

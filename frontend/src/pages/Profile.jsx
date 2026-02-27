@@ -7,6 +7,7 @@ import PostDetailModal from "../components/PostDetailModal";
 import UploadArtModal from "../components/UploadArtModal";
 import ProgressBar from "../components/ProgressBar";
 import AchievementBadge from "../components/AchievementBadge";
+import ProfileCollectionsTab from "../components/ProfileCollectionsTab";
 import { toast } from "react-toastify";
 import {
   FiCalendar,
@@ -22,6 +23,7 @@ import {
   FiGlobe,
   FiImage,
   FiMessageCircle,
+  FiGrid,
 } from "react-icons/fi";
 import { getProfilePicture } from "../utils/imageHelpers";
 
@@ -71,6 +73,7 @@ const Profile = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);
+  const [activeTab, setActiveTab] = useState("artworks");
 
   const handlePostDeleted = (postId) => {
     setPosts((prev) => prev.filter((post) => post._id !== postId));
@@ -92,16 +95,16 @@ const Profile = () => {
                   ? stats.likedByCurrentUser
                   : post.likedByCurrentUser,
             }
-          : post
-      )
+          : post,
+      ),
     );
   };
 
   const handlePostUpdate = (updatedPost) => {
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
-        post._id === updatedPost._id ? updatedPost : post
-      )
+        post._id === updatedPost._id ? updatedPost : post,
+      ),
     );
     if (selectedPost && selectedPost._id === updatedPost._id) {
       setSelectedPost(updatedPost);
@@ -123,7 +126,7 @@ const Profile = () => {
         const { data } = await postsAPI.getUserPosts(
           userId,
           requestedPage,
-          POSTS_PER_PAGE
+          POSTS_PER_PAGE,
         );
 
         if (requestedPage === 1) {
@@ -136,7 +139,7 @@ const Profile = () => {
               instagram: "",
               twitter: "",
               portfolio: "",
-            }
+            },
           );
           setPosts(data.posts);
         } else {
@@ -158,7 +161,7 @@ const Profile = () => {
         }
       }
     },
-    [POSTS_PER_PAGE, userId]
+    [POSTS_PER_PAGE, userId],
   );
 
   useEffect(() => {
@@ -275,7 +278,7 @@ const Profile = () => {
 
           if (result.success) {
             toast.success(
-              `${type === "cover" ? "Cover image" : "Profile picture"} updated!`
+              `${type === "cover" ? "Cover image" : "Profile picture"} updated!`,
             );
             if (profile) {
               setProfile({ ...profile, ...update });
@@ -338,7 +341,7 @@ const Profile = () => {
       }
     } catch (error) {
       toast.error(
-        error.response?.data?.message || "Failed to update follow status"
+        error.response?.data?.message || "Failed to update follow status",
       );
     } finally {
       setFollowLoading(false);
@@ -583,7 +586,7 @@ const Profile = () => {
                       <ProgressBar
                         currentXP={profileData.xp || 0}
                         xpForNextLevel={Math.floor(
-                          100 * Math.pow(profileData.level || 1, 1.5)
+                          100 * Math.pow(profileData.level || 1, 1.5),
                         )}
                         level={profileData.level || 1}
                         showLabel={true}
@@ -799,7 +802,7 @@ const Profile = () => {
                         {profileData?.dateJoined
                           ? new Date(profileData.dateJoined).toLocaleDateString(
                               undefined,
-                              { month: "long", year: "numeric" }
+                              { month: "long", year: "numeric" },
                             )
                           : "—"}
                       </span>
@@ -851,95 +854,139 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* User Posts Grid */}
+        {/* Tabs */}
         <div>
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
-              <FiImage className="text-blue-500" />
-              <span>Artworks</span>
-            </h2>
-            {isOwnProfile && (
-              <button
-                onClick={() => setIsUploadModalOpen(true)}
-                className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 font-medium"
-              >
-                <FiPlus size={20} />
-                <span>Upload Art</span>
-              </button>
-            )}
+          {/* Tab navigation */}
+          <div className="flex border-b border-border-light dark:border-border-dark mb-6">
+            <button
+              onClick={() => setActiveTab("artworks")}
+              className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === "artworks"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+              }`}
+            >
+              <FiImage size={15} />
+              Artworks
+              {totalPosts > 0 && (
+                <span className="text-xs bg-surface-light dark:bg-surface-dark px-1.5 py-0.5 rounded-full">
+                  {totalPosts}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab("collections")}
+              className={`flex items-center gap-2 px-4 py-3 font-medium text-sm border-b-2 transition-colors ${
+                activeTab === "collections"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark"
+              }`}
+            >
+              <FiGrid size={15} />
+              Collections
+            </button>
           </div>
 
-          {posts.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-20 bg-background-light dark:bg-background-dark rounded-2xl border border-border-light dark:border-border-dark border-dashed">
-              <div className="w-16 h-16 bg-surface-light dark:bg-surface-dark rounded-full flex items-center justify-center mb-4 text-gray-400">
-                <FiImage size={32} />
-              </div>
-              <h3 className="text-lg font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
-                No artworks yet
-              </h3>
-              <p className="text-text-secondary-light dark:text-text-secondary-dark">
-                {isOwnProfile
-                  ? "Upload your first masterpiece to get started!"
-                  : "This user hasn't posted any artwork yet."}
-              </p>
-              {isOwnProfile && (
-                <button
-                  onClick={() => setIsUploadModalOpen(true)}
-                  className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                >
-                  Upload Now
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-              {posts.map((post, index) => (
-                <div
-                  key={post._id}
-                  className="group relative aspect-square rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-md hover:shadow-xl transition-all duration-300"
-                >
-                  <img
-                    src={post.imageUrl}
-                    alt={post.title || "Post"}
-                    loading={index < 6 ? "eager" : "lazy"}
-                    decoding="async"
-                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                    onClick={() => setSelectedPost(post)}
-                  />
-                  <div
-                    className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 cursor-pointer"
-                    onClick={() => setSelectedPost(post)}
+          {/* Artworks tab */}
+          {activeTab === "artworks" && (
+            <div>
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-bold text-text-primary-light dark:text-text-primary-dark flex items-center gap-2">
+                  <FiImage className="text-blue-500" />
+                  <span>Artworks</span>
+                </h2>
+                {isOwnProfile && (
+                  <button
+                    onClick={() => setIsUploadModalOpen(true)}
+                    className="flex items-center space-x-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 text-white rounded-xl shadow-lg shadow-blue-500/20 transition-all transform hover:-translate-y-0.5 font-medium"
                   >
-                    <h3 className="text-white font-bold truncate">
-                      {post.title}
-                    </h3>
-                    <div className="flex items-center gap-3 text-white/80 text-sm mt-1">
-                      <span>❤️ {post.likesCount || 0}</span>
-                      <span>💬 {post.commentCount || 0}</span>
-                    </div>
+                    <FiPlus size={20} />
+                    <span>Upload Art</span>
+                  </button>
+                )}
+              </div>
+
+              {posts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-20 bg-background-light dark:bg-background-dark rounded-2xl border border-border-light dark:border-border-dark border-dashed">
+                  <div className="w-16 h-16 bg-surface-light dark:bg-surface-dark rounded-full flex items-center justify-center mb-4 text-gray-400">
+                    <FiImage size={32} />
                   </div>
+                  <h3 className="text-lg font-medium text-text-primary-light dark:text-text-primary-dark mb-1">
+                    No artworks yet
+                  </h3>
+                  <p className="text-text-secondary-light dark:text-text-secondary-dark">
+                    {isOwnProfile
+                      ? "Upload your first masterpiece to get started!"
+                      : "This user hasn't posted any artwork yet."}
+                  </p>
+                  {isOwnProfile && (
+                    <button
+                      onClick={() => setIsUploadModalOpen(true)}
+                      className="mt-6 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                    >
+                      Upload Now
+                    </button>
+                  )}
                 </div>
-              ))}
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                  {posts.map((post, index) => (
+                    <div
+                      key={post._id}
+                      className="group relative aspect-square rounded-xl overflow-hidden bg-surface-light dark:bg-surface-dark shadow-md hover:shadow-xl transition-all duration-300"
+                    >
+                      <img
+                        src={post.imageUrl}
+                        alt={post.title || "Post"}
+                        loading={index < 6 ? "eager" : "lazy"}
+                        decoding="async"
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        onClick={() => setSelectedPost(post)}
+                      />
+                      <div
+                        className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 cursor-pointer"
+                        onClick={() => setSelectedPost(post)}
+                      >
+                        <h3 className="text-white font-bold truncate">
+                          {post.title}
+                        </h3>
+                        <div className="flex items-center gap-3 text-white/80 text-sm mt-1">
+                          <span>❤️ {post.likesCount || 0}</span>
+                          <span>💬 {post.commentCount || 0}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {posts.length > 0 && hasMore && (
+                <div className="flex justify-center mt-10">
+                  <button
+                    onClick={loadMorePosts}
+                    disabled={loadingMore}
+                    className="px-8 py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center space-x-2 font-medium text-text-primary-light dark:text-text-primary-dark shadow-sm"
+                  >
+                    {loadingMore ? (
+                      <>
+                        <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                        <span>Loading more art...</span>
+                      </>
+                    ) : (
+                      <span>Load More Artworks</span>
+                    )}
+                  </button>
+                </div>
+              )}
             </div>
           )}
 
-          {posts.length > 0 && hasMore && (
-            <div className="flex justify-center mt-10">
-              <button
-                onClick={loadMorePosts}
-                disabled={loadingMore}
-                className="px-8 py-3 bg-surface-light dark:bg-surface-dark border border-border-light dark:border-border-dark rounded-xl hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors disabled:opacity-50 flex items-center space-x-2 font-medium text-text-primary-light dark:text-text-primary-dark shadow-sm"
-              >
-                {loadingMore ? (
-                  <>
-                    <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-                    <span>Loading more art...</span>
-                  </>
-                ) : (
-                  <span>Load More Artworks</span>
-                )}
-              </button>
-            </div>
+          {/* Collections tab */}
+          {activeTab === "collections" && (
+            <ProfileCollectionsTab
+              userId={userId}
+              isOwnProfile={isOwnProfile}
+            />
           )}
         </div>
       </div>
