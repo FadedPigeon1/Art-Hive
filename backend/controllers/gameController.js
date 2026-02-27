@@ -5,7 +5,8 @@ import { supabase } from "../config/supabaseClient.js";
 // @route   POST /api/game/create
 // @access  Public
 export const createGameSession = async (req, res) => {
-  const { nickname, totalRounds, maxPlayers, gameMode, timeLimit } = req.body;
+  const { nickname, totalRounds, maxPlayers, gameMode, timeLimit, drawTime } =
+    req.body;
 
   try {
     // Generate unique code
@@ -25,6 +26,7 @@ export const createGameSession = async (req, res) => {
       maxPlayers: Math.min(maxPlayers || 10, 10),
       gameMode: gameMode || "classic",
       timeLimit: timeLimit || 30,
+      drawTime: Math.min(drawTime || 90, 180),
       players: [
         {
           nickname,
@@ -64,7 +66,7 @@ export const joinGameSession = async (req, res) => {
 
     // Check if nickname already taken in this game
     const nicknameTaken = gameSession.players.some(
-      (player) => player.nickname === nickname
+      (player) => player.nickname === nickname,
     );
 
     if (nicknameTaken) {
@@ -175,7 +177,7 @@ export const getPlayerTask = async (req, res) => {
 
     const { nickname } = req.params;
     const playerIndex = gameSession.players.findIndex(
-      (p) => p.nickname === nickname
+      (p) => p.nickname === nickname,
     );
 
     if (playerIndex === -1) {
@@ -240,7 +242,7 @@ export const getPlayerTask = async (req, res) => {
     // Check if player already submitted for this round in this chain
     const playerChain = gameSession.chains[chainIndex];
     const alreadySubmitted = playerChain.entries.some(
-      (e) => e.playerNickname === nickname && e.round === round
+      (e) => e.playerNickname === nickname && e.round === round,
     );
 
     res.json({
@@ -321,7 +323,7 @@ export const submitEntry = async (req, res) => {
 
     // Find player index
     const playerIndex = gameSession.players.findIndex(
-      (p) => p.nickname === playerNickname
+      (p) => p.nickname === playerNickname,
     );
     if (playerIndex === -1) {
       return res.status(404).json({ message: "Player not found in game" });
@@ -349,8 +351,8 @@ export const submitEntry = async (req, res) => {
       c.entries.some(
         (e) =>
           e.playerNickname === playerNickname &&
-          e.round === gameSession.currentRound
-      )
+          e.round === gameSession.currentRound,
+      ),
     );
 
     if (alreadySubmittedGlobal) {
@@ -527,7 +529,7 @@ export const leaveGameSession = async (req, res) => {
 
         // Check active players count
         const activePlayers = gameSession.players.filter(
-          (p) => !p.isLeft
+          (p) => !p.isLeft,
         ).length;
 
         if (activePlayers < 2) {
@@ -554,7 +556,7 @@ export const leaveGameSession = async (req, res) => {
 
     // Remove player from the game if not in progress
     gameSession.players = gameSession.players.filter(
-      (player) => player.nickname !== nickname
+      (player) => player.nickname !== nickname,
     );
 
     // If no players left, delete the game session

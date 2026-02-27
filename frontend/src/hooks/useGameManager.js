@@ -18,6 +18,7 @@ export const useGameManager = () => {
   const [maxPlayers, setMaxPlayers] = useState(10);
   const [gameMode, setGameMode] = useState("classic");
   const [timeLimit, setTimeLimit] = useState(30); // Default 30 mins for Art Jam
+  const [drawTime, setDrawTime] = useState(90); // Default 90s per drawing round
   const [currentGame, setCurrentGame] = useState(null);
   const [currentRound, setCurrentRound] = useState(0);
   const [promptText, setPromptText] = useState("");
@@ -34,6 +35,10 @@ export const useGameManager = () => {
   const [currentRevealChain, setCurrentRevealChain] = useState(0);
   const [currentRevealStep, setCurrentRevealStep] = useState(0);
   const [isRevealing, setIsRevealing] = useState(false);
+
+  // Transition State
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [nextRoundNumber, setNextRoundNumber] = useState(0);
 
   // Refs
   const currentGameRef = useRef(null);
@@ -68,6 +73,8 @@ export const useGameManager = () => {
     setCurrentRevealChain,
     setCurrentRevealStep,
     setIsRevealing,
+    setIsTransitioning,
+    setNextRoundNumber,
   });
 
   // Load game state from localStorage on mount OR rejoin from URL
@@ -155,7 +162,7 @@ export const useGameManager = () => {
             .then(({ data }) => {
               // Check if the player is still in the game
               const playerStillInGame = data.players.some(
-                (player) => player.nickname === savedNickname
+                (player) => player.nickname === savedNickname,
               );
 
               if (playerStillInGame) {
@@ -215,7 +222,7 @@ export const useGameManager = () => {
           gameCode: currentGame.code,
           nickname,
           gameState,
-        })
+        }),
       );
     } else if (gameState === "menu") {
       localStorage.removeItem("arthive_game_state");
@@ -257,7 +264,7 @@ export const useGameManager = () => {
             // Fetch first task
             const { data: task } = await gameAPI.getPlayerTask(
               updatedGame.code,
-              nickname
+              nickname,
             );
             setCurrentTask(task);
             setHasSubmitted(task.alreadySubmitted || false);
@@ -288,7 +295,8 @@ export const useGameManager = () => {
         3,
         maxPlayers,
         gameMode,
-        timeLimit
+        timeLimit,
+        drawTime,
       );
       setCurrentGame(data);
       setGameCode(data.code);
@@ -314,7 +322,7 @@ export const useGameManager = () => {
       const { data } = await gameAPI.joinGame(
         gameCode.toUpperCase(),
         nickname,
-        user?._id
+        user?._id,
       );
       setCurrentGame(data);
       setGameState("lobby");
@@ -344,7 +352,7 @@ export const useGameManager = () => {
       // Get first task
       const { data: task } = await gameAPI.getPlayerTask(
         updatedGame.code,
-        nickname
+        nickname,
       );
       setCurrentTask(task);
       setHasSubmitted(task.alreadySubmitted || false);
@@ -433,11 +441,11 @@ export const useGameManager = () => {
         ctx.fillText("Time's up!", 400, 300);
 
         data = await new Promise((resolve) =>
-          canvas.toBlob(resolve, "image/png")
+          canvas.toBlob(resolve, "image/png"),
         );
       } else {
-        // Drawings are submitted from Sketchbook Pro, not here
-        toast.error("Please use Sketchbook Pro to submit drawings");
+        // Drawings are submitted from the drawing canvas, not here
+        toast.error("Please use the drawing canvas to submit drawings");
         return;
       }
     }
@@ -462,7 +470,7 @@ export const useGameManager = () => {
       // Update submission tracking
       setSubmittedCount(response.data.submittedCount || 0);
       setTotalPlayers(
-        response.data.totalPlayers || currentGame?.players?.length || 0
+        response.data.totalPlayers || currentGame?.players?.length || 0,
       );
 
       // Notify via socket
@@ -475,7 +483,7 @@ export const useGameManager = () => {
       }
 
       toast.success(
-        taskType === "prompt" ? "Prompt submitted!" : "Drawing submitted!"
+        taskType === "prompt" ? "Prompt submitted!" : "Drawing submitted!",
       );
 
       // Check if game ended or round advanced
@@ -493,7 +501,7 @@ export const useGameManager = () => {
         // Fetch next task
         const { data: nextTask } = await gameAPI.getPlayerTask(
           currentGame.code,
-          nickname
+          nickname,
         );
         setCurrentTask(nextTask);
         setHasSubmitted(nextTask.alreadySubmitted || false);
@@ -502,7 +510,7 @@ export const useGameManager = () => {
     } catch (error) {
       console.error("[SUBMIT] Error:", error);
       toast.error(
-        error.response?.data?.message || "Failed to submit. Please try again."
+        error.response?.data?.message || "Failed to submit. Please try again.",
       );
     }
   };
@@ -593,6 +601,40 @@ export const useGameManager = () => {
     }
   };
 
+  const playAgain = async () => {
+    if (!currentGame) return;
+    try {
+      const { data } = await gameAPI.createGame(
+        nickname,
+        3,
+        currentGame.maxPlayers,
+        currentGame.gameMode,
+        currentGame.timeLimit,
+        currentGame.drawTime,
+      );
+      if (socket) {
+        socket.emit("play-again", {
+          oldCode: currentGame.code,
+          newCode: data.code,
+        });
+      }
+      setCurrentGame(data);
+      setGameCode(data.code);
+      setDrawings([]);
+      setChains([]);
+      setCurrentRound(0);
+      setCurrentTask(null);
+      setHasSubmitted(false);
+      setCurrentRevealChain(0);
+      setCurrentRevealStep(0);
+      setIsRevealing(false);
+      setIsTransitioning(false);
+      setGameState("lobby");
+    } catch {
+      toast.error("Failed to start new game");
+    }
+  };
+
   return {
     // State
     gameState,
@@ -607,6 +649,8 @@ export const useGameManager = () => {
     setGameMode,
     timeLimit,
     setTimeLimit,
+    drawTime,
+    setDrawTime,
     currentGame,
     setCurrentGame,
     currentRound,
@@ -631,6 +675,10 @@ export const useGameManager = () => {
     setCurrentRevealStep,
     isRevealing,
     setIsRevealing,
+    isTransitioning,
+    setIsTransitioning,
+    nextRoundNumber,
+    setNextRoundNumber,
     socket,
     user,
 
@@ -643,5 +691,6 @@ export const useGameManager = () => {
     repostToFeed,
     revealNext,
     revealReset,
+    playAgain,
   };
 };

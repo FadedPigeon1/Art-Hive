@@ -4,6 +4,7 @@ import GameMenu from "../components/game/GameMenu";
 import GameLobby from "../components/game/GameLobby";
 import GameTask from "../components/game/GameTask";
 import GameResults from "../components/game/GameResults";
+import RoundTransition from "../components/game/RoundTransition";
 import ArtJamCanvas from "../components/ArtJamCanvas";
 import { useGameManager } from "../hooks/useGameManager";
 
@@ -28,6 +29,8 @@ const Game = () => {
         setGameMode={game.setGameMode}
         timeLimit={game.timeLimit}
         setTimeLimit={game.setTimeLimit}
+        drawTime={game.drawTime}
+        setDrawTime={game.setDrawTime}
         handleCreateGame={game.createGame}
         handleJoinGame={game.joinGame}
       />
@@ -60,19 +63,27 @@ const Game = () => {
     }
 
     return (
-      <GameTask
-        currentTask={game.currentTask}
-        currentRound={game.currentRound}
-        currentGame={game.currentGame}
-        nickname={game.nickname}
-        promptText={game.promptText}
-        setPromptText={game.setPromptText}
-        hasSubmitted={game.hasSubmitted}
-        handleSubmitTask={game.submitTask}
-        submittedCount={game.submittedCount}
-        totalPlayers={game.totalPlayers}
-        handleLeaveGame={game.leaveGame}
-      />
+      <>
+        {game.isTransitioning && (
+          <RoundTransition
+            round={game.nextRoundNumber}
+            totalRounds={game.currentGame?.totalRounds}
+          />
+        )}
+        <GameTask
+          currentTask={game.currentTask}
+          currentRound={game.currentRound}
+          currentGame={game.currentGame}
+          nickname={game.nickname}
+          promptText={game.promptText}
+          setPromptText={game.setPromptText}
+          hasSubmitted={game.hasSubmitted}
+          handleSubmitTask={game.submitTask}
+          submittedCount={game.submittedCount}
+          totalPlayers={game.totalPlayers}
+          handleLeaveGame={game.leaveGame}
+        />
+      </>
     );
   }
 
@@ -92,6 +103,7 @@ const Game = () => {
         handleRevealNext={game.revealNext}
         handleRevealReset={game.revealReset}
         handleRepostToFeed={game.repostToFeed}
+        handlePlayAgain={game.playAgain}
         setGameState={game.setGameState}
         setCurrentGame={game.setCurrentGame}
         setDrawings={game.setDrawings}

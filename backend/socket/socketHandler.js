@@ -76,7 +76,7 @@ export const initializeSocket = (io) => {
       const key = `${code}:${nickname}`;
       if (disconnectTimeouts.has(key)) {
         console.log(
-          `[SOCKET] Cancelled disconnect timeout for ${nickname} in ${code}`
+          `[SOCKET] Cancelled disconnect timeout for ${nickname} in ${code}`,
         );
         clearTimeout(disconnectTimeouts.get(key));
         disconnectTimeouts.delete(key);
@@ -97,7 +97,7 @@ export const initializeSocket = (io) => {
     socket.on("entry-submitted", ({ code, nickname, round }) => {
       io.to(code).emit("player-submitted", { nickname, round });
       console.log(
-        `${nickname} submitted entry for round ${round} in game ${code}`
+        `${nickname} submitted entry for round ${round} in game ${code}`,
       );
     });
 
@@ -127,13 +127,21 @@ export const initializeSocket = (io) => {
     socket.on("reveal-step", ({ code, chainIndex, stepIndex }) => {
       socket.to(code).emit("reveal-next", { chainIndex, stepIndex });
       console.log(
-        `Reveal step for game ${code}: chain ${chainIndex}, step ${stepIndex}`
+        `Reveal step for game ${code}: chain ${chainIndex}, step ${stepIndex}`,
       );
     });
 
     socket.on("reveal-reset", ({ code }) => {
       socket.to(code).emit("reveal-reset");
       console.log(`Reveal reset for game ${code}`);
+    });
+
+    socket.on("play-again", ({ oldCode, newCode }) => {
+      // Redirect all other players in the old room to the new game
+      socket.to(oldCode).emit("redirect-to-game", { newCode });
+      console.log(
+        `Play again: redirecting players from ${oldCode} to ${newCode}`,
+      );
     });
 
     socket.on("leave-game", ({ code, nickname }) => {
@@ -160,14 +168,14 @@ export const initializeSocket = (io) => {
         const key = `${code}:${nickname}`;
 
         console.log(
-          `[SOCKET] Scheduling disconnect timeout for ${nickname} in ${code}`
+          `[SOCKET] Scheduling disconnect timeout for ${nickname} in ${code}`,
         );
 
         // Set a timeout to remove the player (e.g., 60 seconds for testing/quick reconnects)
         const timeoutId = setTimeout(async () => {
           try {
             console.log(
-              `[SOCKET] Executing disconnect timeout for ${nickname} in ${code}`
+              `[SOCKET] Executing disconnect timeout for ${nickname} in ${code}`,
             );
             const gameSession = await GameSession.findOne({ code });
 
@@ -177,7 +185,7 @@ export const initializeSocket = (io) => {
               // Only remove if in lobby
               const initialCount = gameSession.players.length;
               gameSession.players = gameSession.players.filter(
-                (p) => p.nickname !== nickname
+                (p) => p.nickname !== nickname,
               );
 
               if (gameSession.players.length !== initialCount) {
@@ -193,21 +201,21 @@ export const initializeSocket = (io) => {
                   await gameSession.save();
                   io.to(code).emit("player-left", { nickname });
                   console.log(
-                    `[SOCKET] Removed ${nickname} from lobby ${code}`
+                    `[SOCKET] Removed ${nickname} from lobby ${code}`,
                   );
                 }
               }
             } else if (gameSession.status === "in-progress") {
               // Mark as left if in game
               const player = gameSession.players.find(
-                (p) => p.nickname === nickname
+                (p) => p.nickname === nickname,
               );
               if (player && !player.isLeft) {
                 player.isLeft = true;
 
                 // Check active players count
                 const activePlayers = gameSession.players.filter(
-                  (p) => !p.isLeft
+                  (p) => !p.isLeft,
                 ).length;
 
                 if (activePlayers < 2) {
@@ -218,14 +226,14 @@ export const initializeSocket = (io) => {
                     reason: "not_enough_players",
                   });
                   console.log(
-                    `[SOCKET] Game ${code} ended (not enough players)`
+                    `[SOCKET] Game ${code} ended (not enough players)`,
                   );
                 }
 
                 await gameSession.save();
                 io.to(code).emit("player-left", { nickname });
                 console.log(
-                  `[SOCKET] Marked ${nickname} as left in game ${code}`
+                  `[SOCKET] Marked ${nickname} as left in game ${code}`,
                 );
               }
             }

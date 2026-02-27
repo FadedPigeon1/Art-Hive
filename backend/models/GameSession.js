@@ -100,6 +100,10 @@ const gameSessionSchema = new mongoose.Schema(
       type: Number, // in minutes
       default: 30,
     },
+    drawTime: {
+      type: Number, // seconds per drawing round
+      default: 90,
+    },
     createdAt: {
       type: Date,
       default: Date.now,
@@ -108,7 +112,7 @@ const gameSessionSchema = new mongoose.Schema(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 // Auto-generate game code

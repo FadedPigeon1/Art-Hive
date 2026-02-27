@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import SketchbookPro from "../../pages/SketchbookPro";
+import GameDrawCanvas from "./GameDrawCanvas";
 import { FiClock } from "react-icons/fi";
 
 const GameTask = ({
@@ -16,17 +15,21 @@ const GameTask = ({
   totalPlayers,
   handleLeaveGame,
 }) => {
-  const navigate = useNavigate();
   const isPromptTask = currentTask?.taskType === "prompt";
   const isDrawingTask = currentTask?.taskType === "drawing";
 
-  // Initialize timer based on task type (180s for drawing, 30s for prompt)
-  const [timeLeft, setTimeLeft] = useState(isDrawingTask ? 180 : 30);
+  const drawSeconds = currentGame?.drawTime || 90;
+  const guessSeconds = Math.max(30, Math.round(drawSeconds / 2));
 
-  // Reset timer when round or task type changes
+  // Timer is only used for prompt tasks; drawing canvas owns its own timer
+  const [timeLeft, setTimeLeft] = useState(guessSeconds);
+
+  // Reset timer when round or task type changes (prompt only)
   useEffect(() => {
-    setTimeLeft(isDrawingTask ? 180 : 30);
-  }, [currentRound, isDrawingTask]);
+    if (isPromptTask) {
+      setTimeLeft(Math.max(30, Math.round((currentGame?.drawTime || 90) / 2)));
+    }
+  }, [currentRound, isPromptTask, currentGame?.drawTime]);
 
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -37,8 +40,9 @@ const GameTask = ({
     return `${secs}s`;
   };
 
+  // Countdown — only for prompt tasks
   useEffect(() => {
-    if (hasSubmitted) return;
+    if (hasSubmitted || isDrawingTask) return;
 
     const timer = setInterval(() => {
       setTimeLeft((prev) => {
@@ -52,66 +56,27 @@ const GameTask = ({
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [hasSubmitted, handleSubmitTask]);
+  }, [hasSubmitted, isDrawingTask, handleSubmitTask]);
 
+  // Drawing task — delegate entirely to GameDrawCanvas (it owns its timer & waiting screen)
   if (isDrawingTask) {
-    if (hasSubmitted) {
-      return (
-        <div className="min-h-screen bg-blue-600 flex items-center justify-center p-4 font-sans">
-          {/* Background Pattern */}
-          <div
-            className="fixed inset-0 opacity-10 pointer-events-none"
-            style={{
-              backgroundImage: "radial-gradient(#fff 2px, transparent 2px)",
-              backgroundSize: "30px 30px",
-            }}
-          ></div>
-
-          <div className="max-w-md w-full relative z-10">
-            <div className="bg-white rounded-3xl shadow-[0_8px_0_rgba(0,0,0,0.1)] overflow-hidden border-4 border-blue-800 p-8 text-center">
-              <h2 className="text-3xl font-black text-blue-900 mb-4 uppercase tracking-wide">
-                Drawing Submitted!
-              </h2>
-              <p className="text-blue-700 font-bold mb-6">
-                Waiting for other players to finish...
-              </p>
-
-              <div className="inline-flex flex-col items-center justify-center w-full bg-blue-50 rounded-xl border-2 border-blue-200 p-4">
-                <div className="flex space-x-2 mb-2">
-                  {[...Array(totalPlayers)].map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-4 h-4 rounded-full border-2 border-blue-900 ${
-                        i < submittedCount ? "bg-green-400" : "bg-gray-200"
-                      }`}
-                    />
-                  ))}
-                </div>
-                <span className="font-bold text-blue-800">
-                  {submittedCount}/{totalPlayers} submitted
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-      );
-    }
-
     return (
-      <SketchbookPro
-        embedded={true}
-        gameModeProp={true}
-        gameCodeProp={currentGame.code}
-        gameChainIdProp={currentTask.chainId}
-        gameRoundProp={currentRound}
-        gamePromptProp={currentTask?.previousEntry?.data || ""}
-        gameNicknameProp={nickname}
-        onGameSubmit={(data) => handleSubmitTask(data)}
+      <GameDrawCanvas
+        prompt={currentTask?.previousEntry?.data || ""}
+        drawSeconds={drawSeconds}
+        currentRound={currentRound}
+        totalRounds={currentGame?.totalRounds}
+        onSubmit={(blob) => handleSubmitTask(blob)}
         onLeave={handleLeaveGame}
-        timeLeft={timeLeft}
+        hasSubmitted={hasSubmitted}
+        submittedCount={submittedCount}
+        totalPlayers={totalPlayers}
       />
     );
   }
+
+  // Prompt task
+  const isUrgent = timeLeft <= 15;
 
   return (
     <div className="min-h-screen bg-blue-600 flex items-center justify-center p-4 font-sans">
@@ -122,7 +87,7 @@ const GameTask = ({
           backgroundImage: "radial-gradient(#fff 2px, transparent 2px)",
           backgroundSize: "30px 30px",
         }}
-      ></div>
+      />
 
       <div className="max-w-4xl w-full relative z-10">
         {/* Header */}
@@ -140,7 +105,13 @@ const GameTask = ({
             <div className="inline-block bg-yellow-400 text-blue-900 font-bold px-4 py-1 rounded-full border-2 border-blue-900 shadow-sm transform rotate-1">
               {currentRound} / {currentGame?.totalRounds}
             </div>
-            <div className="inline-flex items-center gap-2 bg-red-500 text-white font-bold px-4 py-1 rounded-full border-2 border-red-700 shadow-sm transform -rotate-1">
+            <div
+              className={`inline-flex items-center gap-2 font-bold px-4 py-1 rounded-full border-2 shadow-sm transform -rotate-1 transition-colors ${
+                isUrgent
+                  ? "bg-red-500 text-white border-red-700 animate-pulse"
+                  : "bg-white text-blue-900 border-blue-200"
+              }`}
+            >
               <FiClock /> {formatTime(timeLeft)}
             </div>
           </div>
@@ -150,12 +121,15 @@ const GameTask = ({
           {/* Task Header */}
           <div className="bg-blue-50 p-6 border-b-4 border-blue-800 text-center">
             <p className="text-xl font-bold text-blue-800">
-              {isPromptTask && "Write a prompt for the next player to draw!"}
+              {isPromptTask &&
+                (currentRound === 1
+                  ? "Write something fun for the next player to draw! 🎨"
+                  : "What does this drawing look like to you? 🤔")}
             </p>
           </div>
 
           <div className="p-6 md:p-8">
-            {/* Show previous entry if not first round */}
+            {/* Show previous drawing if not first round */}
             {currentTask?.previousEntry && (
               <div className="mb-8">
                 <div className="bg-yellow-100 rounded-2xl border-4 border-yellow-400 p-6 relative">
@@ -182,8 +156,8 @@ const GameTask = ({
               </div>
             )}
 
-            {/* Task Input Area */}
-            {isPromptTask ? (
+            {/* Text input */}
+            {isPromptTask && (
               <div className="mb-6">
                 <div className="relative">
                   <textarea
@@ -204,7 +178,7 @@ const GameTask = ({
                   </div>
                 </div>
               </div>
-            ) : null}
+            )}
 
             {/* Submit Button */}
             <button

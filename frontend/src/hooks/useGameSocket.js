@@ -21,6 +21,8 @@ export const useGameSocket = ({
   setCurrentRevealChain,
   setCurrentRevealStep,
   setIsRevealing,
+  setIsTransitioning,
+  setNextRoundNumber,
 }) => {
   useEffect(() => {
     const newSocket = io(SOCKET_URL, {
@@ -36,7 +38,7 @@ export const useGameSocket = ({
       if (currentGameRef.current) {
         try {
           const { data: updatedGame } = await gameAPI.getGame(
-            currentGameRef.current.code
+            currentGameRef.current.code,
           );
           setCurrentGame(updatedGame);
         } catch (error) {
@@ -56,7 +58,7 @@ export const useGameSocket = ({
       if (currentGameRef.current) {
         try {
           const { data: updatedGame } = await gameAPI.getGame(
-            currentGameRef.current.code
+            currentGameRef.current.code,
           );
           setCurrentGame(updatedGame);
         } catch (error) {
@@ -74,7 +76,7 @@ export const useGameSocket = ({
       try {
         const { data: task } = await gameAPI.getPlayerTask(
           currentGameRef.current.code,
-          nicknameRef.current
+          nicknameRef.current,
         );
         setCurrentTask(task);
         setHasSubmitted(task.alreadySubmitted || false);
@@ -101,11 +103,11 @@ export const useGameSocket = ({
           toast.info(`${submittedNickname} submitted!`);
           try {
             const { data: gameData } = await gameAPI.getGame(
-              currentGameRef.current?.code
+              currentGameRef.current?.code,
             );
             if (gameData && gameData.currentRound === round) {
               const submitted = gameData.chains.filter((c) =>
-                c.entries.some((e) => e.round === round)
+                c.entries.some((e) => e.round === round),
               ).length;
               setSubmittedCount(submitted);
               setTotalPlayers(gameData.players.length);
@@ -114,14 +116,18 @@ export const useGameSocket = ({
             console.error("Failed to update submission count:", error);
           }
         }
-      }
+      },
     );
 
     newSocket.on("next-round", async (data) => {
       try {
+        // Show round transition while fetching next task
+        setIsTransitioning(true);
+        setNextRoundNumber(data.round);
+
         // Force refresh game state to ensure player list is accurate
         const { data: updatedGame } = await gameAPI.getGame(
-          currentGameRef.current?.code
+          currentGameRef.current?.code,
         );
         setCurrentGame(updatedGame);
 
@@ -131,14 +137,39 @@ export const useGameSocket = ({
         setSubmittedCount(0);
         const { data: task } = await gameAPI.getPlayerTask(
           currentGameRef.current?.code,
-          nicknameRef.current
+          nicknameRef.current,
         );
         setCurrentTask(task);
         setHasSubmitted(task.alreadySubmitted || false);
-        toast.info(`Round ${data.round} started!`);
+
+        // Hide transition after 3 seconds
+        setTimeout(() => {
+          setIsTransitioning(false);
+        }, 3000);
       } catch (error) {
         console.error("Failed to fetch next task:", error);
+        setIsTransitioning(false);
         toast.error("Failed to load next round");
+      }
+    });
+
+    newSocket.on("redirect-to-game", async ({ newCode }) => {
+      if (!newCode) return;
+      toast.info("Host started a new game! Joining...");
+      try {
+        const { data } = await gameAPI.joinGame(newCode, nicknameRef.current);
+        setCurrentGame(data);
+        setChains([]);
+        setCurrentRound(0);
+        setCurrentTask(null);
+        setHasSubmitted(false);
+        setCurrentRevealChain(0);
+        setCurrentRevealStep(0);
+        setIsRevealing(false);
+        setIsTransitioning(false);
+        setGameState("lobby");
+      } catch (error) {
+        toast.error("Failed to join new game. Please join manually.");
       }
     });
 
@@ -152,7 +183,7 @@ export const useGameSocket = ({
 
       try {
         const { data: results } = await gameAPI.getResults(
-          currentGameRef.current?.code
+          currentGameRef.current?.code,
         );
         setChains(results.chains);
         setGameState("results");

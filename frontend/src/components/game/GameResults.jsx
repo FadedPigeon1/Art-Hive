@@ -5,6 +5,7 @@ import {
   FiSkipForward,
   FiRefreshCw,
   FiHome,
+  FiRepeat,
 } from "react-icons/fi";
 
 const GameResults = ({
@@ -21,6 +22,7 @@ const GameResults = ({
   handleRevealNext,
   handleRevealReset,
   handleRepostToFeed,
+  handlePlayAgain,
   setGameState,
   setCurrentGame,
   setDrawings,
@@ -336,7 +338,15 @@ const GameResults = ({
                 );
               })}
 
-            <div className="mt-12 pt-8 border-t-4 border-blue-200">
+            <div className="mt-12 pt-8 border-t-4 border-blue-200 flex gap-4">
+              {isHost && (
+                <button
+                  onClick={handlePlayAgain}
+                  className="flex-1 py-4 bg-green-500 text-white border-4 border-green-700 rounded-2xl font-black text-xl uppercase tracking-wider hover:bg-green-400 active:border-b-0 active:translate-y-1 transition-all flex items-center justify-center gap-2 shadow-lg"
+                >
+                  <FiRepeat /> Play Again
+                </button>
+              )}
               <button
                 onClick={() => {
                   setGameState("menu");
@@ -350,7 +360,7 @@ const GameResults = ({
                   setCurrentRevealStep(0);
                   setIsRevealing(false);
                 }}
-                className="w-full py-4 bg-white text-blue-500 border-4 border-blue-200 rounded-2xl font-black text-xl uppercase tracking-wider hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-center gap-2"
+                className="flex-1 py-4 bg-white text-blue-500 border-4 border-blue-200 rounded-2xl font-black text-xl uppercase tracking-wider hover:bg-blue-50 hover:border-blue-300 transition-all flex items-center justify-center gap-2"
               >
                 <FiHome /> Back to Menu
               </button>

@@ -1,12 +1,21 @@
 import client from "./client";
 
 export const gameAPI = {
-  createGame: (nickname, totalRounds, maxPlayers, gameMode) =>
+  createGame: (
+    nickname,
+    totalRounds,
+    maxPlayers,
+    gameMode,
+    timeLimit,
+    drawTime,
+  ) =>
     client.post("/api/game/create", {
       nickname,
       totalRounds,
       maxPlayers,
       gameMode,
+      timeLimit,
+      drawTime,
     }),
   joinGame: (code, nickname, userId) =>
     client.post("/api/game/join", { code, nickname, userId }),

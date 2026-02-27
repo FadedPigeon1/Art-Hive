@@ -20,6 +20,8 @@ const GameMenu = ({
   setGameMode,
   timeLimit,
   setTimeLimit,
+  drawTime,
+  setDrawTime,
   handleCreateGame,
   handleJoinGame,
 }) => {
@@ -132,6 +134,29 @@ const GameMenu = ({
                       }`}
                     >
                       {time}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {gameMode !== "art-jam" && (
+              <div className="mb-4">
+                <label className="block text-yellow-800 font-bold text-xs uppercase mb-1">
+                  Draw Time (seconds)
+                </label>
+                <div className="flex gap-2">
+                  {[60, 90, 120].map((t) => (
+                    <button
+                      key={t}
+                      onClick={() => setDrawTime(t)}
+                      className={`flex-1 py-2 rounded-lg font-bold border-2 transition-all ${
+                        drawTime === t
+                          ? "bg-yellow-500 border-yellow-600 text-white"
+                          : "bg-white border-yellow-300 text-yellow-800 hover:bg-yellow-100"
+                      }`}
+                    >
+                      {t}s
                     </button>
                   ))}
                 </div>
