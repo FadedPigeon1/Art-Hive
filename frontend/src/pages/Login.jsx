@@ -38,8 +38,19 @@ const Login = () => {
       <div className="max-w-md w-full">
         <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl rounded-2xl shadow-xl p-8 border border-white/20 dark:border-white/10">
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-primary-light to-secondary-light rounded-2xl mx-auto mb-4 flex items-center justify-center shadow-lg transform rotate-3 hover:rotate-6 transition-transform duration-300">
-              <span className="text-3xl text-white font-bold">Ah</span>
+            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center transform hover:scale-105 transition-transform duration-300 relative">
+              <img 
+                src="/logo.png" 
+                alt="ArtHive Logo" 
+                className="w-full h-full object-contain drop-shadow-lg scale-[1.3]"
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div className="hidden w-full h-full bg-gradient-to-br from-primary-light to-secondary-light rounded-2xl items-center justify-center shadow-lg transform rotate-3">
+                <span className="text-4xl text-white font-bold">Ah</span>
+              </div>
             </div>
             <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-light to-secondary-light bg-clip-text text-transparent mb-2">
               Welcome Back

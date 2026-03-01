@@ -8,35 +8,16 @@ import ActiveGamesWidget from "../components/ActiveGamesWidget";
 import FeaturedGroupsWidget from "../components/FeaturedGroupsWidget";
 import { postsAPI } from "../utils/api";
 import { toast } from "react-toastify";
-import { useSearch } from "../context/SearchContext";
 import { useAuth } from "../context/AuthContext";
 
 const Feed = () => {
-  const { searchQuery } = useSearch();
   const { loading: authLoading } = useAuth();
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
-  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [selectedPost, setSelectedPost] = useState(null);
   const isFetchingRef = useRef(false);
-
-  // Debounce search input from context
-  useEffect(() => {
-    const handler = setTimeout(
-      () => setDebouncedSearch(searchQuery.trim()),
-      300,
-    );
-    return () => clearTimeout(handler);
-  }, [searchQuery]);
-
-  // Reset paging when search changes
-  useEffect(() => {
-    setPage(1);
-    setPosts([]);
-    setHasMore(true);
-  }, [debouncedSearch]);
 
   const fetchPosts = useCallback(async () => {
     if (isFetchingRef.current) return;
@@ -45,7 +26,7 @@ const Feed = () => {
     setLoading(true);
 
     try {
-      const { data } = await postsAPI.getAllPosts(page, 10, debouncedSearch);
+      const { data } = await postsAPI.getAllPosts(page, 10, "");
 
       if (page === 1) {
         setPosts(data.posts);
@@ -64,7 +45,7 @@ const Feed = () => {
       setLoading(false);
       isFetchingRef.current = false;
     }
-  }, [page, debouncedSearch]);
+  }, [page]);
 
   useEffect(() => {
     if (!authLoading) {
@@ -125,8 +106,8 @@ const Feed = () => {
   return (
     <div className="min-h-screen bg-surface-light dark:bg-surface-dark">
       <div className="max-w-6xl mx-auto px-4 py-6">
-        {/* Trending Section - Only show on first page and no search */}
-        {!debouncedSearch && <TrendingCarousel />}
+        {/* Trending Section */}
+        <TrendingCarousel />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Feed Column */}
@@ -157,9 +138,7 @@ const Feed = () => {
             ) : posts.length === 0 ? (
               <div className="text-center py-12">
                 <p className="text-text-secondary-light dark:text-text-secondary-dark">
-                  {debouncedSearch
-                    ? `No posts found for "${debouncedSearch}"`
-                    : "No posts yet. Be the first to share your art!"}
+                  No posts yet. Be the first to share your art!
                 </p>
               </div>
             ) : (

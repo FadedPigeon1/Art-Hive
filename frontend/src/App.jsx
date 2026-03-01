@@ -13,6 +13,7 @@ import { SearchProvider } from "./context/SearchContext";
 import io from "socket.io-client";
 import Navbar from "./components/Navbar";
 import Feed from "./pages/Feed";
+import Explore from "./pages/Explore";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
@@ -143,6 +144,7 @@ function AppContent() {
         <Navbar socket={socket} />
         <Routes>
           <Route path="/" element={<Feed />} />
+          <Route path="/explore" element={<Explore />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/profile/:userId" element={<Profile />} />

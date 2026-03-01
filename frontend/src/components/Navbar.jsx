@@ -102,12 +102,7 @@ const Navbar = ({ socket }) => {
   }, [isSearchOpen]);
 
   const handleSearchClick = () => {
-    if (!isSearchOpen) {
-      openSearch();
-      if (location.pathname !== "/") {
-        navigate("/");
-      }
-    }
+    navigate("/explore");
   };
 
   const handleLogout = () => {
@@ -141,8 +136,22 @@ const Navbar = ({ socket }) => {
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="p-2 bg-gradient-to-br from-primary-light to-secondary-light dark:from-primary-dark dark:to-secondary-dark rounded-xl shadow-md shadow-primary-light/20 group-hover:shadow-primary-light/40 group-hover:-translate-y-0.5 transition-all duration-300">
-              <FaPalette className="text-white text-xl" />
+            <div className="relative w-12 h-12 group-hover:-translate-y-0.5 transition-transform duration-300">
+              <img 
+                src="/logo.png" 
+                alt="ArtHive Logo" 
+                className="w-full h-full object-contain drop-shadow-md scale-125"
+                onError={(e) => {
+                  // Fallback in case the image hasn't been saved yet
+                  e.target.style.display = 'none';
+                  e.target.nextSibling.style.display = 'flex';
+                }}
+              />
+              <div 
+                className="hidden absolute inset-0 bg-gradient-to-br from-primary-light to-secondary-light dark:from-primary-dark dark:to-secondary-dark rounded-xl shadow-md flex items-center justify-center"
+              >
+                <FaPalette className="text-white text-xl" />
+              </div>
             </div>
             <span className="text-2xl font-black bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent tracking-tight">
               ArtHive
@@ -156,6 +165,12 @@ const Navbar = ({ socket }) => {
               icon={FiHome}
               label="Home"
               active={location.pathname === "/"}
+            />
+            <NavLink
+              to="/explore"
+              icon={FiSearch}
+              label="Explore"
+              active={location.pathname === "/explore"}
             />
             <NavLink
               to="/game"
@@ -189,12 +204,8 @@ const Navbar = ({ socket }) => {
           <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Search */}
             <button
-              onClick={handleSearchClick}
-              className={`p-2.5 rounded-xl transition-all duration-300 ${
-                isSearchOpen
-                  ? "bg-primary-light text-white shadow-md shadow-primary-light/30 scale-105"
-                  : "hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark hover:scale-105"
-              }`}
+              onClick={() => navigate("/explore")}
+              className={`md:hidden p-2.5 rounded-xl transition-all duration-300 hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark hover:scale-105`}
             >
               <FiSearch size={20} />
             </button>
@@ -452,37 +463,7 @@ const Navbar = ({ socket }) => {
         </div>
       </div>
 
-      {/* Search Overlay */}
-      <div
-        className={`absolute top-full left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border-b border-border-light/50 dark:border-border-dark/50 shadow-lg shadow-black/5 dark:shadow-black/20 transition-all duration-300 origin-top ${
-          isSearchOpen
-            ? "opacity-100 scale-y-100"
-            : "opacity-0 scale-y-0 pointer-events-none"
-        }`}
-      >
-        <div className="max-w-3xl mx-auto px-4 py-4 sm:py-6">
-          <div className="relative flex items-center group" ref={searchRef}>
-            <FiSearch
-              className="absolute left-4 text-primary-light dark:text-primary-dark transition-transform group-focus-within:scale-110"
-              size={22}
-            />
-            <input
-              ref={searchInputRef}
-              type="text"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="Search for artists, artworks, or tags..."
-              className="w-full pl-12 pr-12 py-3.5 sm:py-4 text-base sm:text-lg bg-surface-light dark:bg-surface-dark rounded-2xl border-2 border-transparent focus:border-primary-light/50 dark:focus:border-primary-dark/50 focus:bg-background-light dark:focus:bg-background-dark focus:shadow-[0_0_0_4px_rgba(29,161,242,0.1)] text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light/70 dark:placeholder-text-secondary-dark/70 focus:outline-none transition-all"
-            />
-            <button
-              onClick={closeSearch}
-              className="absolute right-3 p-2 rounded-xl hover:bg-surface-dark/5 dark:hover:bg-surface-light/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark transition-all duration-200"
-            >
-              <FiX size={20} />
-            </button>
-          </div>
-        </div>
-      </div>
+      {/* Chat Component */}
       <Chat
         socket={socket}
         isOpen={isChatOpen}
