@@ -26,7 +26,7 @@ const Feed = () => {
   useEffect(() => {
     const handler = setTimeout(
       () => setDebouncedSearch(searchQuery.trim()),
-      300
+      300,
     );
     return () => clearTimeout(handler);
   }, [searchQuery]);
@@ -91,16 +91,16 @@ const Feed = () => {
                   ? stats.likedByCurrentUser
                   : post.likedByCurrentUser,
             }
-          : post
-      )
+          : post,
+      ),
     );
   };
 
   const handlePostUpdate = (updatedPost) => {
     setPosts((prevPosts) =>
       prevPosts.map((post) =>
-        post._id === updatedPost._id ? updatedPost : post
-      )
+        post._id === updatedPost._id ? updatedPost : post,
+      ),
     );
     if (selectedPost && selectedPost._id === updatedPost._id) {
       setSelectedPost(updatedPost);
@@ -119,7 +119,7 @@ const Feed = () => {
       });
       if (node) observer.current.observe(node);
     },
-    [loading, hasMore]
+    [loading, hasMore],
   );
 
   return (
@@ -199,11 +199,13 @@ const Feed = () => {
           </div>
 
           {/* Sidebar Column */}
-          <div className="hidden lg:block space-y-8">
-            <ActiveGamesWidget />
-            <CreativeActions />
-            <FeaturedGroupsWidget />
-            <SuggestedProfiles />
+          <div className="hidden lg:block">
+            <div className="sticky top-24 space-y-8 max-h-[calc(100vh-6rem)] overflow-y-auto pb-8 scrollbar-hide">
+              <ActiveGamesWidget />
+              <CreativeActions />
+              <FeaturedGroupsWidget />
+              <SuggestedProfiles />
+            </div>
           </div>
         </div>
       </div>

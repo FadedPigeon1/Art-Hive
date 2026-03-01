@@ -93,28 +93,28 @@ const SuggestedProfiles = () => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border border-gray-200 dark:border-gray-700">
-      <h3 className="text-lg font-bold mb-4 text-gray-800 dark:text-white">
+    <div className="bg-background-light dark:bg-surface-dark rounded-xl shadow-sm border border-border-light dark:border-border-dark p-4 transition-colors">
+      <h3 className="text-lg font-bold mb-4 text-text-primary-light dark:text-text-primary-dark">
         Suggested Profiles
       </h3>
-      <div className="space-y-3">
+      <div className="space-y-4">
         {suggestedUsers.map((suggestedUser) => (
           <div
             key={suggestedUser._id}
-            className="flex items-center justify-between"
+            className="flex items-center justify-between group"
           >
             <div className="flex items-center space-x-3 flex-1 min-w-0">
               <img
                 src={getProfilePicture(suggestedUser.profilePic)}
                 alt={suggestedUser.username}
-                className="w-10 h-10 rounded-full object-cover"
+                className="w-10 h-10 rounded-full object-cover ring-2 ring-transparent group-hover:ring-primary-light/30 transition-all duration-300"
               />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800 dark:text-white truncate">
+              <div className="flex-1 min-w-0 max-w-[120px] sm:max-w-[150px]">
+                <p className="text-sm font-semibold text-text-primary-light dark:text-text-primary-dark truncate transition-colors group-hover:text-primary-light dark:group-hover:text-primary-light">
                   {suggestedUser.username}
                 </p>
                 {suggestedUser.bio && (
-                  <p className="text-xs text-gray-600 dark:text-gray-400 truncate">
+                  <p className="text-xs text-text-secondary-light dark:text-text-secondary-dark truncate mt-0.5">
                     {suggestedUser.bio}
                   </p>
                 )}
@@ -126,10 +126,10 @@ const SuggestedProfiles = () => {
                   ? handleUnfollow(suggestedUser._id)
                   : handleFollow(suggestedUser._id)
               }
-              className={`ml-2 px-3 py-1 text-xs font-semibold rounded-full transition-colors ${
+              className={`ml-2 px-4 py-1.5 text-xs font-bold rounded-full transition-all duration-300 transform active:scale-95 ${
                 followingMap[suggestedUser._id]
-                  ? "bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600"
-                  : "bg-blue-500 text-white hover:bg-blue-600"
+                  ? "bg-surface-light dark:bg-background-dark text-text-primary-light dark:text-text-primary-dark border border-border-light dark:border-border-dark hover:border-red-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10"
+                  : "bg-text-primary-light dark:bg-text-primary-dark text-background-light dark:text-background-dark hover:bg-gray-800 dark:hover:bg-gray-200"
               }`}
             >
               {followingMap[suggestedUser._id] ? "Following" : "Follow"}

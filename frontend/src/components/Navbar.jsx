@@ -118,33 +118,39 @@ const Navbar = ({ socket }) => {
   const NavLink = ({ to, icon: Icon, label, active }) => (
     <Link
       to={to}
-      className={`flex items-center space-x-2 px-4 py-2 rounded-full transition-all duration-200 ${
+      className={`relative flex items-center space-x-2 px-4 py-2 rounded-xl transition-all duration-300 group ${
         active
-          ? "bg-primary-light/10 text-primary-light dark:text-primary-dark font-medium"
-          : "text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark hover:text-primary-light dark:hover:text-primary-dark"
+          ? "text-primary-light dark:text-primary-dark font-semibold bg-primary-light/5 dark:bg-primary-dark/10"
+          : "text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark hover:text-primary-light dark:hover:text-primary-dark font-medium"
       }`}
     >
-      <Icon size={20} />
-      <span className="hidden md:inline">{label}</span>
+      <Icon
+        size={18}
+        className={`transition-transform duration-300 ${active ? "scale-110" : "group-hover:scale-110"}`}
+      />
+      <span className="hidden lg:inline">{label}</span>
+      {active && (
+        <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1/2 h-0.5 bg-primary-light dark:bg-primary-dark rounded-t-full" />
+      )}
     </Link>
   );
 
   return (
-    <nav className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-border-light dark:border-border-dark transition-colors duration-300">
+    <nav className="sticky top-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-xl border-b border-border-light/50 dark:border-border-dark/50 transition-colors duration-300 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between items-center h-20">
+        <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="p-2 bg-gradient-to-br from-primary-light to-purple-600 rounded-xl shadow-lg shadow-primary-light/20 group-hover:shadow-primary-light/40 transition-all duration-300 transform group-hover:scale-105">
+            <div className="p-2 bg-gradient-to-br from-primary-light to-secondary-light dark:from-primary-dark dark:to-secondary-dark rounded-xl shadow-md shadow-primary-light/20 group-hover:shadow-primary-light/40 group-hover:-translate-y-0.5 transition-all duration-300">
               <FaPalette className="text-white text-xl" />
             </div>
-            <span className="text-2xl font-bold bg-gradient-to-r from-text-primary-light to-primary-light dark:from-white dark:to-primary-dark bg-clip-text text-transparent">
+            <span className="text-2xl font-black bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent tracking-tight">
               ArtHive
             </span>
           </Link>
 
           {/* Desktop Navigation */}
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center space-x-1">
             <NavLink
               to="/"
               icon={FiHome}
@@ -180,14 +186,14 @@ const Navbar = ({ socket }) => {
           </div>
 
           {/* Right Section */}
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2 sm:space-x-4">
             {/* Search */}
             <button
               onClick={handleSearchClick}
-              className={`p-2.5 rounded-full transition-all duration-200 ${
+              className={`p-2.5 rounded-xl transition-all duration-300 ${
                 isSearchOpen
-                  ? "bg-primary-light text-white shadow-lg shadow-primary-light/30"
-                  : "hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark"
+                  ? "bg-primary-light text-white shadow-md shadow-primary-light/30 scale-105"
+                  : "hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark hover:scale-105"
               }`}
             >
               <FiSearch size={20} />
@@ -197,11 +203,11 @@ const Navbar = ({ socket }) => {
             {isAuthenticated && (
               <button
                 onClick={handleToggleChat}
-                className="relative p-2.5 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark transition-all duration-200"
+                className="relative p-2.5 rounded-xl hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark transition-all duration-300 hover:scale-105"
               >
                 <FiMessageCircle size={20} />
                 {unreadCount > 0 && (
-                  <span className="absolute top-0 right-0 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full">
+                  <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full border border-background-light dark:border-background-dark">
                     {unreadCount > 9 ? "9+" : unreadCount}
                   </span>
                 )}
@@ -215,29 +221,74 @@ const Navbar = ({ socket }) => {
               <div className="relative" ref={settingsRef}>
                 <button
                   onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                  className="flex items-center space-x-2 pl-2 pr-1 py-1 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark border border-transparent hover:border-border-light dark:hover:border-border-dark transition-all duration-200"
+                  className="flex items-center space-x-2 pl-2 pr-2 py-1.5 rounded-xl hover:bg-surface-light dark:hover:bg-surface-dark border border-transparent hover:border-border-light dark:hover:border-border-dark transition-all duration-300"
                 >
                   <img
                     src={getProfilePicture(user?.profilePic)}
                     alt={user?.username}
-                    className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-light/20"
+                    className="w-8 h-8 rounded-full object-cover ring-2 ring-primary-light/20 hover:ring-primary-light/50 transition-all duration-300"
                   />
                   <FiSettings
-                    className="text-text-secondary-light dark:text-text-secondary-dark"
+                    className={`text-text-secondary-light dark:text-text-secondary-dark transition-transform duration-300 ${
+                      isSettingsOpen ? "rotate-90" : ""
+                    }`}
                     size={16}
                   />
                 </button>
 
                 {/* Dropdown */}
                 {isSettingsOpen && (
-                  <div className="absolute right-0 mt-4 w-64 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-5 duration-200">
+                  <div className="absolute right-0 mt-4 w-64 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border border-border-light dark:border-border-dark rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 py-2 animate-in fade-in slide-in-from-top-5 duration-200 z-50">
                     <div className="px-4 py-3 border-b border-border-light dark:border-border-dark mb-2">
-                      <p className="text-sm font-medium text-text-primary-light dark:text-text-primary-dark">
+                      <p className="text-xs font-semibold text-text-secondary-light dark:text-text-secondary-dark uppercase tracking-wider">
                         Signed in as
                       </p>
-                      <p className="text-sm font-bold text-primary-light truncate">
+                      <p className="text-sm font-bold text-text-primary-light dark:text-text-primary-dark truncate mt-0.5">
                         {user?.username}
                       </p>
+                    </div>
+
+                    <div className="md:hidden border-b border-border-light dark:border-border-dark mb-2 pb-2">
+                      <Link
+                        to="/"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full px-4 py-2 flex items-center space-x-3 text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                      >
+                        <FiHome size={16} />
+                        <span>Home</span>
+                      </Link>
+                      <Link
+                        to="/game"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full px-4 py-2 flex items-center space-x-3 text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                      >
+                        <FaGamepad size={16} />
+                        <span>Game</span>
+                      </Link>
+                      <Link
+                        to="/color-picker"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full px-4 py-2 flex items-center space-x-3 text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                      >
+                        <FaEyeDropper size={16} />
+                        <span>Color Picker</span>
+                      </Link>
+                      <Link
+                        to="/groups"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full px-4 py-2 flex items-center space-x-3 text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                      >
+                        <FaUsers size={16} />
+                        <span>Communities</span>
+                      </Link>
+                      <Link
+                        to="/sketchbook"
+                        onClick={() => setIsSettingsOpen(false)}
+                        className="w-full px-4 py-2 flex items-center space-x-3 text-primary-light dark:text-primary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors font-medium"
+                      >
+                        <FiPlus size={16} />
+                        <span>Create</span>
+                      </Link>
                     </div>
 
                     <Link
@@ -327,16 +378,45 @@ const Navbar = ({ socket }) => {
                 )}
               </div>
             ) : (
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3">
                 <div className="relative" ref={settingsRef}>
                   <button
                     onClick={() => setIsSettingsOpen(!isSettingsOpen)}
-                    className="p-2.5 rounded-full hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark transition-all duration-200"
+                    className="p-2.5 rounded-xl hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark transition-all duration-300 hover:scale-105"
                   >
-                    <FiSettings size={20} />
+                    <FiSettings
+                      size={20}
+                      className={`transition-transform duration-300 ${isSettingsOpen ? "rotate-90" : ""}`}
+                    />
                   </button>
                   {isSettingsOpen && (
-                    <div className="absolute right-0 mt-4 w-48 bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-2xl shadow-xl py-2 animate-in fade-in slide-in-from-top-5 duration-200">
+                    <div className="absolute right-0 mt-4 w-48 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border border-border-light dark:border-border-dark rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 py-2 animate-in fade-in slide-in-from-top-5 duration-200 z-50">
+                      <div className="md:hidden border-b border-border-light dark:border-border-dark mb-2 pb-2">
+                        <Link
+                          to="/"
+                          onClick={() => setIsSettingsOpen(false)}
+                          className="w-full px-4 py-2 flex items-center space-x-3 text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                        >
+                          <FiHome size={16} />
+                          <span>Home</span>
+                        </Link>
+                        <Link
+                          to="/game"
+                          onClick={() => setIsSettingsOpen(false)}
+                          className="w-full px-4 py-2 flex items-center space-x-3 text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                        >
+                          <FaGamepad size={16} />
+                          <span>Game</span>
+                        </Link>
+                        <Link
+                          to="/groups"
+                          onClick={() => setIsSettingsOpen(false)}
+                          className="w-full px-4 py-2 flex items-center space-x-3 text-text-secondary-light dark:text-text-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark transition-colors"
+                        >
+                          <FaUsers size={16} />
+                          <span>Communities</span>
+                        </Link>
+                      </div>
                       <button
                         onClick={() => {
                           toggleTheme();
@@ -344,23 +424,25 @@ const Navbar = ({ socket }) => {
                         }}
                         className="w-full px-4 py-2.5 flex items-center space-x-3 hover:bg-surface-light dark:hover:bg-surface-dark transition-colors text-text-secondary-light dark:text-text-secondary-dark"
                       >
-                        <div className="w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                        <div className="w-8 h-8 rounded-full bg-surface-light dark:bg-background-dark flex items-center justify-center">
                           {isDark ? <FiSun size={16} /> : <FiMoon size={16} />}
                         </div>
-                        <span>{isDark ? "Light Mode" : "Dark Mode"}</span>
+                        <span className="font-medium">
+                          {isDark ? "Light Mode" : "Dark Mode"}
+                        </span>
                       </button>
                     </div>
                   )}
                 </div>
                 <Link
                   to="/login"
-                  className="hidden sm:block px-5 py-2.5 text-sm font-medium text-text-primary-light dark:text-text-primary-dark hover:bg-surface-light dark:hover:bg-surface-dark rounded-full transition-colors"
+                  className="hidden sm:block px-5 py-2 text-sm font-bold text-text-primary-light dark:text-text-primary-dark hover:bg-surface-light dark:hover:bg-surface-dark rounded-xl transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/register"
-                  className="px-5 py-2.5 text-sm font-bold text-white bg-gradient-to-r from-primary-light to-primary-dark hover:shadow-lg hover:shadow-primary-light/30 rounded-full transition-all duration-200 transform hover:-translate-y-0.5"
+                  className="px-5 py-2 text-sm font-bold text-white bg-gradient-to-r from-primary-light to-secondary-light dark:from-primary-dark dark:to-secondary-dark hover:shadow-lg hover:shadow-primary-light/30 rounded-xl transition-all duration-300 transform hover:-translate-y-0.5"
                 >
                   Sign Up
                 </Link>
@@ -372,17 +454,17 @@ const Navbar = ({ socket }) => {
 
       {/* Search Overlay */}
       <div
-        className={`absolute top-full left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-md border-b border-border-light dark:border-border-dark shadow-lg transition-all duration-300 origin-top ${
+        className={`absolute top-full left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border-b border-border-light/50 dark:border-border-dark/50 shadow-lg shadow-black/5 dark:shadow-black/20 transition-all duration-300 origin-top ${
           isSearchOpen
             ? "opacity-100 scale-y-100"
             : "opacity-0 scale-y-0 pointer-events-none"
         }`}
       >
-        <div className="max-w-4xl mx-auto px-4 py-6">
-          <div className="relative flex items-center" ref={searchRef}>
+        <div className="max-w-3xl mx-auto px-4 py-4 sm:py-6">
+          <div className="relative flex items-center group" ref={searchRef}>
             <FiSearch
-              className="absolute left-4 text-primary-light"
-              size={24}
+              className="absolute left-4 text-primary-light dark:text-primary-dark transition-transform group-focus-within:scale-110"
+              size={22}
             />
             <input
               ref={searchInputRef}
@@ -390,11 +472,11 @@ const Navbar = ({ socket }) => {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search for artists, artworks, or tags..."
-              className="w-full pl-12 pr-12 py-4 text-lg bg-surface-light dark:bg-surface-dark rounded-2xl border-2 border-transparent focus:border-primary-light focus:bg-background-light dark:focus:bg-background-dark text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light focus:outline-none transition-all shadow-inner"
+              className="w-full pl-12 pr-12 py-3.5 sm:py-4 text-base sm:text-lg bg-surface-light dark:bg-surface-dark rounded-2xl border-2 border-transparent focus:border-primary-light/50 dark:focus:border-primary-dark/50 focus:bg-background-light dark:focus:bg-background-dark focus:shadow-[0_0_0_4px_rgba(29,161,242,0.1)] text-text-primary-light dark:text-text-primary-dark placeholder-text-secondary-light/70 dark:placeholder-text-secondary-dark/70 focus:outline-none transition-all"
             />
             <button
               onClick={closeSearch}
-              className="absolute right-4 p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-text-secondary-light transition-colors"
+              className="absolute right-3 p-2 rounded-xl hover:bg-surface-dark/5 dark:hover:bg-surface-light/10 text-text-secondary-light dark:text-text-secondary-dark hover:text-text-primary-light dark:hover:text-text-primary-dark transition-all duration-200"
             >
               <FiX size={20} />
             </button>

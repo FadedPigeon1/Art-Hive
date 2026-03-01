@@ -106,7 +106,7 @@ const NotificationDropdown = ({ socket }) => {
       await notificationsAPI.markAllAsRead();
       setUnreadCount(0);
       setNotifications((prev) =>
-        prev.map((notif) => ({ ...notif, read: true }))
+        prev.map((notif) => ({ ...notif, read: true })),
       );
     } catch (error) {
       console.error("Error marking as read:", error);
@@ -153,18 +153,18 @@ const NotificationDropdown = ({ socket }) => {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={handleToggle}
-        className="relative p-2.5 rounded-full transition-all duration-200 hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark"
+        className="relative p-2.5 rounded-xl transition-all duration-300 hover:bg-surface-light dark:hover:bg-surface-dark text-text-secondary-light dark:text-text-secondary-dark hover:scale-105"
       >
         <FiBell size={20} />
         {unreadCount > 0 && (
-          <span className="absolute top-1 right-1 flex items-center justify-center w-5 h-5 text-xs font-bold text-white bg-red-500 rounded-full animate-pulse">
+          <span className="absolute top-1 right-1 flex items-center justify-center w-4 h-4 text-[10px] font-bold text-white bg-red-500 rounded-full animate-pulse border border-background-light dark:border-background-dark">
             {unreadCount > 9 ? "9+" : unreadCount}
           </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="absolute right-0 mt-4 w-96 max-h-[500px] overflow-y-auto bg-background-light dark:bg-background-dark border border-border-light dark:border-border-dark rounded-2xl shadow-xl animate-in fade-in slide-in-from-top-5 duration-200">
+        <div className="absolute right-0 mt-4 w-80 sm:w-96 max-h-[80vh] overflow-y-auto bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-xl border border-border-light dark:border-border-dark rounded-2xl shadow-xl shadow-black/5 dark:shadow-black/20 animate-in fade-in slide-in-from-top-5 duration-200 z-50">
           <div className="sticky top-0 bg-background-light dark:bg-background-dark px-4 py-3 border-b border-border-light dark:border-border-dark">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold text-text-primary-light dark:text-text-primary-dark">

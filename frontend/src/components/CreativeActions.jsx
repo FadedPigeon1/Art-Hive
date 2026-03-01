@@ -68,67 +68,85 @@ const CreativeActions = () => {
   return (
     <div className="space-y-6">
       {/* Daily Challenge Card */}
-      <div className="bg-gradient-to-br from-purple-600 to-indigo-700 rounded-xl p-6 text-white shadow-lg transform transition hover:scale-105">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold">Daily Challenge</h3>
-          <FaPalette className="text-2xl opacity-80" />
+      <div className="group relative overflow-hidden bg-gradient-to-br from-primary-light to-secondary-light dark:from-primary-dark dark:to-secondary-dark rounded-xl p-6 text-white shadow-lg shadow-primary-light/20 transition-all duration-300 hover:shadow-xl hover:shadow-primary-light/30">
+        {/* Abstract background blobs */}
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl transform group-hover:scale-150 transition-transform duration-700"></div>
+        <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-black/10 rounded-full blur-xl transform group-hover:scale-150 transition-transform duration-700"></div>
+
+        <div className="relative flex items-center justify-between mb-4">
+          <h3 className="text-xl font-black tracking-tight">Daily Challenge</h3>
+          <FaPalette className="text-2xl opacity-90 transform group-hover:rotate-12 transition-transform duration-300" />
         </div>
 
         {/* Challenge Status & Streak */}
-        <div className="flex items-center gap-3 mb-3">
+        <div className="relative flex flex-wrap items-center gap-2 mb-3">
           {challengeData?.hasCompleted && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">
-              ✓ Completed
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white/20 backdrop-blur-sm text-white text-xs font-bold rounded-full border border-white/30">
+              <span className="text-green-300">✓</span> Completed
             </span>
           )}
           {user?.dailyChallengeStreak > 0 && (
-            <span className="inline-flex items-center gap-1 px-2 py-1 bg-orange-500 text-white text-xs font-semibold rounded-full">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-orange-500/80 backdrop-blur-sm text-white text-xs font-bold rounded-full shadow-sm border border-orange-400/50">
               🔥 {user.dailyChallengeStreak} Day Streak
             </span>
           )}
         </div>
 
-        <p className="text-purple-100 mb-2 text-sm">Today's Prompt:</p>
-        <p className="text-2xl font-black mb-2">"{dailyPrompt}"</p>
+        <div className="relative">
+          <p className="text-white/80 mb-1 text-sm font-medium uppercase tracking-wider">
+            Today's Prompt:
+          </p>
+          <p className="text-2xl font-black mb-2 text-white drop-shadow-md">
+            "{dailyPrompt}"
+          </p>
+        </div>
 
         {/* XP Reward */}
         {!challengeData?.hasCompleted && challengeData?.xpReward && (
-          <p className="text-sm text-purple-200 mb-4">
-            +{challengeData.xpReward} XP reward
+          <p className="relative inline-flex items-center gap-1.5 text-sm font-bold text-yellow-300 mb-5 bg-black/20 px-3 py-1 rounded-lg">
+            <span>✨</span> +{challengeData.xpReward} XP
           </p>
         )}
 
-        {challengeData?.hasCompleted ? (
-          <div className="w-full text-center bg-white/20 text-white font-bold py-2 rounded-lg cursor-not-allowed">
-            Challenge Completed! 🎉
-          </div>
-        ) : (
-          <Link
-            to={`/sketchbook?prompt=${encodeURIComponent(
-              dailyPrompt
-            )}&challenge=${challengeData?._id || ""}`}
-            className="block w-full text-center bg-white text-purple-700 font-bold py-2 rounded-lg hover:bg-purple-50 transition"
-          >
-            Start Drawing
-          </Link>
-        )}
+        <div className="relative">
+          {challengeData?.hasCompleted ? (
+            <div className="w-full text-center bg-white/20 backdrop-blur-sm text-white font-bold py-2.5 rounded-xl cursor-not-allowed border border-white/20">
+              Challenge Completed! 🎉
+            </div>
+          ) : (
+            <Link
+              to={`/sketchbook?prompt=${encodeURIComponent(
+                dailyPrompt,
+              )}&challenge=${challengeData?._id || ""}`}
+              className="block w-full text-center bg-white/95 text-primary-light font-black py-2.5 rounded-xl hover:bg-white transition-all duration-300 hover:shadow-lg transform active:scale-95"
+            >
+              Start Drawing
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* Game Lobby Card */}
-      <div className="bg-gradient-to-br from-pink-500 to-rose-600 rounded-xl p-6 text-white shadow-lg transform transition hover:scale-105">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-bold">Game Room</h3>
-          <FaGamepad className="text-2xl opacity-80" />
+      <div className="group relative overflow-hidden bg-gradient-to-br from-pink-500 to-rose-600 dark:from-pink-600 dark:to-rose-700 rounded-xl p-6 text-white shadow-lg shadow-pink-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-pink-500/30">
+        {/* Abstract background blobs */}
+        <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl transform group-hover:scale-150 transition-transform duration-700"></div>
+        <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-black/10 rounded-full blur-xl transform group-hover:scale-150 transition-transform duration-700"></div>
+
+        <div className="relative flex items-center justify-between mb-4">
+          <h3 className="text-xl font-black tracking-tight">Game Room</h3>
+          <FaGamepad className="text-2xl opacity-90 transform group-hover:-rotate-12 transition-transform duration-300" />
         </div>
-        <p className="text-pink-100 mb-6">
-          Challenge your friends to a drawing battle!
-        </p>
-        <Link
-          to="/game"
-          className="block w-full text-center bg-white text-pink-600 font-bold py-2 rounded-lg hover:bg-pink-50 transition"
-        >
-          Play Now
-        </Link>
+        <div className="relative">
+          <p className="text-white/90 mb-6 font-medium">
+            Challenge your friends to a drawing battle!
+          </p>
+          <Link
+            to="/game"
+            className="block w-full text-center bg-white/95 text-pink-600 font-black py-2.5 rounded-xl hover:bg-white transition-all duration-300 hover:shadow-lg transform active:scale-95"
+          >
+            Play Now
+          </Link>
+        </div>
       </div>
     </div>
   );
