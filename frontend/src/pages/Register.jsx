@@ -32,7 +32,7 @@ const Register = () => {
     const result = await register(
       formData.username,
       formData.email,
-      formData.password
+      formData.password,
     );
 
     if (result.success) {
@@ -50,21 +50,21 @@ const Register = () => {
       <div className="max-w-md w-full">
         <div className="bg-white/80 dark:bg-surface-dark/80 backdrop-blur-xl rounded-2xl shadow-xl p-8 border border-white/20 dark:border-white/10">
           <div className="text-center mb-8">
-            <div className="w-20 h-20 mx-auto mb-4 flex items-center justify-center transform hover:scale-105 transition-transform duration-300 relative">
-              <img 
-                src="/logo.png" 
-                alt="ArtHive Logo" 
-                className="w-full h-full object-contain drop-shadow-lg scale-[1.3]"
+            <div className="w-14 h-14 mx-auto mb-4 flex items-center justify-center transform hover:scale-105 transition-transform duration-300 relative">
+              <img
+                src="/logo.png"
+                alt="ArtHive Logo"
+                className="w-full h-full object-contain drop-shadow-lg"
                 onError={(e) => {
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
+                  e.target.style.display = "none";
+                  e.target.nextSibling.style.display = "flex";
                 }}
               />
-              <div className="hidden w-full h-full bg-gradient-to-br from-primary-light to-secondary-light rounded-2xl items-center justify-center shadow-lg transform rotate-3 hover:rotate-6">
-                <FiUser className="w-10 h-10 text-white" />
+              <div className="hidden w-full h-full bg-gradient-to-r from-primary-light via-secondary-light to-accent-light rounded-2xl items-center justify-center shadow-lg transform rotate-3 hover:rotate-6">
+                <FiUser className="w-8 h-8 text-white" />
               </div>
             </div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-light to-secondary-light bg-clip-text text-transparent mb-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-light via-secondary-light to-accent-light bg-clip-text text-transparent mb-2">
               Join ArtHive
             </h1>
             <p className="text-text-secondary-light dark:text-text-secondary-dark">
@@ -176,7 +176,7 @@ const Register = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full py-3 px-4 bg-gradient-to-r from-primary-light to-secondary-light hover:from-primary-dark hover:to-secondary-dark text-white rounded-xl font-medium shadow-lg shadow-primary-light/30 hover:shadow-primary-light/50 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center group"
+              className="w-full py-3 px-4 bg-gradient-to-r from-primary-light via-secondary-light to-accent-light hover:from-primary-dark hover:via-secondary-dark hover:to-accent-dark text-white rounded-xl font-medium shadow-lg shadow-primary-light/30 hover:shadow-primary-light/50 transform hover:-translate-y-0.5 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none flex items-center justify-center group"
             >
               {loading ? (
                 "Creating Account..."

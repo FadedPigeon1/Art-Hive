@@ -68,7 +68,7 @@ const CreativeActions = () => {
   return (
     <div className="space-y-6">
       {/* Daily Challenge Card */}
-      <div className="group relative overflow-hidden bg-gradient-to-br from-primary-light to-secondary-light dark:from-primary-dark dark:to-secondary-dark rounded-xl p-6 text-white shadow-lg shadow-primary-light/20 transition-all duration-300 hover:shadow-xl hover:shadow-primary-light/30">
+      <div className="group relative overflow-hidden bg-gradient-to-br from-[#1DA1F2] to-[#8B5CF6] rounded-xl p-6 text-white shadow-lg shadow-[#1DA1F2]/20 transition-all duration-300 hover:shadow-xl hover:shadow-[#1DA1F2]/30">
         {/* Abstract background blobs */}
         <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl transform group-hover:scale-150 transition-transform duration-700"></div>
         <div className="absolute -bottom-10 -left-10 w-24 h-24 bg-black/10 rounded-full blur-xl transform group-hover:scale-150 transition-transform duration-700"></div>
@@ -118,7 +118,7 @@ const CreativeActions = () => {
               to={`/sketchbook?prompt=${encodeURIComponent(
                 dailyPrompt,
               )}&challenge=${challengeData?._id || ""}`}
-              className="block w-full text-center bg-white/95 text-primary-light font-black py-2.5 rounded-xl hover:bg-white transition-all duration-300 hover:shadow-lg transform active:scale-95"
+              className="block w-full text-center bg-white/95 text-[#1DA1F2] font-black py-2.5 rounded-xl hover:bg-white transition-all duration-300 hover:shadow-lg transform active:scale-95"
             >
               Start Drawing
             </Link>

@@ -136,24 +136,22 @@ const Navbar = ({ socket }) => {
         <div className="flex justify-between items-center h-16 sm:h-20">
           {/* Logo */}
           <Link to="/" className="flex items-center space-x-3 group">
-            <div className="relative w-12 h-12 group-hover:-translate-y-0.5 transition-transform duration-300">
-              <img 
-                src="/logo.png" 
-                alt="ArtHive Logo" 
-                className="w-full h-full object-contain drop-shadow-md scale-125"
+            <div className="relative w-8 h-8 group-hover:-translate-y-0.5 transition-transform duration-300">
+              <img
+                src="/logo.png"
+                alt="ArtHive Logo"
+                className="w-full h-full object-contain drop-shadow-md"
                 onError={(e) => {
                   // Fallback in case the image hasn't been saved yet
-                  e.target.style.display = 'none';
-                  e.target.nextSibling.style.display = 'flex';
+                  e.target.style.display = "none";
+                  e.target.nextSibling.style.display = "flex";
                 }}
               />
-              <div 
-                className="hidden absolute inset-0 bg-gradient-to-br from-primary-light to-secondary-light dark:from-primary-dark dark:to-secondary-dark rounded-xl shadow-md flex items-center justify-center"
-              >
+              <div className="hidden absolute inset-0 bg-gradient-to-r from-primary-light via-secondary-light to-accent-light dark:from-primary-dark dark:via-secondary-dark dark:to-accent-dark rounded-xl shadow-md flex items-center justify-center">
                 <FaPalette className="text-white text-xl" />
               </div>
             </div>
-            <span className="text-2xl font-black bg-gradient-to-br from-gray-900 to-gray-600 dark:from-white dark:to-gray-300 bg-clip-text text-transparent tracking-tight">
+            <span className="text-2xl font-black bg-gradient-to-r from-primary-light via-secondary-light to-accent-light dark:from-primary-dark dark:via-secondary-dark dark:to-accent-dark bg-clip-text text-transparent tracking-tight">
               ArtHive
             </span>
           </Link>
