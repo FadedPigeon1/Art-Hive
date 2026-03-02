@@ -17,6 +17,8 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
     brushType,
     zoom,
     setZoom,
+    symmetryConfig,
+    setSymmetryConfig,
   } = useSketchbookStore();
 
   const mainCanvasRef = useRef(null);
@@ -31,6 +33,7 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
   // Drawing State
   const [isDrawing, setIsDrawing] = useState(false);
   const [lastPoint, setLastPoint] = useState(null);
+  const [isDraggingSymmetry, setIsDraggingSymmetry] = useState(false);
 
   // Helper: Get coordinates with zoom and pan
   const getCanvasCoords = (e) => {
@@ -135,6 +138,38 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
       e.button === 1 ||
       (e.button === 0 && e.altKey)
     ) {
+      if (activeTool === "pan" && e.shiftKey) { // Just for extra way to move symmetry? No, let's just make it if activeTool is symmetry-pan or something. Wait, user can just use 'pan' tool but we check distance to symmetry axis? The prompt said: "Update the Pan tool behavior so users can click and drag the axis center to new coordinates."
+      }
+      // I'll intercept this inside
+    }
+
+    if (activeTool === "pan") {
+      const coords = getCanvasCoords(e);
+      if (symmetryConfig && symmetryConfig.mode !== 'none') {
+         // if within 50px of axis center... wait, we only need to update axisX/axisY. Let's just make clicking anywhere with pan tool move the axis IF symmetry is on? No, clicking and dragging.
+         // Let's check distance to current axis
+         const distX = Math.abs(coords.x - symmetryConfig.axisX);
+         const distY = Math.abs(coords.y - symmetryConfig.axisY);
+         const isNearAxis = (symmetryConfig.mode === 'vertical' && distX < 50) || 
+                            (symmetryConfig.mode === 'horizontal' && distY < 50) ||
+                            (symmetryConfig.mode === 'radial' && distX < 50 && distY < 50);
+         
+         if (isNearAxis) {
+           setIsDraggingSymmetry(true);
+           return;
+         }
+      }
+
+      setIsPanning(true);
+      const rect = mainCanvasRef.current.getBoundingClientRect();
+      setLastPanPoint({
+        x: (e.clientX || e.touches[0]?.clientX) - rect.left,
+        y: (e.clientY || e.touches[0]?.clientY) - rect.top,
+      });
+      return;
+    }
+
+    if (e.button === 1 || (e.button === 0 && e.altKey)) {
       setIsPanning(true);
       const rect = mainCanvasRef.current.getBoundingClientRect();
       setLastPanPoint({
@@ -167,6 +202,14 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
 
   const draw = (e) => {
     e.preventDefault();
+
+    if (isDraggingSymmetry) {
+      const coords = getCanvasCoords(e);
+      if (symmetryConfig.mode === 'vertical') setSymmetryConfig({ axisX: coords.x });
+      else if (symmetryConfig.mode === 'horizontal') setSymmetryConfig({ axisY: coords.y });
+      else setSymmetryConfig({ axisX: coords.x, axisY: coords.y });
+      return;
+    }
 
     if (isPanning) {
       const rect = mainCanvasRef.current.getBoundingClientRect();
@@ -204,6 +247,41 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
       });
     }
 
+    const pointsToDraw = [{ coords, last: lastPoint }];
+
+    // Symmetry logic
+    if (symmetryConfig && symmetryConfig.mode !== 'none') {
+      const axisX = symmetryConfig.axisX;
+      const axisY = symmetryConfig.axisY;
+      
+      const mirrorPoint = (pt, type) => {
+        if (!pt) return null;
+        if (type === 'vertical') return { x: axisX + (axisX - pt.x), y: pt.y };
+        if (type === 'horizontal') return { x: pt.x, y: axisY + (axisY - pt.y) };
+        if (type === 'radial') return { x: axisX + (axisX - pt.x), y: axisY + (axisY - pt.y) };
+        return pt;
+      };
+
+      if (symmetryConfig.mode === 'vertical' || symmetryConfig.mode === 'horizontal' || symmetryConfig.mode === 'radial') {
+         pointsToDraw.push({
+           coords: mirrorPoint(coords, symmetryConfig.mode),
+           last: mirrorPoint(lastPoint, symmetryConfig.mode)
+         });
+      }
+      if (symmetryConfig.mode === 'radial') {
+         // Radial actually gives 4 quadrants usually. If mode is radial, wait do we want 4 quadrants or just 180 degrees?
+         // Let's do 4 quadrant mirroring for 'radial'
+         pointsToDraw.push({
+           coords: mirrorPoint(coords, 'vertical'),
+           last: mirrorPoint(lastPoint, 'vertical')
+         });
+         pointsToDraw.push({
+           coords: mirrorPoint(coords, 'horizontal'),
+           last: mirrorPoint(lastPoint, 'horizontal')
+         });
+      }
+    }
+
     ctx.save();
     ctx.strokeStyle = settings.strokeStyle;
     ctx.lineWidth = settings.lineWidth;
@@ -212,138 +290,103 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
     ctx.shadowBlur = settings.shadowBlur;
     ctx.shadowColor = brushColor;
 
-    if (brushType === "AIRBRUSH") {
-      // Improved Airbrush: Gaussian distribution for smoother spray
-      const density = brushSize * 2; // Adjust density based on size
-      for (let i = 0; i < density; i++) {
-        // Random angle and radius with bias towards center (Gaussian-like)
-        const angle = Math.random() * Math.PI * 2;
-        const radius = Math.random() * brushSize * Math.random(); // Bias towards center
-        const offsetX = Math.cos(angle) * radius;
-        const offsetY = Math.sin(angle) * radius;
+    pointsToDraw.forEach(({ coords: c, last: l }) => {
+      // Re-apply in case it was altered
+      ctx.globalAlpha = 1;
+      ctx.globalCompositeOperation = "source-over";
 
-        ctx.fillStyle = settings.strokeStyle;
-        // Vary dot size slightly for natural look
-        const dotSize = Math.random() * 1.5 + 0.5;
-        ctx.globalAlpha = Math.random() * 0.5 + 0.5; // Vary opacity
-        ctx.beginPath();
-        ctx.arc(
-          coords.x + offsetX,
-          coords.y + offsetY,
-          dotSize / 2,
-          0,
-          Math.PI * 2
-        );
-        ctx.fill();
-      }
-    } else if (brushType === "CHARCOAL") {
-      // Improved Charcoal: Textured, rough strokes
-      const steps = Math.ceil(
-        Math.hypot(coords.x - lastPoint.x, coords.y - lastPoint.y)
-      );
-      const stepX = (coords.x - lastPoint.x) / steps;
-      const stepY = (coords.y - lastPoint.y) / steps;
-
-      for (let i = 0; i < steps; i++) {
-        const x = lastPoint.x + stepX * i;
-        const y = lastPoint.y + stepY * i;
-
-        // Draw multiple scratchy lines around the center
-        const scratches = 5;
-        for (let j = 0; j < scratches; j++) {
-          const offsetX = (Math.random() - 0.5) * brushSize;
-          const offsetY = (Math.random() - 0.5) * brushSize;
-          const size = Math.random() * 2 + 1;
+      if (brushType === "AIRBRUSH") {
+        const density = brushSize * 2;
+        for (let i = 0; i < density; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const radius = Math.random() * brushSize * Math.random();
+          const offsetX = Math.cos(angle) * radius;
+          const offsetY = Math.sin(angle) * radius;
 
           ctx.fillStyle = settings.strokeStyle;
-          ctx.globalAlpha = Math.random() * 0.3 + 0.1; // Low opacity for buildup
-          ctx.fillRect(x + offsetX, y + offsetY, size, size);
+          const dotSize = Math.random() * 1.5 + 0.5;
+          ctx.globalAlpha = Math.random() * 0.5 + 0.5;
+          ctx.beginPath();
+          ctx.arc(c.x + offsetX, c.y + offsetY, dotSize / 2, 0, Math.PI * 2);
+          ctx.fill();
         }
-      }
-    } else if (brushType === "SMUDGE") {
-      // Improved Smudge: Drag colors from previous position
-      // We need to sample the canvas at the previous point and draw it at the current point
-      // with low opacity to simulate dragging wet paint.
+      } else if (brushType === "CHARCOAL") {
+        const steps = Math.ceil(Math.hypot(c.x - l.x, c.y - l.y));
+        const stepX = steps > 0 ? (c.x - l.x) / steps : 0;
+        const stepY = steps > 0 ? (c.y - l.y) / steps : 0;
 
-      // 1. Sample a larger area from the previous point
-      const sampleSize = brushSize * 2;
-      const sampleX = lastPoint.x - brushSize;
-      const sampleY = lastPoint.y - brushSize;
+        for (let i = 0; i < steps; i++) {
+          const x = l.x + stepX * i;
+          const y = l.y + stepY * i;
+          const scratches = 5;
+          for (let j = 0; j < scratches; j++) {
+            const offsetX = (Math.random() - 0.5) * brushSize;
+            const offsetY = (Math.random() - 0.5) * brushSize;
+            const size = Math.random() * 2 + 1;
 
-      // Ensure we are within bounds (basic check, canvas clips anyway)
-      try {
-        const imageData = ctx.getImageData(
-          sampleX,
-          sampleY,
-          sampleSize,
-          sampleSize
-        );
-
-        // 2. Create a temporary canvas to manipulate the sampled data (optional, but good for effects)
-        // For simplicity, we just put it back at the new location with transparency
-
-        // 3. Draw the sampled data at the new location
-        // We use a temporary canvas to apply globalAlpha to the putImageData result
-        const tempCanvas = document.createElement("canvas");
-        tempCanvas.width = sampleSize;
-        tempCanvas.height = sampleSize;
-        const tempCtx = tempCanvas.getContext("2d");
-        tempCtx.putImageData(imageData, 0, 0);
-
-        ctx.globalAlpha = 0.5; // Smudge strength
-        ctx.drawImage(tempCanvas, coords.x - brushSize, coords.y - brushSize);
-      } catch (e) {
-        // Ignore out of bounds errors
-      }
-    } else if (brushType === "MARKER") {
-      // Marker effect - Multiply blending for buildup
-      ctx.globalCompositeOperation = "multiply";
-      ctx.beginPath();
-      if (lastPoint) {
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(coords.x, coords.y);
+            ctx.fillStyle = settings.strokeStyle;
+            ctx.globalAlpha = Math.random() * 0.3 + 0.1;
+            ctx.fillRect(x + offsetX, y + offsetY, size, size);
+          }
+        }
+      } else if (brushType === "SMUDGE") {
+        const sampleSize = brushSize * 2;
+        const sampleX = l.x - brushSize;
+        const sampleY = l.y - brushSize;
+        try {
+          const imageData = ctx.getImageData(sampleX, sampleY, sampleSize, sampleSize);
+          const tempCanvas = document.createElement("canvas");
+          tempCanvas.width = sampleSize;
+          tempCanvas.height = sampleSize;
+          const tempCtx = tempCanvas.getContext("2d");
+          tempCtx.putImageData(imageData, 0, 0);
+          ctx.globalAlpha = 0.5;
+          ctx.drawImage(tempCanvas, c.x - brushSize, c.y - brushSize);
+        } catch (e) {}
+      } else if (brushType === "MARKER") {
+        ctx.globalCompositeOperation = "multiply";
+        ctx.beginPath();
+        if (l) {
+          ctx.moveTo(l.x, l.y);
+          ctx.lineTo(c.x, c.y);
+        } else {
+          ctx.moveTo(c.x, c.y);
+          ctx.lineTo(c.x, c.y);
+        }
+        ctx.stroke();
+      } else if (brushType === "PENCIL") {
+        ctx.beginPath();
+        if (l) {
+          ctx.moveTo(l.x, l.y);
+          ctx.lineTo(c.x, c.y);
+        } else {
+          ctx.moveTo(c.x, c.y);
+          ctx.lineTo(c.x, c.y);
+        }
+        ctx.stroke();
+        const distance = Math.hypot(c.x - (l ? l.x : c.x), c.y - (l ? l.y : c.y));
+        const grains = Math.floor(distance * 0.5);
+        ctx.fillStyle = settings.strokeStyle;
+        for (let i = 0; i < grains; i++) {
+          const t = Math.random();
+          const x = l.x + (c.x - l.x) * t;
+          const y = l.y + (c.y - l.y) * t;
+          const offsetX = (Math.random() - 0.5) * brushSize * 0.5;
+          const offsetY = (Math.random() - 0.5) * brushSize * 0.5;
+          ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
+        }
       } else {
-        ctx.moveTo(coords.x, coords.y);
-        ctx.lineTo(coords.x, coords.y);
+        ctx.beginPath();
+        if (l) {
+          ctx.moveTo(l.x, l.y);
+          ctx.lineTo(c.x, c.y);
+        } else {
+          ctx.moveTo(c.x, c.y);
+          ctx.lineTo(c.x, c.y);
+        }
+        ctx.stroke();
       }
-      ctx.stroke();
-      // Reset composite operation is handled by ctx.restore()
-    } else if (brushType === "PENCIL") {
-      // Improved Pencil: Texture and jitter
-      ctx.beginPath();
-      ctx.moveTo(lastPoint.x, lastPoint.y);
-      ctx.lineTo(coords.x, coords.y);
-      ctx.stroke();
-
-      // Add grain
-      const distance = Math.hypot(
-        coords.x - lastPoint.x,
-        coords.y - lastPoint.y
-      );
-      const grains = Math.floor(distance * 0.5);
-
-      ctx.fillStyle = settings.strokeStyle;
-      for (let i = 0; i < grains; i++) {
-        const t = Math.random();
-        const x = lastPoint.x + (coords.x - lastPoint.x) * t;
-        const y = lastPoint.y + (coords.y - lastPoint.y) * t;
-        const offsetX = (Math.random() - 0.5) * brushSize * 0.5;
-        const offsetY = (Math.random() - 0.5) * brushSize * 0.5;
-
-        ctx.fillRect(x + offsetX, y + offsetY, 1, 1);
-      }
-    } else {
-      // Standard brush stroke (Pen, Paintbrush, Eraser)
-      ctx.beginPath();
-      if (lastPoint) {
-        ctx.moveTo(lastPoint.x, lastPoint.y);
-        ctx.lineTo(coords.x, coords.y);
-      } else {
-        ctx.moveTo(coords.x, coords.y);
-        ctx.lineTo(coords.x, coords.y);
-      }
-      ctx.stroke();
-    }
+    });
 
     ctx.restore();
     setLastPoint(coords);
@@ -354,6 +397,11 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
 
   const stopDrawing = (e) => {
     if (e) e.preventDefault();
+
+    if (isDraggingSymmetry) {
+      setIsDraggingSymmetry(false);
+      return;
+    }
 
     if (isPanning) {
       setIsPanning(false);

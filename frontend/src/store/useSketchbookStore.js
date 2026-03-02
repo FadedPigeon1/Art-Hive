@@ -91,6 +91,11 @@ export const useSketchbookStore = create((set, get) => ({
   activeLayerId: 1,
   nextLayerId: 2,
 
+  // Symmetry Config
+  symmetryConfig: { mode: 'none', axisX: 600, axisY: 400 },
+  setSymmetryConfig: (config) =>
+    set((state) => ({ symmetryConfig: { ...state.symmetryConfig, ...config } })),
+
   setLayers: (val) =>
     set((state) => ({
       layers: typeof val === "function" ? val(state.layers) : val,
@@ -259,5 +264,6 @@ export const useSketchbookStore = create((set, get) => ({
       activeLayerId: 1,
       nextLayerId: 2,
       zoom: 1,
+      symmetryConfig: { mode: 'none', axisX: 600, axisY: 400 },
     }),
 }));

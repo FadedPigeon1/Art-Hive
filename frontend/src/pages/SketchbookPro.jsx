@@ -27,6 +27,7 @@ import LayersPanel from "../components/LayersPanel";
 import BrushSettings from "../components/BrushSettings";
 import ColorPickerPanel from "../components/ColorPickerPanel";
 import { useCanvas } from "../hooks/useCanvas";
+import { useTimelapse } from "../hooks/useTimelapse";
 import { useSketchbookStore, BRUSH_TYPES } from "../store/useSketchbookStore";
 
 const SketchbookPro = ({
@@ -83,6 +84,8 @@ const SketchbookPro = ({
     setActiveTool,
     zoom,
     setZoom,
+    symmetryConfig,
+    setSymmetryConfig,
     addLayer,
     deleteLayer,
     duplicateLayer,
@@ -191,8 +194,15 @@ const SketchbookPro = ({
   };
 
   const {
+    isRecording,
+    isExporting,
+    startRecording,
+    stopRecording,
+    recordEvent
+  } = useTimelapse(canvasWidth, canvasHeight);
+
+  const {
     mainCanvasRef,
-    // zoom and setZoom are now from store directly
     rotation,
     setRotation,
     panOffset,
@@ -206,6 +216,14 @@ const SketchbookPro = ({
     resetView,
   } = useCanvas({
     saveToHistory,
+    onDraw: (data) => {
+      // Add symmetry config to stroke data if enabled
+      const sym = useSketchbookStore.getState().symmetryConfig;
+      if (sym && sym.mode !== 'none') {
+        data.symmetryConfig = sym;
+      }
+      recordEvent({ type: 'stroke', stroke: data });
+    }
   });
 
   // Initialize canvases (optionally with remix image as background)
@@ -297,17 +315,54 @@ const SketchbookPro = ({
     layers.forEach((layer) => {
       if (!layer.visible || !layer.data) return;
 
-      ctx.save();
-      ctx.globalAlpha = layer.opacity / 100;
-      ctx.globalCompositeOperation = layer.blendMode;
-      ctx.drawImage(layer.data, 0, 0);
-      ctx.restore();
+      if (layer.type === 'text') {
+        ctx.save();
+        ctx.globalAlpha = layer.opacity / 100;
+        ctx.globalCompositeOperation = layer.blendMode;
+        ctx.font = `${layer.fontSize}px ${layer.font || 'Arial'}`;
+        ctx.fillStyle = layer.color || '#000000';
+        ctx.fillText(layer.content || '', layer.x, layer.y);
+        ctx.restore();
+      } else {
+        ctx.save();
+        ctx.globalAlpha = layer.opacity / 100;
+        ctx.globalCompositeOperation = layer.blendMode;
+        ctx.drawImage(layer.data, 0, 0);
+        ctx.restore();
+      }
     });
-  }, [layers, canvasWidth, canvasHeight]);
+
+    // Draw symmetry axis if enabled
+    if (symmetryConfig && symmetryConfig.mode !== 'none') {
+      ctx.save();
+      ctx.strokeStyle = 'rgba(0, 150, 255, 0.5)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([5, 5]);
+      ctx.beginPath();
+      if (symmetryConfig.mode === 'vertical' || symmetryConfig.mode === 'radial') {
+        ctx.moveTo(symmetryConfig.axisX, 0);
+        ctx.lineTo(symmetryConfig.axisX, canvasHeight);
+      }
+      if (symmetryConfig.mode === 'horizontal' || symmetryConfig.mode === 'radial') {
+        ctx.moveTo(0, symmetryConfig.axisY);
+        ctx.lineTo(canvasWidth, symmetryConfig.axisY);
+      }
+      ctx.stroke();
+      
+      // Draw center handle
+      ctx.fillStyle = 'rgba(0, 150, 255, 0.8)';
+      ctx.beginPath();
+      ctx.arc(symmetryConfig.mode === 'horizontal' ? canvasWidth/2 : symmetryConfig.axisX, 
+              symmetryConfig.mode === 'vertical' ? canvasHeight/2 : symmetryConfig.axisY, 
+              5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }, [layers, canvasWidth, canvasHeight, symmetryConfig]);
 
   useEffect(() => {
     compositeAllLayers();
-  }, [layers, compositeAllLayers]);
+  }, [layers, compositeAllLayers, symmetryConfig]);
 
   // Color conversion
   const hslToRgb = (h, s, l) => {
@@ -763,6 +818,29 @@ const SketchbookPro = ({
             </button>
           </div>
 
+          <div className="flex items-center space-x-2 bg-[#1a1a1a] rounded-lg p-1 border border-[#333]">
+            {isRecording ? (
+              <button
+                onClick={stopRecording}
+                className="px-3 py-1 text-xs font-medium rounded-md bg-red-500/20 text-red-500 hover:bg-red-500/40 transition-colors flex items-center space-x-1"
+                title="Stop Recording Timelapse"
+              >
+                <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                <span>Stop Rec</span>
+              </button>
+            ) : (
+              <button
+                onClick={startRecording}
+                disabled={isExporting}
+                className="px-3 py-1 text-xs font-medium rounded-md hover:bg-[#333] transition-colors text-gray-400 hover:text-white flex items-center space-x-1 disabled:opacity-50"
+                title="Start Timelapse Recording"
+              >
+                <div className="w-2 h-2 border border-gray-400 rounded-full"></div>
+                <span>{isExporting ? "Exporting..." : "Record"}</span>
+              </button>
+            )}
+          </div>
+
           {!remixImageUrl && (
             <button
               onClick={() => {
@@ -940,6 +1018,70 @@ const SketchbookPro = ({
                 >
                   <FiMove size={20} />
                 </button>
+                <button
+                  onClick={() => setActiveTool("text")}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all ${
+                    activeTool === "text"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="Text Tool"
+                >
+                  <span className="font-bold text-lg font-serif">T</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Symmetry Section */}
+            <div>
+              <h3 className="text-[10px] uppercase tracking-wider text-gray-500 mb-3 font-bold">
+                Symmetry
+              </h3>
+              <div className="grid grid-cols-4 gap-2">
+                <button
+                  onClick={() => setSymmetryConfig({ mode: 'none' })}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
+                    (!symmetryConfig || symmetryConfig.mode === "none")
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="No Symmetry"
+                >
+                  Off
+                </button>
+                <button
+                  onClick={() => setSymmetryConfig({ mode: 'vertical' })}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
+                    symmetryConfig?.mode === "vertical"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="Vertical Symmetry"
+                >
+                  Vert
+                </button>
+                <button
+                  onClick={() => setSymmetryConfig({ mode: 'horizontal' })}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
+                    symmetryConfig?.mode === "horizontal"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="Horizontal Symmetry"
+                >
+                  Horz
+                </button>
+                <button
+                  onClick={() => setSymmetryConfig({ mode: 'radial' })}
+                  className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
+                    symmetryConfig?.mode === "radial"
+                      ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                      : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
+                  }`}
+                  title="Radial Symmetry (4-way)"
+                >
+                  Quad
+                </button>
               </div>
             </div>
 
@@ -1026,7 +1168,47 @@ const SketchbookPro = ({
             >
               <canvas
                 ref={mainCanvasRef}
-                onMouseDown={startDrawing}
+                onMouseDown={(e) => {
+                  if (activeTool === "text") {
+                    const text = prompt("Enter text:");
+                    if (text) {
+                      const rect = e.target.getBoundingClientRect();
+                      const x = (e.clientX - rect.left - panOffset.x) / zoom;
+                      const y = (e.clientY - rect.top - panOffset.y) / zoom;
+                      
+                      const newLayer = {
+                        id: Date.now(),
+                        name: `Text: ${text.substring(0, 10)}`,
+                        type: 'text',
+                        content: text,
+                        x,
+                        y,
+                        fontSize: brushSize * 5,
+                        font: 'sans-serif',
+                        color: brushColor,
+                        visible: true,
+                        opacity: 100,
+                        blendMode: 'source-over',
+                        locked: false,
+                        data: null
+                      };
+                      setLayers([newLayer, ...layers]);
+                      setActiveLayerId(newLayer.id);
+                      saveToHistory();
+                      recordEvent({
+                        type: 'layer_add_text',
+                        content: text,
+                        x,
+                        y,
+                        fontSize: brushSize * 5,
+                        font: 'sans-serif',
+                        color: brushColor
+                      });
+                    }
+                    return; // Don't trigger draw
+                  }
+                  startDrawing(e);
+                }}
                 onMouseMove={draw}
                 onMouseUp={stopDrawing}
                 onMouseLeave={stopDrawing}
