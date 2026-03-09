@@ -138,26 +138,28 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
       e.button === 1 ||
       (e.button === 0 && e.altKey)
     ) {
-      if (activeTool === "pan" && e.shiftKey) { // Just for extra way to move symmetry? No, let's just make it if activeTool is symmetry-pan or something. Wait, user can just use 'pan' tool but we check distance to symmetry axis? The prompt said: "Update the Pan tool behavior so users can click and drag the axis center to new coordinates."
+      if (activeTool === "pan" && e.shiftKey) {
+        // Just for extra way to move symmetry? No, let's just make it if activeTool is symmetry-pan or something. Wait, user can just use 'pan' tool but we check distance to symmetry axis? The prompt said: "Update the Pan tool behavior so users can click and drag the axis center to new coordinates."
       }
       // I'll intercept this inside
     }
 
     if (activeTool === "pan") {
       const coords = getCanvasCoords(e);
-      if (symmetryConfig && symmetryConfig.mode !== 'none') {
-         // if within 50px of axis center... wait, we only need to update axisX/axisY. Let's just make clicking anywhere with pan tool move the axis IF symmetry is on? No, clicking and dragging.
-         // Let's check distance to current axis
-         const distX = Math.abs(coords.x - symmetryConfig.axisX);
-         const distY = Math.abs(coords.y - symmetryConfig.axisY);
-         const isNearAxis = (symmetryConfig.mode === 'vertical' && distX < 50) || 
-                            (symmetryConfig.mode === 'horizontal' && distY < 50) ||
-                            (symmetryConfig.mode === 'radial' && distX < 50 && distY < 50);
-         
-         if (isNearAxis) {
-           setIsDraggingSymmetry(true);
-           return;
-         }
+      if (symmetryConfig && symmetryConfig.mode !== "none") {
+        // if within 50px of axis center... wait, we only need to update axisX/axisY. Let's just make clicking anywhere with pan tool move the axis IF symmetry is on? No, clicking and dragging.
+        // Let's check distance to current axis
+        const distX = Math.abs(coords.x - symmetryConfig.axisX);
+        const distY = Math.abs(coords.y - symmetryConfig.axisY);
+        const isNearAxis =
+          (symmetryConfig.mode === "vertical" && distX < 50) ||
+          (symmetryConfig.mode === "horizontal" && distY < 50) ||
+          (symmetryConfig.mode === "radial" && distX < 50 && distY < 50);
+
+        if (isNearAxis) {
+          setIsDraggingSymmetry(true);
+          return;
+        }
       }
 
       setIsPanning(true);
@@ -205,8 +207,10 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
 
     if (isDraggingSymmetry) {
       const coords = getCanvasCoords(e);
-      if (symmetryConfig.mode === 'vertical') setSymmetryConfig({ axisX: coords.x });
-      else if (symmetryConfig.mode === 'horizontal') setSymmetryConfig({ axisY: coords.y });
+      if (symmetryConfig.mode === "vertical")
+        setSymmetryConfig({ axisX: coords.x });
+      else if (symmetryConfig.mode === "horizontal")
+        setSymmetryConfig({ axisY: coords.y });
       else setSymmetryConfig({ axisX: coords.x, axisY: coords.y });
       return;
     }
@@ -250,35 +254,41 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
     const pointsToDraw = [{ coords, last: lastPoint }];
 
     // Symmetry logic
-    if (symmetryConfig && symmetryConfig.mode !== 'none') {
+    if (symmetryConfig && symmetryConfig.mode !== "none") {
       const axisX = symmetryConfig.axisX;
       const axisY = symmetryConfig.axisY;
-      
+
       const mirrorPoint = (pt, type) => {
         if (!pt) return null;
-        if (type === 'vertical') return { x: axisX + (axisX - pt.x), y: pt.y };
-        if (type === 'horizontal') return { x: pt.x, y: axisY + (axisY - pt.y) };
-        if (type === 'radial') return { x: axisX + (axisX - pt.x), y: axisY + (axisY - pt.y) };
+        if (type === "vertical") return { x: axisX + (axisX - pt.x), y: pt.y };
+        if (type === "horizontal")
+          return { x: pt.x, y: axisY + (axisY - pt.y) };
+        if (type === "radial")
+          return { x: axisX + (axisX - pt.x), y: axisY + (axisY - pt.y) };
         return pt;
       };
 
-      if (symmetryConfig.mode === 'vertical' || symmetryConfig.mode === 'horizontal' || symmetryConfig.mode === 'radial') {
-         pointsToDraw.push({
-           coords: mirrorPoint(coords, symmetryConfig.mode),
-           last: mirrorPoint(lastPoint, symmetryConfig.mode)
-         });
+      if (
+        symmetryConfig.mode === "vertical" ||
+        symmetryConfig.mode === "horizontal" ||
+        symmetryConfig.mode === "radial"
+      ) {
+        pointsToDraw.push({
+          coords: mirrorPoint(coords, symmetryConfig.mode),
+          last: mirrorPoint(lastPoint, symmetryConfig.mode),
+        });
       }
-      if (symmetryConfig.mode === 'radial') {
-         // Radial actually gives 4 quadrants usually. If mode is radial, wait do we want 4 quadrants or just 180 degrees?
-         // Let's do 4 quadrant mirroring for 'radial'
-         pointsToDraw.push({
-           coords: mirrorPoint(coords, 'vertical'),
-           last: mirrorPoint(lastPoint, 'vertical')
-         });
-         pointsToDraw.push({
-           coords: mirrorPoint(coords, 'horizontal'),
-           last: mirrorPoint(lastPoint, 'horizontal')
-         });
+      if (symmetryConfig.mode === "radial") {
+        // Radial actually gives 4 quadrants usually. If mode is radial, wait do we want 4 quadrants or just 180 degrees?
+        // Let's do 4 quadrant mirroring for 'radial'
+        pointsToDraw.push({
+          coords: mirrorPoint(coords, "vertical"),
+          last: mirrorPoint(lastPoint, "vertical"),
+        });
+        pointsToDraw.push({
+          coords: mirrorPoint(coords, "horizontal"),
+          last: mirrorPoint(lastPoint, "horizontal"),
+        });
       }
     }
 
@@ -334,7 +344,12 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
         const sampleX = l.x - brushSize;
         const sampleY = l.y - brushSize;
         try {
-          const imageData = ctx.getImageData(sampleX, sampleY, sampleSize, sampleSize);
+          const imageData = ctx.getImageData(
+            sampleX,
+            sampleY,
+            sampleSize,
+            sampleSize,
+          );
           const tempCanvas = document.createElement("canvas");
           tempCanvas.width = sampleSize;
           tempCanvas.height = sampleSize;
@@ -364,7 +379,10 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
           ctx.lineTo(c.x, c.y);
         }
         ctx.stroke();
-        const distance = Math.hypot(c.x - (l ? l.x : c.x), c.y - (l ? l.y : c.y));
+        const distance = Math.hypot(
+          c.x - (l ? l.x : c.x),
+          c.y - (l ? l.y : c.y),
+        );
         const grains = Math.floor(distance * 0.5);
         ctx.fillStyle = settings.strokeStyle;
         for (let i = 0; i < grains; i++) {

@@ -92,9 +92,11 @@ export const useSketchbookStore = create((set, get) => ({
   nextLayerId: 2,
 
   // Symmetry Config
-  symmetryConfig: { mode: 'none', axisX: 600, axisY: 400 },
+  symmetryConfig: { mode: "none", axisX: 600, axisY: 400 },
   setSymmetryConfig: (config) =>
-    set((state) => ({ symmetryConfig: { ...state.symmetryConfig, ...config } })),
+    set((state) => ({
+      symmetryConfig: { ...state.symmetryConfig, ...config },
+    })),
 
   setLayers: (val) =>
     set((state) => ({
@@ -125,7 +127,7 @@ export const useSketchbookStore = create((set, get) => ({
   toggleLayerVisibility: (id) =>
     set((state) => ({
       layers: state.layers.map((l) =>
-        l.id === id ? { ...l, visible: !l.visible } : l
+        l.id === id ? { ...l, visible: !l.visible } : l,
       ),
     })),
 
@@ -264,6 +266,6 @@ export const useSketchbookStore = create((set, get) => ({
       activeLayerId: 1,
       nextLayerId: 2,
       zoom: 1,
-      symmetryConfig: { mode: 'none', axisX: 600, axisY: 400 },
+      symmetryConfig: { mode: "none", axisX: 600, axisY: 400 },
     }),
 }));

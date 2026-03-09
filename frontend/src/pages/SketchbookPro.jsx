@@ -198,7 +198,7 @@ const SketchbookPro = ({
     isExporting,
     startRecording,
     stopRecording,
-    recordEvent
+    recordEvent,
   } = useTimelapse(canvasWidth, canvasHeight);
 
   const {
@@ -219,11 +219,11 @@ const SketchbookPro = ({
     onDraw: (data) => {
       // Add symmetry config to stroke data if enabled
       const sym = useSketchbookStore.getState().symmetryConfig;
-      if (sym && sym.mode !== 'none') {
+      if (sym && sym.mode !== "none") {
         data.symmetryConfig = sym;
       }
-      recordEvent({ type: 'stroke', stroke: data });
-    }
+      recordEvent({ type: "stroke", stroke: data });
+    },
   });
 
   // Initialize canvases (optionally with remix image as background)
@@ -255,8 +255,8 @@ const SketchbookPro = ({
 
       setLayers((prev) =>
         prev.map((layer) =>
-          layer.id === 1 ? { ...layer, data: layerCanvas } : layer
-        )
+          layer.id === 1 ? { ...layer, data: layerCanvas } : layer,
+        ),
       );
       setTimeout(() => saveToHistory(), 100);
     };
@@ -282,7 +282,7 @@ const SketchbookPro = ({
         const zoomFactor = Math.min(
           viewportWidth / imgW,
           viewportHeight / imgH,
-          1
+          1,
         );
         if (zoomFactor > 0 && zoomFactor < 1) {
           setZoom(zoomFactor);
@@ -315,13 +315,13 @@ const SketchbookPro = ({
     layers.forEach((layer) => {
       if (!layer.visible || !layer.data) return;
 
-      if (layer.type === 'text') {
+      if (layer.type === "text") {
         ctx.save();
         ctx.globalAlpha = layer.opacity / 100;
         ctx.globalCompositeOperation = layer.blendMode;
-        ctx.font = `${layer.fontSize}px ${layer.font || 'Arial'}`;
-        ctx.fillStyle = layer.color || '#000000';
-        ctx.fillText(layer.content || '', layer.x, layer.y);
+        ctx.font = `${layer.fontSize}px ${layer.font || "Arial"}`;
+        ctx.fillStyle = layer.color || "#000000";
+        ctx.fillText(layer.content || "", layer.x, layer.y);
         ctx.restore();
       } else {
         ctx.save();
@@ -333,28 +333,42 @@ const SketchbookPro = ({
     });
 
     // Draw symmetry axis if enabled
-    if (symmetryConfig && symmetryConfig.mode !== 'none') {
+    if (symmetryConfig && symmetryConfig.mode !== "none") {
       ctx.save();
-      ctx.strokeStyle = 'rgba(0, 150, 255, 0.5)';
+      ctx.strokeStyle = "rgba(0, 150, 255, 0.5)";
       ctx.lineWidth = 2;
       ctx.setLineDash([5, 5]);
       ctx.beginPath();
-      if (symmetryConfig.mode === 'vertical' || symmetryConfig.mode === 'radial') {
+      if (
+        symmetryConfig.mode === "vertical" ||
+        symmetryConfig.mode === "radial"
+      ) {
         ctx.moveTo(symmetryConfig.axisX, 0);
         ctx.lineTo(symmetryConfig.axisX, canvasHeight);
       }
-      if (symmetryConfig.mode === 'horizontal' || symmetryConfig.mode === 'radial') {
+      if (
+        symmetryConfig.mode === "horizontal" ||
+        symmetryConfig.mode === "radial"
+      ) {
         ctx.moveTo(0, symmetryConfig.axisY);
         ctx.lineTo(canvasWidth, symmetryConfig.axisY);
       }
       ctx.stroke();
-      
+
       // Draw center handle
-      ctx.fillStyle = 'rgba(0, 150, 255, 0.8)';
+      ctx.fillStyle = "rgba(0, 150, 255, 0.8)";
       ctx.beginPath();
-      ctx.arc(symmetryConfig.mode === 'horizontal' ? canvasWidth/2 : symmetryConfig.axisX, 
-              symmetryConfig.mode === 'vertical' ? canvasHeight/2 : symmetryConfig.axisY, 
-              5, 0, Math.PI * 2);
+      ctx.arc(
+        symmetryConfig.mode === "horizontal"
+          ? canvasWidth / 2
+          : symmetryConfig.axisX,
+        symmetryConfig.mode === "vertical"
+          ? canvasHeight / 2
+          : symmetryConfig.axisY,
+        5,
+        0,
+        Math.PI * 2,
+      );
       ctx.fill();
       ctx.restore();
     }
@@ -426,7 +440,7 @@ const SketchbookPro = ({
         setLayers(restoredLayers);
       });
     },
-    [history, canvasWidth, canvasHeight]
+    [history, canvasWidth, canvasHeight],
   );
 
   const undo = () => {
@@ -450,11 +464,11 @@ const SketchbookPro = ({
   const applyCanvasSize = () => {
     const w = Math.max(
       256,
-      Math.min(4096, Number(pendingWidth) || canvasWidth)
+      Math.min(4096, Number(pendingWidth) || canvasWidth),
     );
     const h = Math.max(
       256,
-      Math.min(4096, Number(pendingHeight) || canvasHeight)
+      Math.min(4096, Number(pendingHeight) || canvasHeight),
     );
 
     setCanvasWidth(w);
@@ -568,7 +582,7 @@ const SketchbookPro = ({
         setLayers((prev) => {
           const newLayers = [...prev];
           const activeLayerIndex = newLayers.findIndex(
-            (l) => l.id === activeLayerId
+            (l) => l.id === activeLayerId,
           );
 
           if (activeLayerIndex !== -1) {
@@ -594,7 +608,7 @@ const SketchbookPro = ({
         const zoomFactor = Math.min(
           viewportWidth / img.width,
           viewportHeight / img.height,
-          1
+          1,
         );
         if (zoomFactor > 0) {
           setZoom(zoomFactor);
@@ -1039,9 +1053,9 @@ const SketchbookPro = ({
               </h3>
               <div className="grid grid-cols-4 gap-2">
                 <button
-                  onClick={() => setSymmetryConfig({ mode: 'none' })}
+                  onClick={() => setSymmetryConfig({ mode: "none" })}
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
-                    (!symmetryConfig || symmetryConfig.mode === "none")
+                    !symmetryConfig || symmetryConfig.mode === "none"
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
                       : "bg-[#2a2a2a] text-gray-400 hover:bg-[#333] hover:text-gray-200"
                   }`}
@@ -1050,7 +1064,7 @@ const SketchbookPro = ({
                   Off
                 </button>
                 <button
-                  onClick={() => setSymmetryConfig({ mode: 'vertical' })}
+                  onClick={() => setSymmetryConfig({ mode: "vertical" })}
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
                     symmetryConfig?.mode === "vertical"
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
@@ -1061,7 +1075,7 @@ const SketchbookPro = ({
                   Vert
                 </button>
                 <button
-                  onClick={() => setSymmetryConfig({ mode: 'horizontal' })}
+                  onClick={() => setSymmetryConfig({ mode: "horizontal" })}
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
                     symmetryConfig?.mode === "horizontal"
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
@@ -1072,7 +1086,7 @@ const SketchbookPro = ({
                   Horz
                 </button>
                 <button
-                  onClick={() => setSymmetryConfig({ mode: 'radial' })}
+                  onClick={() => setSymmetryConfig({ mode: "radial" })}
                   className={`aspect-square rounded-xl flex flex-col items-center justify-center transition-all text-xs font-semibold ${
                     symmetryConfig?.mode === "radial"
                       ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
@@ -1152,8 +1166,8 @@ const SketchbookPro = ({
                   activeTool === "pan"
                     ? "grab"
                     : activeTool === "eyedropper"
-                    ? "crosshair"
-                    : "crosshair",
+                      ? "crosshair"
+                      : "crosshair",
               }}
               onMouseDown={
                 activeTool === "pan"
@@ -1175,34 +1189,34 @@ const SketchbookPro = ({
                       const rect = e.target.getBoundingClientRect();
                       const x = (e.clientX - rect.left - panOffset.x) / zoom;
                       const y = (e.clientY - rect.top - panOffset.y) / zoom;
-                      
+
                       const newLayer = {
                         id: Date.now(),
                         name: `Text: ${text.substring(0, 10)}`,
-                        type: 'text',
+                        type: "text",
                         content: text,
                         x,
                         y,
                         fontSize: brushSize * 5,
-                        font: 'sans-serif',
+                        font: "sans-serif",
                         color: brushColor,
                         visible: true,
                         opacity: 100,
-                        blendMode: 'source-over',
+                        blendMode: "source-over",
                         locked: false,
-                        data: null
+                        data: null,
                       };
                       setLayers([newLayer, ...layers]);
                       setActiveLayerId(newLayer.id);
                       saveToHistory();
                       recordEvent({
-                        type: 'layer_add_text',
+                        type: "layer_add_text",
                         content: text,
                         x,
                         y,
                         fontSize: brushSize * 5,
-                        font: 'sans-serif',
-                        color: brushColor
+                        font: "sans-serif",
+                        color: brushColor,
                       });
                     }
                     return; // Don't trigger draw
