@@ -434,8 +434,8 @@ export const useCanvas = ({ saveToHistory, onDraw }) => {
   };
 
   // View Controls
-  const handleZoomIn = () => setZoom((prev) => Math.min(prev + 0.25, 5));
-  const handleZoomOut = () => setZoom((prev) => Math.max(prev - 0.25, 0.25));
+  const handleZoomIn = () => setZoom(Math.min(zoom + 0.1, 5));
+  const handleZoomOut = () => setZoom(Math.max(zoom - 0.1, 0.1));
   const resetView = () => {
     setZoom(1);
     setRotation(0);
